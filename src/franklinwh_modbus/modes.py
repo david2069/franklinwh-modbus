@@ -97,8 +97,13 @@ class VirtualModeController:
             logger.debug(f"Could not read aGate reserve: {e}")
         return 20
     
-    def set_mode(self, mode: VirtualMode, **kwargs):
-        """Change operating mode with optional parameters."""
+    def set_mode(self, mode: VirtualMode, dry_run: bool = False, **kwargs):
+        """Change operating mode with optional parameters.
+
+        Applies the new mode immediately via execute_once(). Pass dry_run=True
+        to calculate and report the command without writing to the device —
+        without it, merely selecting a mode engages control.
+        """
         self.mode = mode
         
         for key, value in kwargs.items():
@@ -136,7 +141,7 @@ class VirtualModeController:
             logger.warning("Use --reset-on-start to force takeover, or resolve conflict in vendor app")
         
         logger.info(f"Mode changed to: {self.mode.value}")
-        self.execute_once()
+        self.execute_once(dry_run=dry_run)
     
     def _print_soc_summary(self, current_soc: float):
         """Print single-line summary of SOC status with ETA."""
@@ -535,14 +540,22 @@ class VirtualModeController:
             logger.debug(f"Could not verify command execution: {e}")
             return True, 0, 0, 0  # Fail open (assume OK) on error
     
-    def execute_once(self) -> float:
-        """Calculate and send single command. Returns actual power sent."""
+    def execute_once(self, dry_run: bool = False) -> float:
+        """Calculate and send single command. Returns actual power sent.
+
+        With dry_run=True the command is calculated and reported but never
+        written, and no commanded-power state is recorded.
+        """
         status = self.read_status()
         
         power = self.calculate_power()
         
         cmd = BatteryCommand(power_watts=power, mode=ControlMode.LIMIT_ABS)
-        success, msg = self.ctrl.send_command(cmd)
+        success, msg = self.ctrl.send_command(cmd, dry_run=dry_run)
+        
+        if dry_run:
+            logger.info(f"DRY RUN {self.mode.value}: {power:.0f}W ({msg})")
+            return power
         
         if success:
             # Only log when power changes (dedup for loop mode)

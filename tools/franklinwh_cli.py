@@ -1270,7 +1270,7 @@ def main():
             
             # Set mode and run
             try:
-                vmc.set_mode(VirtualMode(args.vmode), **mode_kwargs)
+                vmc.set_mode(VirtualMode(args.vmode), dry_run=args.dry_run, **mode_kwargs)
             except ValueError as e:
                 print(f"\n❌ CONFIGURATION ERROR: {e}")
                 sys.exit(1)
@@ -1349,7 +1349,7 @@ def main():
                     min_discharge_soc=args.min_discharge_soc or 20,
                     soc_ramp_window=args.soc_ramp_window
                 )
-                vmc.set_mode(VirtualMode.MANUAL, manual_power_w=args.power)
+                vmc.set_mode(VirtualMode.MANUAL, dry_run=args.dry_run, manual_power_w=args.power)
                 
                 if has_target_soc:
                     # Target SoC auto-stop mode
