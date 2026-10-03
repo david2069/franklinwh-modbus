@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-10-04
+
+### Fixed
+- `--dry-run` no longer writes to the device. `set_mode()` applies a mode immediately via `execute_once()` but took no `dry_run` parameter, so `franklinwh_cli.py --vmode ... --dry-run` engaged control (`WSetEna=1`, `WSetPct=100.0`) and then reported "no commands sent". Confirmed on an aGate X (`V10R01B04D00`); the orphaned dispatch pins the battery until released. Both CLI entry points were affected (`--vmode` and `--power`/`--duration`). `set_mode()` and `execute_once()` now take `dry_run`, matching `set_native_mode()` and its siblings. (#13)
+
+### Changed
+- Removed the unverified "SPAN Modbus unlock" attribution from all messages, logs, help text and the capability manifest. The library stated that extension register writes (15507-15509) fail because an installer option needs unlocking; that was inference, never confirmed by FranklinWH, and reached end users as actionable advice. Messages now report only what is observed: writes are accepted at the protocol level but not applied on the firmware tested. `--check-span` no longer infers writability from panel presence. `_span_writable` renamed to `_extension_writable`. (#14)
+- Package metadata and LICENSE now use the GitHub handle rather than a real name.
+
+### Added
+- Legal disclaimer (`DISCLAIMER` in `constants.py`), logged once per process at `FranklinWHController` construction and reproduced in `readme.md` and `docs/index.md`. States that this library is unofficial and unaffiliated, that it writes to energy hardware and can charge, discharge and stop a battery, and that FranklinWH support should not be contacted about defects or feature requests for this software. (#14)
+- Documentation of FranklinWH's SunSpec Alliance contributing membership on the docs front page and in `SUNSPEC_COMPLIANCE_BASIS.md`. (#14)
+- Regression tests asserting a dry run never reaches `send_command` without `dry_run` set (`tests/unit/test_dry_run_no_writes.py`). (#13)
+
 ## [0.9.3] - 2026-06-15
 
 ### Added
