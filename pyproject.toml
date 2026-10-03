@@ -9,7 +9,7 @@ description = "FranklinWH aGate Modbus TCP library — SunSpec + extension regis
 readme = "readme.md"
 license = "MIT"
 authors = [
-    {name = "David Hona", email = "david2069@users.noreply.github.com"}
+    {name = "david2069", email = "david2069@users.noreply.github.com"}
 ]
 requires-python = ">=3.8"
 dependencies = [
