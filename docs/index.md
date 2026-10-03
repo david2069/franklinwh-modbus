@@ -2,6 +2,35 @@
 
 Unofficial Python library & CLI for controlling **FranklinWH** battery storage systems via Modbus TCP, optimized for the aGate gateway.
 
+!!! warning "Important Disclaimer"
+    This library is **unofficial** and **not endorsed, supported, or affiliated with FranklinWH** in any way.
+
+    It is provided **"AS IS"**, for **educational and informational purposes only**, without warranty of any kind, express or implied, including but not limited to warranties of merchantability or **fitness for any particular purpose**. The author(s) and contributor(s) of this library and its documentation accept **no responsibility or liability** for any consequences of its use, and make **no warranty that it is fit for any purpose**.
+
+    **By using this library, you acknowledge that:**
+
+    - This software **writes to energy hardware** and can charge, discharge and stop your battery
+    - You assume **all risk** associated with its use
+    - It may break without notice due to **firmware changes** by FranklinWH
+    - Behaviour observed on one firmware or model may not hold on yours
+    - You will use it responsibly
+
+    **Do NOT contact FranklinWH support** about defects, issues or feature requests for this software. They did not write it and cannot help with it. Raise them at [github.com/david2069/franklinwh-modbus/issues](https://github.com/david2069/franklinwh-modbus/issues) instead.
+
+!!! info "SunSpec Alliance membership"
+    FranklinWH is a **SunSpec Alliance contributing member**:
+    [sunspec.org/contributing-members/franklin-wh](https://sunspec.org/contributing-members/franklin-wh/)
+
+    That membership is why the aGate speaks SunSpec at all — the device exposes
+    the standard SunSpec information models (1, 701–715, 502) that this library
+    reads and writes, alongside FranklinWH's own manufacturer extension block at
+    15500+.
+
+    For how this library's conformance work is grounded, see
+    [SunSpec Compliance Basis](SUNSPEC_COMPLIANCE_BASIS.md) for the specification
+    documents used, and [PICS Conformance Cross-Reference](PICS_CONFORMANCE_CROSS_REFERENCE.md)
+    for what this device was observed to implement.
+
 !!! note "Related Project"
     For the FranklinWH Cloud API (non-Modbus), see [franklinwh-cloud](https://david2069.github.io/franklinwh-cloud/).
 
