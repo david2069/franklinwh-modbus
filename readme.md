@@ -6,6 +6,22 @@
 
 A Python library for controlling FranklinWH battery storage systems via Modbus TCP, optimized for the aGate gateway with SunSpec model support and FranklinWH extension registers.
 
+> ### ⚠️ Important Disclaimer
+>
+> This library is **unofficial** and **not endorsed, supported, or affiliated with FranklinWH** in any way.
+>
+> It is provided **"AS IS"**, for **educational and informational purposes only**, without warranty of any kind, express or implied, including but not limited to warranties of merchantability or **fitness for any particular purpose**. The author(s) and contributor(s) of this library and its documentation accept **no responsibility or liability** for any consequences of its use, and make **no warranty that it is fit for any purpose**.
+>
+> **By using this library, you acknowledge that:**
+>
+> - This software **writes to energy hardware** and can charge, discharge and stop your battery
+> - You assume **all risk** associated with its use
+> - It may break without notice due to **firmware changes** by FranklinWH
+> - Behaviour observed on one firmware or model may not hold on yours
+> - You will use it responsibly
+>
+> **Do NOT contact FranklinWH support** about defects, issues or feature requests for this software. They did not write it and cannot help with it. Raise them at [github.com/david2069/franklinwh-modbus/issues](https://github.com/david2069/franklinwh-modbus/issues) instead.
+
 > 📖 **New to Modbus TCP?** See the [documentation site](https://david2069.github.io/franklinwh-modbus/) for an introduction to Modbus TCP, SunSpec, and how this library compares to the Cloud API.
 
 > **Note:** This is the Modbus TCP library (`pip install franklinwh-modbus`).  
@@ -38,14 +54,14 @@ A Python library for controlling FranklinWH battery storage systems via Modbus T
 
 **Read operations always work** — battery status, grid power, solar production (proximal and remote), system alarms, and all SunSpec model data are readable by any Modbus TCP client without provisioning. The CLI `--status`, `--healthcheck`, and TUI monitor all work out of the box.
 
-**Write access to extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve) requires "SPAN Modbus" unlock in FranklinWH installer settings.**
+**Writes to the extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve) are accepted at the protocol level but are not applied** on the firmware tested here (aGate X, `V10R01B04D00`). The register echoes the write and then reads back its previous value, which is why every write in this library is verified by read-back.
 
 > [!IMPORTANT]
-> **FranklinWH Modbus extensions are not writeable by default** and will not function unless FranklinWH Support unlocks them or a future firmware release allows them. Even though these setters are implemented in software/the library, they will be **non-functional for the vast majority of users** (excluding those with SPAN or Lumin smart panels who have obtained installer unlock).
+> **Why this happens is not known.** FranklinWH has not documented or confirmed any mechanism that enables these writes — past, present or future. Earlier versions of this README attributed it to a "SPAN Modbus" installer unlock; that was inference on our part, never confirmed, and has been removed. If you know differently, please [open an issue](https://github.com/david2069/franklinwh-modbus/issues).
 
-**Already qualified:** Owners with **SPAN Panels** or **Lumin Panels** connected to the aGate via Modbus TCP — these systems already have full write access enabled.
+**Standard SunSpec M704 power commands (charge/discharge) are unaffected** and work regardless — that is the supported way to dispatch the battery from this library.
 
-**Not yet provisioned?** Contact FranklinWH Support to request Modbus write access for your aGate. Without provisioning, extension registers are read-only (writes fail silently). **Note:** Standard SunSpec M704 power commands (charge/discharge) work regardless of SPAN unlock status.
+To check your own unit, `--check-span` reports whether extension writes are applied on your system. Its result is the only reliable answer; nothing about your panel hardware predicts it.
 
 ### Avoiding Control Conflicts
 

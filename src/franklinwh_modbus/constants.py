@@ -6,6 +6,20 @@ For operating mode enums, see types.py (VirtualMode, ControlMode, ONGRID_MODES).
 """
 from enum import Enum
 
+# Legal notice. Logged once per process by FranklinWHController, and reproduced
+# in readme.md and docs/index.md. Mirrors the notice in franklinwh-cloud.
+DISCLAIMER = (
+    "franklinwh-modbus | UNOFFICIAL · NOT ENDORSED, SUPPORTED OR AFFILIATED WITH FRANKLINWH "
+    "| NO WARRANTY · PROVIDED AS-IS · USE AT YOUR OWN RISK "
+    "| This software WRITES to energy hardware and can dispatch a battery. "
+    "You assume all risk associated with its use. "
+    "| It may break without notice due to firmware changes by FranklinWH. "
+    "| Do NOT contact FranklinWH support about defects, issues or feature "
+    "requests for this software — raise them at "
+    "https://github.com/david2069/franklinwh-modbus/issues "
+    "| MIT License — see LICENSE for details."
+)
+
 # Run mode of Gateway
 RUN_STATUS = {
     0: "Standby",               # Inactive or Idle

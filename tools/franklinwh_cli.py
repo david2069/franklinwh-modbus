@@ -190,9 +190,9 @@ Examples:
     parser.add_argument('--target-soc', type=float, default=100, help='Target SoC (default: 100)')
     parser.add_argument('--reserve', type=int, default=20, help='Reserve percentage (default: 20)')
     parser.add_argument('--self-reserve', type=int,
-                        help='Set native Self-Consumption reserve SOC percentage (Register 15508). Requires SPAN Modbus unlock.')
+                        help='Set native Self-Consumption reserve SOC percentage (Register 15508). Not applied on all firmware.')
     parser.add_argument('--tou-reserve', type=int,
-                        help='Set native TOU reserve SOC percentage (Register 15509). Requires SPAN Modbus unlock.')
+                        help='Set native TOU reserve SOC percentage (Register 15509). Not applied on all firmware.')
     parser.add_argument('--threshold', type=int, default=2000, help='Peak shave threshold (default: 2000)')
     parser.add_argument('--schedule-file', help='TOU schedule JSON file')
     
@@ -952,19 +952,19 @@ def main():
                         print(f"     Firmware: {span['firmware']}")
                 print()
                 print(f"  → SPAN panel on same subnet as aGate ({agate_ip})")
-                print(f"  → Extension registers (15507-15509) may be WRITABLE")
-                # Check current extension register state
-                ext_writable = ctrl._span_writable
+                # Presence of a panel says nothing about writability — only the
+                # write test does. Report that and nothing more.
+                ext_writable = ctrl._extension_writable
                 if ext_writable is True:
-                    print(f"  → Extension write test: ✅ CONFIRMED WRITABLE")
+                    print(f"  → Extension write test: ✅ WRITES APPLIED")
                 elif ext_writable is False:
-                    print(f"  → Extension write test: ❌ Still READ-ONLY")
-                    print(f"     (SPAN Modbus may need enabling in FranklinWH installer app)")
+                    print(f"  → Extension write test: ❌ writes accepted but NOT applied")
                 else:
                     print(f"  → Extension write test: ⚠️  Not yet tested")
             else:
                 print(f"  — No SPAN panels found on {network}")
-                print(f"  → Extension registers will be READ-ONLY")
+                print(f"  → This does not determine whether extension registers")
+                print(f"    accept writes; only the write test does.")
             sys.exit(0)
         
         # Check alarms (detailed display)
@@ -1083,7 +1083,7 @@ def main():
             
             print(f"\n  Summary: {writable_count}/3 registers writable")
             if writable_count == 0:
-                print("  Note: Write access requires 'SPAN Modbus' unlock in installer settings")
+                print("  Note: extension writes are accepted but not applied on some firmware")
             elif writable_count < 3:
                 print("  Note: Partial write access - some features may be limited")
             else:

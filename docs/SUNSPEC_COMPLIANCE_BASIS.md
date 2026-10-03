@@ -1,6 +1,6 @@
 # SunSpec Compliance & Validation Basis
 
-This document defines the technical and authoritative basis for the testing protocols used in the `franklinwh-modbus` project. All verification tests are designed to adhere to the official standards published by the **SunSpec Alliance**.
+This document defines the technical and authoritative basis for the testing protocols used in the `franklinwh-modbus` project. All verification tests are designed to adhere to the official standards published by the **SunSpec Alliance**. FranklinWH is listed by the Alliance at [sunspec.org/contributing-members/franklin-wh](https://sunspec.org/contributing-members/franklin-wh/).
 
 ## 1. Authoritative Reference Documents
 
