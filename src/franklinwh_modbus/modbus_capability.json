@@ -113,12 +113,12 @@
     "15507": {
       "name": "Operating Mode",
       "status": "provisioned",
-      "description": "Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU, 4=Manual. Requires installer SPAN Modbus unlock to write. If locked, write transactions are silently accepted at protocol level but discarded internally without error."
+      "description": "Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU, 4=Manual. Write transactions are accepted at the protocol level but discarded internally without error on the firmware tested. Cause undetermined."
     },
     "15508": {
       "name": "Self-Consumption Reserve",
       "status": "provisioned",
-      "description": "Self-consumption floor reserve percentage. Requires installer SPAN Modbus unlock to write. If locked, write transactions are silently accepted at protocol level but discarded internally without error."
+      "description": "Self-consumption floor reserve percentage. Write transactions are accepted at the protocol level but discarded internally without error on the firmware tested. Cause undetermined."
     },
     "15509": {
       "name": "TOU Reserve",

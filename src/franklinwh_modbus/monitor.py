@@ -872,7 +872,7 @@ class CLIMonitor:
             content = Text("✓ No active alarms", style="green")
             
         if not self.data.extension_writable:
-            content.append("\n⚠️  Extension: READ-ONLY (requires installer unlock)", style="yellow")
+            content.append("\n⚠️  Extension: READ-ONLY (writes not applied)", style="yellow")
             
         return Panel(content, title="[bold]Alarms & Status[/bold]", 
                     border_style=self.theme.error_color if self.data.active_alarms else self._get_border_style("green"), 

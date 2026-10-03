@@ -12,7 +12,7 @@ import threading
 from typing import Dict, Any, Optional, Tuple, List, Union
 
 from .types import BatteryCommand, HealthStatus, ONGRID_MODES
-from .constants import get_pics_enum_desc
+from .constants import DISCLAIMER, get_pics_enum_desc
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +31,12 @@ CLOUD_API_AVAILABLE = False
 class FranklinWHController:
     """FranklinWH aGate controller using sunspec2 model-based access."""
     
-    # FranklinWH SPAN extension registers (15500+)
-    # NOTE: Write access requires installer-enabled "SPAN Modbus" option
+    _disclaimer_logged = False   # set once per process, see DISCLAIMER
+
+    # FranklinWH manufacturer extension registers (15500+)
+    # NOTE: Writes to these are accepted at the protocol level but are not
+    # applied on the firmware tested. The cause is not documented by
+    # FranklinWH; read-back verification is how the library detects it.
     EXT_BASE = 15500
     EXT_PV_TOTAL = 15502
     EXT_HOME_LOAD = 15506
@@ -63,6 +67,11 @@ class FranklinWHController:
         if not SUNSPEC_AVAILABLE:
             raise ImportError("sunspec2 package is required. Install with: pip install sunspec2")
         
+        # Legal notice, once per process rather than once per controller.
+        if not FranklinWHController._disclaimer_logged:
+            logger.info(DISCLAIMER)
+            FranklinWHController._disclaimer_logged = True
+        
         self.ip_address = ip_address
         self.port = port
         self.unit_id = unit_id
@@ -73,7 +82,7 @@ class FranklinWHController:
         self._override_max_discharge_w = max_discharge_w
         self.dev: Optional[SunSpecModbusClientDeviceTCP] = None
         self.models: dict = {}
-        self._span_writable: Optional[bool] = None
+        self._extension_writable: Optional[bool] = None
         
         # Software command timeout (hardware WSetRvrtTms doesn't work)
         self._command_timer: Optional[threading.Timer] = None
@@ -244,7 +253,7 @@ class FranklinWHController:
                     else:
                         self._extension_write_results['ongrid_mode']['error'] = 'Verify failed (read-only?)'
                 else:
-                    self._extension_write_results['ongrid_mode']['error'] = 'Write rejected (needs unlock?)'
+                    self._extension_write_results['ongrid_mode']['error'] = 'Write accepted but not applied'
         except Exception as e:
             self._extension_write_results['ongrid_mode']['error'] = str(e)[:50]
         
@@ -270,7 +279,7 @@ class FranklinWHController:
                     else:
                         self._extension_write_results['self_reserve']['error'] = 'Verify failed (read-only?)'
                 else:
-                    self._extension_write_results['self_reserve']['error'] = 'Write rejected (needs unlock?)'
+                    self._extension_write_results['self_reserve']['error'] = 'Write accepted but not applied'
         except Exception as e:
             self._extension_write_results['self_reserve']['error'] = str(e)[:50]
         
@@ -295,7 +304,7 @@ class FranklinWHController:
                     else:
                         self._extension_write_results['tou_reserve']['error'] = 'Verify failed (read-only?)'
                 else:
-                    self._extension_write_results['tou_reserve']['error'] = 'Write rejected (needs unlock?)'
+                    self._extension_write_results['tou_reserve']['error'] = 'Write accepted but not applied'
         except Exception as e:
             self._extension_write_results['tou_reserve']['error'] = str(e)[:50]
         
@@ -311,7 +320,7 @@ class FranklinWHController:
                            if self._extension_write_results[k]['writable']]
             logger.debug(f"Extension registers: PARTIAL WRITE ACCESS ({', '.join(writable_regs)})")
         else:
-            logger.debug("Extension registers: READ-ONLY (requires installer unlock for SPAN Modbus)")
+            logger.debug("Extension registers: READ-ONLY (writes accepted but not applied)")
         
         return self._extension_write_results
     
@@ -911,7 +920,9 @@ class FranklinWHController:
         Returns:
             Tuple of (success, message)
             
-        NOTE: Requires "SPAN Modbus" option to be enabled by installer.
+        NOTE: Extension register writes are accepted at the protocol level
+        but are not applied on the firmware tested, so this may report failure
+        after a successful-looking write. The cause is undetermined.
         """
         if mode not in self.NATIVE_MODES:
             return False, f"Invalid mode index: {mode}. Must be 1-4."
@@ -963,7 +974,8 @@ class FranklinWHController:
                             return False, (
                                 f"Write failed (Read-Only?): Hardware ignored write to {mode_name}. "
                                 f"Register stayed at {self.NATIVE_MODES.get(actual_val, f'Unknown({actual_val})')}. "
-                                "Ensure 'SPAN Modbus' is unlocked in installer settings."
+                                "Extension register writes are accepted but not applied "
+                                "on this firmware."
                             )
             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
@@ -1027,7 +1039,8 @@ class FranklinWHController:
                             return False, (
                                 f"Write failed (Read-Only?): Hardware ignored write to Self-Consumption reserve {pct}%. "
                                 f"Register stayed at {actual_val}%. "
-                                "Ensure 'SPAN Modbus' is unlocked in installer settings."
+                                "Extension register writes are accepted but not applied "
+                                "on this firmware."
                             )
                             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
@@ -1091,7 +1104,8 @@ class FranklinWHController:
                             return False, (
                                 f"Write failed (Read-Only?): Hardware ignored write to TOU reserve {pct}%. "
                                 f"Register stayed at {actual_val}%. "
-                                "Ensure 'SPAN Modbus' is unlocked in installer settings."
+                                "Extension register writes are accepted but not applied "
+                                "on this firmware."
                             )
                             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
@@ -2187,7 +2201,7 @@ class FranklinWHController:
                 recommendations.append(f"✓ Extension registers writable: {writable_str}")
             if read_only_regs:
                 readonly_str = ', '.join(read_only_regs)
-                recommendations.append(f"ℹ Extension registers read-only: {readonly_str} (requires installer unlock)")
+                recommendations.append(f"ℹ Extension registers read-only: {readonly_str} (writes accepted but not applied)")
         else:
             recommendations.append("ℹ Extension write test not completed (run --status to test)")
         
