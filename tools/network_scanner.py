@@ -187,8 +187,8 @@ class ModbusSunspecProber:
 
     A thin wrapper over the library's ``franklinwh_modbus.discovery.probe`` so
     the CLI and other projects share one implementation of the SunSpec probe.
-    Keeps this tool's behaviour: 3 attempts, to catch a gap when another client
-    (e.g. Home Assistant's Modbus poll) holds the aGate's single session.
+    Keeps this tool's behaviour: 3 attempts, for a device that is slow or
+    briefly busy.
     """
 
     # Common SunSpec base addresses to try. 0 first: FranklinWH aGate,

@@ -78,9 +78,9 @@ def test_agate_at_base_zero():
     assert res.is_franklinwh
     assert (res.manufacturer, res.model, res.serial, res.version) == (
         "FranklinWH Technologies Co., Ltd", "aGate X", "10060006A01234", "V10R01B04D00")
-    # Marker read + ONE nameplate read: minimal time on the aGate's single session.
+    # Header read (marker + model id + length) + ONE nameplate read.
     reads = [r[:2] for c in FakeClient.instances for r in c.reads]
-    assert reads == [(0, 2), (4, 64)]
+    assert reads == [(0, 4), (4, 64)]
     assert all(c.closed for c in FakeClient.instances)
 
 
@@ -93,17 +93,32 @@ def test_other_sunspec_device_is_found_but_not_franklinwh():
     regs = sunspec_map(0, manufacturer="SolarEdge", model="SE10K")
     res = d.probe("10.0.0.6", client_factory=factory({"regs": regs}))
     assert res.status == d.SUNSPEC and not res.is_franklinwh
+    assert res.summary == "SolarEdge SE10K at 10.0.0.6:502"
 
 
-def test_modbus_device_without_sunspec():
+def test_marker_without_common_model_first_is_unknown():
+    """SunSpec requires model 1 straight after the marker; nothing else is trusted."""
+    regs = sunspec_map(0)
+    regs[2] = 101  # an inverter model where the Common model should be
+    res = d.probe("10.0.0.6", client_factory=factory({"regs": regs}))
+    assert res.status == d.UNKNOWN and not res.is_franklinwh
+    assert res.manufacturer is None and res.serial is None
+    assert "first model is 101" in res.error
+    # The nameplate is never read from a device that failed the header check.
+    assert all(r[0] != 4 for c in FakeClient.instances for r in c.reads)
+
+
+def test_modbus_device_without_sunspec_is_unknown():
     res = d.probe("10.0.0.7", client_factory=factory({"regs": {}}))
-    assert res.status == d.NOT_SUNSPEC
+    assert res.status == d.UNKNOWN
+    assert res.summary == "Unknown device listening on TCP port 502 at 10.0.0.7"
+    assert "no SunSpec marker" in res.error
 
 
-def test_open_port_but_no_modbus_answer_is_reported_distinctly():
-    """What an aGate looks like while another client holds its session."""
+def test_open_port_without_modbus_reply_is_unknown():
     res = d.probe("10.0.0.8", client_factory=factory({"silent": True}))
-    assert res.status == d.NO_RESPONSE
+    assert res.status == d.UNKNOWN
+    assert res.error.startswith("no Modbus reply")
     # Silent on the first base → don't wait out a timeout on every other base.
     assert sum(len(c.reads) for c in FakeClient.instances) == 1
 
@@ -116,7 +131,7 @@ def test_closed_port():
 def test_attempts_retry_the_sequence():
     res = d.probe("10.0.0.8", attempts=3, retry_backoff_s=0,
                   client_factory=factory({"silent": True}))
-    assert res.status == d.NO_RESPONSE
+    assert res.status == d.UNKNOWN
     assert len(FakeClient.instances) == 3
 
 

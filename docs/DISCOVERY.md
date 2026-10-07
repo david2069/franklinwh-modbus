@@ -4,6 +4,10 @@
 in particular — on a host or a subnet. It is **read-only**: it never writes a
 register.
 
+**A FranklinWH Modbus device** is a SunSpec device that returns the Common
+model (1), with a manufacturer string containing "FranklinWH". Anything else
+listening on the port is reported as an *unknown device*.
+
 It is the same probe `tools/network_scanner.py` uses, made importable so other
 projects (a setup wizard, a dashboard) don't need their own Modbus code.
 
@@ -18,18 +22,22 @@ print(res.status, res.is_franklinwh, res.model, res.serial)
 ```
 
 `probe()` connects, looks for the SunSpec marker `SunS` at base **0**, then
-**40000**, **50000** and **30000**, reads the Common model (1) nameplate in a
-single request, and disconnects.
+**40000**, **50000** and **30000**, checks that the first model after it is the
+Common model (1), reads that model's nameplate in a single request, and
+disconnects.
 
 | `status` | Meaning |
 |---|---|
-| `sunspec` | SunSpec device found; `manufacturer`, `model`, `serial`, `version`, `base_address` are set. `is_franklinwh` tells an aGate from another vendor's inverter or meter. |
-| `no_response` | Port 502 is open but nothing answered Modbus. On an aGate this usually means **another client holds its single Modbus session** (Home Assistant, another tool), or it is rebooting. |
-| `not_sunspec` | A Modbus device answered, but has no SunSpec marker at any base. |
-| `closed` | Port 502 isn't open (or the host is unreachable). |
+| `sunspec` | SunSpec device with model 1 found; `manufacturer`, `model`, `serial`, `version`, `base_address` are set. `is_franklinwh` tells an aGate from another vendor's inverter or meter. |
+| `unknown` | Something is listening on the port, but it isn't a SunSpec device: no Modbus reply, no `SunS` marker at any base, or a first model other than 1. `error` says which. |
+| `closed` | Nothing is listening on the port (or the host is unreachable). |
+
+`summary` gives one line for a person — *"FranklinWH Technologies Co., Ltd aGate X
+at 192.168.0.110:502"*, or *"Unknown device listening on TCP port 502 at
+192.168.0.20"*.
 
 Parameters: `port=502`, `unit_id=1`, `timeout=2.0` (per read), `attempts=1`
-(retry the whole sequence — useful to catch a gap in another client's polling),
+(retry the whole sequence — for a device that is slow or briefly busy),
 `bases=(0, 40000, 50000, 30000)`.
 
 If a host gives no Modbus answer at all on the first base, the remaining bases
@@ -56,16 +64,8 @@ Safety limits:
   65,000-host sweep.
 - IPv4 only.
 
-## The aGate's single Modbus session
+## Probing an aGate that is in use
 
-An aGate accepts **one Modbus TCP client at a time**. Discovery is built
-around that:
-
-- each probe holds the session for two reads (marker, nameplate) and then
-  disconnects;
-- `no_response` is reported separately from `closed`, so a tool can say
-  *"found something on 502 that didn't answer — another app may be connected"*
-  rather than *"nothing found"*.
-
-Don't probe an aGate that your own poller is connected to: the probe would be
-refused (`no_response`), or, if it got in first, briefly block the poller.
+Each probe makes two short reads (header, nameplate) and disconnects. On
+2026-10-07 a real aGate X (firmware V10R01B04D00) was identified correctly both
+while two bridges were polling it and with them stopped.

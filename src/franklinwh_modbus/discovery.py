@@ -6,15 +6,17 @@ discover an aGate through this library instead of re-implementing Modbus I/O.
 
 Two entry points:
 
-* :func:`probe` — one host: is Modbus TCP open, does it speak SunSpec, and if
-  so what does its Common model (1) nameplate say.
+* :func:`probe` — one host: is Modbus TCP open, and is it a SunSpec device
+  whose first model is the Common model (1)? If so, what does the nameplate say.
 * :func:`scan` — a subnet: a fast TCP check on every host, then :func:`probe`
   only the ones that answer.
 
-The aGate accepts **one Modbus TCP client at a time**. A probe therefore
-connects, reads as little as it can, and disconnects at once — and it reports
-"port open but no Modbus answer" separately (status ``no_response``), because
-that is what an aGate looks like while another client holds its session.
+Only SunSpec-compliant devices are identified. Anything else listening on the
+port is reported as ``unknown``. A FranklinWH Modbus device is a SunSpec device
+that returns model 1 with a manufacturer string containing "FranklinWH"
+(:attr:`DiscoveryResult.is_franklinwh`).
+
+A probe connects, reads as little as it can (two requests), and disconnects.
 """
 
 from __future__ import annotations
@@ -37,8 +39,12 @@ SUNSPEC_BASES: tuple = (0, 40000, 50000, 30000)
 #: The SunSpec marker "SunS" as two holding registers.
 SUNSPEC_MARKER = b"SunS"
 
+#: SunSpec Common model ID — must be the first model after the marker.
+COMMON_MODEL_ID = 1
+
 # Common model (1) layout, as offsets from the SunSpec base. The marker takes
 # two registers, then model id and length; the nameplate strings follow.
+_HEADER_COUNT = 4              # SunS (2) + model id + model length
 _NAMEPLATE_OFFSET = 4
 _NAMEPLATE_COUNT = 64          # Mn(16) Md(16) Opt(8) Vr(8) SN(16) — one read
 _FIELDS = {                    # name: (offset within the nameplate read, length)
@@ -49,9 +55,8 @@ _FIELDS = {                    # name: (offset within the nameplate read, length
 }
 
 # Statuses a probe can report.
-SUNSPEC = "sunspec"            # SunSpec marker found; nameplate read
-NOT_SUNSPEC = "not_sunspec"    # Answered Modbus, but no SunSpec marker at any base
-NO_RESPONSE = "no_response"    # TCP port open, but no Modbus answer (session held?)
+SUNSPEC = "sunspec"            # SunSpec marker + Common model (1) found
+UNKNOWN = "unknown"            # Something listens on the port, but not a SunSpec device
 CLOSED = "closed"              # TCP port not open / unreachable
 
 
@@ -72,12 +77,23 @@ class DiscoveryResult:
 
     @property
     def is_franklinwh(self) -> bool:
-        """A SunSpec device whose nameplate names FranklinWH."""
+        """A SunSpec device returning model 1 whose manufacturer names FranklinWH."""
         return self.status == SUNSPEC and "franklinwh" in (self.manufacturer or "").lower()
+
+    @property
+    def summary(self) -> str:
+        """One line for a person, e.g. in a scan list."""
+        if self.status == SUNSPEC:
+            who = " ".join(x for x in (self.manufacturer, self.model) if x) or "SunSpec device"
+            return f"{who} at {self.host}:{self.port}"
+        if self.status == UNKNOWN:
+            return f"Unknown device listening on TCP port {self.port} at {self.host}"
+        return f"Nothing listening on TCP port {self.port} at {self.host}"
 
     def to_dict(self) -> dict:
         d = asdict(self)
         d["is_franklinwh"] = self.is_franklinwh
+        d["summary"] = self.summary
         return d
 
 
@@ -131,19 +147,22 @@ def probe(
 ) -> DiscoveryResult:
     """Identify the device at ``host:port`` — read-only.
 
-    Tries each SunSpec base in turn for the ``SunS`` marker and, on a match,
-    reads the Common model nameplate in a single request. If the host gives no
-    Modbus answer at all on a base, the remaining bases are skipped for that
-    attempt: they would only time out too.
+    Tries each SunSpec base in turn for the ``SunS`` marker followed by the
+    Common model (1) and, on a match, reads its nameplate in a single request.
+    Status is ``sunspec`` only then; anything else listening is ``unknown``,
+    with the reason in ``error``. If the host gives no Modbus answer at all on
+    a base, the remaining bases are skipped for that attempt: they would only
+    time out too.
 
-    ``attempts`` > 1 retries the whole sequence, which helps catch a gap when
-    another client is polling the aGate. ``client_factory`` is for tests.
+    ``attempts`` > 1 retries the whole sequence, for a device that is slow or
+    briefly busy. ``client_factory`` is for tests.
     """
     make_client = client_factory or ModbusTcpClient
     bases = tuple(bases)
     start = time.monotonic()
     answered = False      # any Modbus response at all (even an error)
     last_error: Optional[str] = None
+    reason: Optional[str] = None   # why an answering device isn't SunSpec
 
     def elapsed_ms() -> float:
         return round((time.monotonic() - start) * 1000, 1)
@@ -158,7 +177,7 @@ def probe(
                     last_error = "connect failed"
                     break
                 try:
-                    rr = _read(client, base, 2, unit_id)
+                    rr = _read(client, base, _HEADER_COUNT, unit_id)
                 except Exception as exc:  # timeout / connection dropped: no answer
                     last_error = str(exc) or type(exc).__name__
                     break
@@ -170,15 +189,20 @@ def probe(
                     continue  # e.g. illegal data address: try the next base
                 regs = list(getattr(rr, "registers", []) or [])
                 if len(regs) >= 2 and struct.pack(">HH", regs[0] & 0xFFFF, regs[1] & 0xFFFF) == SUNSPEC_MARKER:
-                    return _with_nameplate(client, host, port, base, unit_id, elapsed_ms)
+                    model_id = regs[2] if len(regs) > 2 else None
+                    if model_id == COMMON_MODEL_ID:
+                        return _with_nameplate(client, host, port, base, unit_id, elapsed_ms)
+                    reason = f"SunSpec marker at {base}, but first model is {model_id}, not {COMMON_MODEL_ID}"
             finally:
                 client.close()
         if attempt < attempts - 1:
             time.sleep(retry_backoff_s)
 
-    status = NOT_SUNSPEC if answered else NO_RESPONSE
-    return DiscoveryResult(host, port, status, response_time_ms=elapsed_ms(),
-                           error=None if answered else last_error)
+    if answered:
+        error = reason or "Modbus reply, but no SunSpec marker at any base"
+    else:
+        error = f"no Modbus reply ({last_error})" if last_error else "no Modbus reply"
+    return DiscoveryResult(host, port, UNKNOWN, response_time_ms=elapsed_ms(), error=error)
 
 
 def _with_nameplate(client, host, port, base, unit_id, elapsed_ms) -> DiscoveryResult:
