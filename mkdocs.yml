@@ -87,6 +87,7 @@ nav:
     - PICS Conformance: PICS_CONFORMANCE_CROSS_REFERENCE.md
     - Extensions Manifest: FRANKLINWH_EXTENSIONS_MANIFEST.md
     - aGate Network Profile: AGATE_NETWORK_PROFILE.md
+    - Finding an aGate (discovery): DISCOVERY.md
     - Hardware Test Guide: HARDWARE_TEST_GUIDE.md
   - Troubleshooting:
     - WiFi DHCP Failure: troubleshooting/2026-03-21_wifi_dhcp_failure.md
