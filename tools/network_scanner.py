@@ -23,6 +23,7 @@ import asyncio
 import csv
 import ipaddress
 import json
+import os
 import re
 import socket
 import struct
@@ -37,11 +38,18 @@ from urllib.parse import urljoin
 
 # Try to import optional dependencies
 try:
-    from pymodbus.client import ModbusTcpClient
-    from pymodbus.exceptions import ModbusException
+    from pymodbus.client import ModbusTcpClient  # noqa: F401  (availability check)
     PYMUSBUS_AVAILABLE = True
 except ImportError:
     PYMUSBUS_AVAILABLE = False
+
+# The SunSpec probe lives in the library (franklinwh_modbus.discovery); run
+# from a checkout, like franklinwh_cli.py, so prefer the in-repo package.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+try:
+    from franklinwh_modbus import discovery as _discovery
+except ImportError:
+    _discovery = None
 
 try:
     import requests
@@ -175,167 +183,54 @@ class PortChecker:
 
 
 class ModbusSunspecProber:
-    """Probes for SunSpec compliant Modbus devices."""
-    
-    # Common SunSpec base addresses to try.
-    # 0 is listed first: FranklinWH aGate, SolarEdge, and other inverters commonly
-    # use base 0. 40000 is the canonical SunSpec default and tried second.
-    SUNSPEC_BASE_ADDRESSES = [0, 40000, 50000, 30000]
-    
-    # Model 1 (Common) register offsets from SunSpec base address
-    # SunSpec structure: ID(2) + ModelID(1) + Length(1) + Manufacturer(16) + Model(16) + ...
-    SUNSPEC_ID_ADDR = 0      # Should contain "SunS" (0x53756e53)
-    MANUFACTURER_ADDR = 4    # After ID(2) + ModelID(1) + Length(1) = 4 registers = 32 bytes
-    MODEL_ADDR = 20          # 16 registers after manufacturer = 32 bytes
-    OPTIONS_ADDR = 36        # 8 registers = 16 bytes
-    VERSION_ADDR = 44        # 8 registers = 16 bytes
-    SERIAL_ADDR = 52         # 16 registers = 32 bytes
-    DEVICE_ADDR = 68         # 8 registers = 16 bytes
-    
+    """Probes for SunSpec compliant Modbus devices.
+
+    A thin wrapper over the library's ``franklinwh_modbus.discovery.probe`` so
+    the CLI and other projects share one implementation of the SunSpec probe.
+    Keeps this tool's behaviour: 3 attempts, to catch a gap when another client
+    (e.g. Home Assistant's Modbus poll) holds the aGate's single session.
+    """
+
+    # Common SunSpec base addresses to try. 0 first: FranklinWH aGate,
+    # SolarEdge and other inverters commonly use base 0; 40000 is the
+    # canonical SunSpec default.
+    SUNSPEC_BASE_ADDRESSES = list(_discovery.SUNSPEC_BASES) if _discovery else [0, 40000, 50000, 30000]
+    MAX_PROBE_ATTEMPTS = 3
+
     def __init__(self, timeout: float = 3.0):
         self.timeout = timeout
-        
+
     def probe(self, ip: str, port: int = 502) -> Optional[ScanResult]:
         """
         Probe for SunSpec Modbus device.
-        
+
         Returns:
             ScanResult if SunSpec device found, None otherwise
         """
-        if not PYMUSBUS_AVAILABLE:
+        if not PYMUSBUS_AVAILABLE or _discovery is None:
             return None
-            
-        start_time = time.time()
-        
-        # Use a short per-read timeout so we don't hang the full --timeout on a
-        # wrong base address or when HA's Modbus poll holds the connection.
-        # The retry loop gives multiple windows to catch a free slot.
-        MODBUS_OP_TIMEOUT = min(self.timeout, 3.0)  # 3s per read; fast fail on wrong base addr
-        MAX_PROBE_ATTEMPTS = 3   # total ~9s window to catch HA's poll cycle gap
-        RETRY_BACKOFF_S = 0.3
-
-        for attempt in range(MAX_PROBE_ATTEMPTS):
-            for base_addr in self.SUNSPEC_BASE_ADDRESSES:
-                try:
-                    client = ModbusTcpClient(
-                        host=ip,
-                        port=port,
-                        timeout=MODBUS_OP_TIMEOUT,
-                        retries=0,
-                    )
-
-                    if not client.connect():
-                        continue
-
-                    try:
-                        result = client.read_holding_registers(
-                            address=base_addr + self.SUNSPEC_ID_ADDR,
-                            count=2,
-                            device_id=1
-                        )
-
-                        if result and not result.isError() and len(result.registers) >= 2:
-                            sunspec_id = struct.pack('>HH', result.registers[0], result.registers[1])
-
-                            if sunspec_id == b'SunS':
-                                elapsed = (time.time() - start_time) * 1000
-                                device_info = self._read_common_model(client, base_addr)
-                                client.close()
-                                return ScanResult(
-                                    ip=ip,
-                                    port=port,
-                                    device_type=DeviceType.MODBUS_SUNSPEC,
-                                    is_reachable=True,
-                                    response_time_ms=elapsed,
-                                    manufacturer=device_info.get('manufacturer'),
-                                    model=device_info.get('model'),
-                                    serial_number=device_info.get('serial'),
-                                    version=device_info.get('version'),
-                                    sunspec_model=1,
-                                    extra_data={
-                                        'sunspec_base_addr': base_addr,
-                                        'device_id': device_info.get('device_id')
-                                    }
-                                )
-
-                    except ModbusException:
-                        pass
-                    finally:
-                        client.close()
-
-                except Exception:
-                    continue
-
-            if attempt < MAX_PROBE_ATTEMPTS - 1:
-                time.sleep(RETRY_BACKOFF_S)
-
-        return None
-    
-    def _read_common_model(self, client: ModbusTcpClient, base_addr: int) -> Dict[str, str]:
-        """Read SunSpec Model 1 (Common) device information."""
-        info = {}
-        
-        try:
-            # Read manufacturer (16 registers = 32 bytes)
-            result = client.read_holding_registers(
-                address=base_addr + self.MANUFACTURER_ADDR,
-                count=16,
-                device_id=1
-            )
-            if result and not result.isError():
-                info['manufacturer'] = self._registers_to_string(result.registers)
-            
-            # Read model
-            result = client.read_holding_registers(
-                address=base_addr + self.MODEL_ADDR,
-                count=16,
-                device_id=1
-            )
-            if result and not result.isError():
-                info['model'] = self._registers_to_string(result.registers)
-            
-            # Read version
-            result = client.read_holding_registers(
-                address=base_addr + self.VERSION_ADDR,
-                count=8,
-                device_id=1
-            )
-            if result and not result.isError():
-                info['version'] = self._registers_to_string(result.registers)
-            
-            # Read serial number
-            result = client.read_holding_registers(
-                address=base_addr + self.SERIAL_ADDR,
-                count=16,
-                device_id=1
-            )
-            if result and not result.isError():
-                info['serial'] = self._registers_to_string(result.registers)
-                
-            # Read device address
-            result = client.read_holding_registers(
-                address=base_addr + self.DEVICE_ADDR,
-                count=8,
-                device_id=1
-            )
-            if result and not result.isError():
-                info['device_id'] = self._registers_to_string(result.registers)
-                
-        except Exception:
-            pass
-            
-        return info
-    
-    @staticmethod
-    def _registers_to_string(registers: List[int]) -> str:
-        """Convert Modbus registers to string."""
-        try:
-            # Convert registers to bytes
-            bytes_data = b''.join(struct.pack('>H', r) for r in registers)
-            # Decode and strip null bytes
-            return bytes_data.decode('utf-8', errors='ignore').strip('\x00').strip()
-        except Exception:
-            return ""
+        res = _discovery.probe(
+            ip,
+            port=port,
+            timeout=min(self.timeout, 3.0),  # fast fail on a wrong base address
+            attempts=self.MAX_PROBE_ATTEMPTS,
+            bases=self.SUNSPEC_BASE_ADDRESSES,
+        )
+        if res.status != _discovery.SUNSPEC:
+            return None
+        return ScanResult(
+            ip=ip,
+            port=port,
+            device_type=DeviceType.MODBUS_SUNSPEC,
+            is_reachable=True,
+            response_time_ms=res.response_time_ms,
+            manufacturer=res.manufacturer,
+            model=res.model,
+            serial_number=res.serial,
+            version=res.version,
+            sunspec_model=1,
+            extra_data={'sunspec_base_addr': res.base_address},
+        )
 
 
 class HTTPProber:

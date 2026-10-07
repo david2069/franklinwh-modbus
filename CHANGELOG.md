@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `franklinwh_modbus.discovery` — read-only discovery of SunSpec Modbus devices, for finding an aGate on a host or subnet without re-implementing Modbus I/O. `probe(host, …)` checks the `SunS` marker at bases 0, 40000, 50000 and 30000 and reads the Common model nameplate in one request; `scan(subnet, …)` TCP-checks port 502 in parallel and probes only the open hosts (private ranges and at most 254 hosts unless told otherwise). Results distinguish `sunspec`, `not_sunspec`, `no_response` (port open but no Modbus answer — on an aGate, usually another client holding its single session) and `closed`, and flag FranklinWH devices (`is_franklinwh`). Works with both pymodbus unit-id keywords (`slave=` / `device_id=`). Documented in `docs/DISCOVERY.md`.
+
+### Changed
+- `tools/network_scanner.py`: `ModbusSunspecProber` now delegates to `discovery.probe()` (same output, same 3-attempt behaviour), so the tool and the library share one SunSpec probe.
+
 ## [0.9.4] - 2026-10-04
 
 ### Fixed
