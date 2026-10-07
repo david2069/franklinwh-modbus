@@ -2,12 +2,13 @@
 
 > **This file is auto-loaded by Claude Code at session start.**
 > Canonical source: [agent.md](agent.md) — read it first, along with all policies in `.agents/policies/`.
+> `agent.md` is local-only (gitignored, not in the public repo); if it is missing, continue with `.agents/policies/` and ask the user for anything it would have said.
 
 ## Critical Rules
 
-1. **REPO SCOPE: `franklinwh-modbus` ONLY** — This agent works exclusively on `/Users/davidhona/dev/modbus`. **Do NOT read, modify, commit, or push to any other repository** (e.g. `franklinwh-cloud`, `franklinwh-cloud-test`). If the user accidentally requests cross-repo work, respond:
+1. **REPO SCOPE: `franklinwh-modbus` ONLY** — This agent works exclusively in this repository's checkout, wherever it is cloned. **Do NOT read, modify, commit, or push to any other repository** (e.g. `franklinwh-modbus-bridge`, `franklinwh-cloud`, the gateway emulator) — and don't open issues or PRs there either. Work another repo needs is handed to that repo's agent. If the user accidentally requests cross-repo work, respond:
    > *"That change belongs to a different repo. I'm scoped to franklinwh-modbus only. Please switch to the appropriate agent/session for that repo."*
-2. **Read `agent.md` and `.agents/policies/` before doing anything**
+2. **Read `agent.md` (if present) and `.agents/policies/` before doing anything**
 3. **Focus Discipline** — one fix at a time, full cycle (code → test → verify → commit)
 4. **Syntax check is NON-NEGOTIABLE** before every commit:
    ```bash
@@ -32,7 +33,7 @@
 ## Key Commands
 
 ```bash
-cd /Users/davidhona/dev/modbus
+cd <this repository>
 source venv/bin/activate
 PYTHONPATH=src:. python3 -m pytest tests/ --tb=short
 python3 tools/franklinwh_cli.py -i 192.168.0.110 --status
