@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-10-07
+
 ### Added
 - `franklinwh_modbus.discovery` — read-only discovery of SunSpec Modbus devices, for finding an aGate on a host or subnet without re-implementing Modbus I/O. `probe(host, …)` checks the `SunS` marker at bases 0, 40000, 50000 and 30000 and reads the Common model nameplate in one request; `scan(subnet, …)` TCP-checks port 502 in parallel and probes only the open hosts (private ranges and at most 254 hosts unless told otherwise). Only SunSpec devices returning the Common model (1) count as `sunspec`; anything else listening is `unknown` (reason in `error`), and nothing listening is `closed`. `is_franklinwh` flags a SunSpec device whose manufacturer names FranklinWH; `summary` gives a one-line description. Works with both pymodbus unit-id keywords (`slave=` / `device_id=`). Documented in `docs/DISCOVERY.md`.
 
@@ -135,7 +137,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.3...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.4...v0.9.5
+[0.9.4]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.2...v0.9.3
 [0.9.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.7.0...v0.8.0
