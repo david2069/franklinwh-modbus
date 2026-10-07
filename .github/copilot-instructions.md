@@ -1,6 +1,7 @@
 # GitHub Copilot Instructions — franklinwh-modbus
 
 > **Read `agent.md` and all policies in `.agents/policies/` before making any changes.**
+> `agent.md` is local-only (gitignored, not in the public repo); if it is missing, continue with `.agents/policies/` and ask the user for anything it would have said.
 
 ## Critical Rules
 

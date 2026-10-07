@@ -221,6 +221,11 @@ See [FRANKLINWH_SUNSPEC_QUIRKS.md](./docs/FRANKLINWH_SUNSPEC_QUIRKS.md) for all 
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
+**AI coding agents** work on **one repository each**. An agent working here changes only
+franklinwh-modbus; work another project needs (the Modbus bridge, the cloud library,
+the gateway emulator) is handed to that project's own agent, not done from here.
+The rules are in [CLAUDE.md](./CLAUDE.md), `.cursor/rules/` and `.github/copilot-instructions.md`.
+
 ## License
 
 MIT License — see [LICENSE](./LICENSE) for details.
