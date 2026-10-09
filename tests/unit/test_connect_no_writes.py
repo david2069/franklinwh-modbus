@@ -16,9 +16,11 @@ def _fake_device():
 
 def test_connect_issues_no_writes():
     dev = _fake_device()
-    with patch('franklinwh_modbus.controller.SUNSPEC_AVAILABLE', True), \
-         patch('franklinwh_modbus.controller.SunSpecModbusClientDeviceTCP',
-               return_value=dev, create=True):
+    # Patch the globals connect() actually resolves (robust to module reloads
+    # by other tests)
+    g = FranklinWHController.connect.__globals__
+    with patch.dict(g, {'SUNSPEC_AVAILABLE': True,
+                        'SunSpecModbusClientDeviceTCP': MagicMock(return_value=dev)}):
         ctrl = FranklinWHController('127.0.0.1')
         with patch.object(ctrl, 'test_extension_writability',
                           side_effect=AssertionError('connect() ran the write test')):
