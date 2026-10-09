@@ -1346,7 +1346,7 @@ def main():
                 vmc = VirtualModeController(
                     ctrl,
                     max_charge_soc=args.max_charge_soc,
-                    min_discharge_soc=args.min_discharge_soc or 20,
+                    min_discharge_soc=20 if args.min_discharge_soc is None else args.min_discharge_soc,
                     soc_ramp_window=args.soc_ramp_window
                 )
                 vmc.set_mode(VirtualMode.MANUAL, dry_run=args.dry_run, manual_power_w=args.power)

@@ -82,6 +82,14 @@ class FranklinWHController:
         self._override_max_discharge_w = max_discharge_w
         self.dev: Optional[SunSpecModbusClientDeviceTCP] = None
         self.models: dict = {}
+        
+        # I/O health: lets callers tell stale data from an empty read.
+        # Read methods return {} on failure; these record why and since when.
+        self.last_success_ts: Optional[float] = None
+        self.last_error: Optional[str] = None
+        self.last_error_ts: Optional[float] = None
+        self.consecutive_failures: int = 0
+        self._last_failure_warning_ts: float = 0.0
         self._extension_writable: Optional[bool] = None
         
         # Software command timeout (hardware WSetRvrtTms doesn't work)
@@ -380,11 +388,45 @@ class FranklinWHController:
             self.dev = None
             return False
     
+    READ_FAILURE_WARN_INTERVAL_S = 60.0
+    
+    def _record_read_failure(self, what: str, error: Exception):
+        """Record a failed read; warn on the first and then at most once a minute."""
+        now = time.time()
+        self.consecutive_failures += 1
+        self.last_error = f"{what}: {error}"
+        self.last_error_ts = now
+        if (self.consecutive_failures == 1
+                or now - self._last_failure_warning_ts >= self.READ_FAILURE_WARN_INTERVAL_S):
+            since = (f", last success {now - self.last_success_ts:.0f}s ago"
+                     if self.last_success_ts else "")
+            logger.warning(f"Failed to read {what}: {error} "
+                           f"({self.consecutive_failures} consecutive failures{since})")
+            self._last_failure_warning_ts = now
+        else:
+            logger.debug(f"Failed to read {what}: {error}")
+    
+    def _record_io_success(self):
+        """Record a successful Modbus operation, logging recovery after failures."""
+        if self.consecutive_failures:
+            logger.warning(f"Modbus I/O recovered after {self.consecutive_failures} failed reads")
+            self.consecutive_failures = 0
+        self.last_success_ts = time.time()
+    
+    @property
+    def data_age_s(self) -> Optional[float]:
+        """Seconds since the last successful Modbus operation, or None if never."""
+        if self.last_success_ts is None:
+            return None
+        return time.time() - self.last_success_ts
+    
     def _with_retry(self, operation, max_retries: int = 2):
         """Execute operation with automatic reconnect on failure."""
         for attempt in range(max_retries):
             try:
-                return operation()
+                result = operation()
+                self._record_io_success()
+                return result
             except Exception as e:
                 # Check if it's a connection-related error
                 err_str = str(e).lower()
@@ -557,7 +599,7 @@ class FranklinWHController:
         try:
             return self._with_retry(_do_read, max_retries=2)
         except Exception as e:
-            logger.debug(f"Failed to read battery status: {e}")
+            self._record_read_failure('battery status', e)
             return {}
     
     def read_grid_status(self) -> dict:
@@ -669,7 +711,7 @@ class FranklinWHController:
         try:
             return self._with_retry(_do_read, max_retries=2)
         except Exception as e:
-            logger.debug(f"Failed to read grid status: {e}")
+            self._record_read_failure('grid status', e)
             return {}
     
     def read_solar_status(self) -> dict:
@@ -731,7 +773,7 @@ class FranklinWHController:
         try:
             return self._with_retry(_do_read, max_retries=2)
         except Exception as e:
-            logger.debug(f"Failed to read solar status: {e}")
+            self._record_read_failure('solar status', e)
             return {}
     
     def _read_extension_solar(self) -> Optional[dict]:
@@ -883,7 +925,7 @@ class FranklinWHController:
         try:
             return self._with_retry(_do_read, max_retries=2)
         except Exception as e:
-            logger.debug(f"Failed to read control status: {e}")
+            self._record_read_failure('control status', e)
             return {}
     
     def read_native_mode(self) -> dict:
@@ -1508,6 +1550,128 @@ class FranklinWHController:
             return self._with_retry(_do_send, max_retries=2)
         except Exception as e:
             return False, str(e)
+    
+    def _read_dispatch_state(self) -> Dict[str, Any]:
+        """Read back the active setpoint (M704) and battery DC power (M714).
+        
+        Both are returned in the BatteryCommand convention
+        (positive = charge, negative = discharge).
+        """
+        def _do_read():
+            m704 = self.get_model(704)
+            if not m704:
+                raise ConnectionError("Model 704 not available")
+            m704.read()
+            pct_sf = self._get_scale_factor(m704, 'WSetPct_SF')
+            # Hardware WSetPct: positive = discharge, negative = charge
+            hw_pct = (m704.WSetPct.value or 0) * (10 ** pct_sf)
+            rated = self.RATED_MAX_DISCHARGE_W if hw_pct > 0 else self.RATED_MAX_CHARGE_W
+            
+            m714 = self.get_model(714)
+            if not m714:
+                raise ConnectionError("Model 714 not available")
+            m714.read()
+            sf_w = self._get_scale_factor(m714, 'DCW_SF')
+            blocks = m714.blocks[1:] if hasattr(m714, 'blocks') and len(m714.blocks) > 1 else [m714]
+            # M714.DCW: positive = out of battery (discharge)
+            dcw = sum(
+                block.DCW.value * (10 ** sf_w)
+                for block in blocks
+                if hasattr(block, 'DCW') and block.DCW.value is not None
+            )
+            return {
+                'enabled': m704.WSetEna.value == 1,
+                'wset_pct': hw_pct,
+                'commanded_w': -hw_pct / 100 * rated,
+                'actual_w': -dcw,
+            }
+        return self._with_retry(_do_read, max_retries=2)
+    
+    def verify_dispatch(
+        self,
+        expected_w: float,
+        tolerance_pct: float = 20.0,
+        min_response_w: float = 50.0,
+        timeout_s: float = 0.0,
+        poll_interval_s: float = 2.0,
+    ) -> Dict[str, Any]:
+        """Verify that a dispatched command actually took effect.
+        
+        Reads back the setpoint and the battery's DC power rather than
+        trusting the write. The device accepts setpoints it then ignores
+        (e.g. a positive hardware WSetPct), so a successful send_command()
+        is not evidence the battery moved.
+        
+        Args:
+            expected_w: The command that was sent, BatteryCommand convention
+                (positive = charge, negative = discharge, 0 = released).
+            tolerance_pct: Allowed deviation of setpoint and battery power
+                from expected_w, as a percentage of |expected_w|.
+            min_response_w: Battery power below this counts as not moving.
+            timeout_s: Keep polling up to this long for the battery to
+                respond (it ramps); 0 checks once.
+            poll_interval_s: Delay between polls when timeout_s > 0.
+        
+        Returns dict with:
+            ok: setpoint matches and battery power is within tolerance
+            dispatched: setpoint matches and the battery is moving the
+                expected way (may still be outside tolerance)
+            enabled, commanded_w, actual_w, expected_w, reason
+        """
+        deadline = time.monotonic() + max(timeout_s, 0.0)
+        while True:
+            result = self._evaluate_dispatch(expected_w, tolerance_pct, min_response_w)
+            if result['ok'] or time.monotonic() + poll_interval_s > deadline:
+                break
+            time.sleep(poll_interval_s)
+        
+        if not result['ok']:
+            logger.warning(f"Dispatch not verified: {result['reason']} "
+                           f"(expected {expected_w:.0f}W, setpoint {result['commanded_w']}, "
+                           f"battery {result['actual_w']})")
+        return result
+    
+    def _evaluate_dispatch(self, expected_w: float, tolerance_pct: float,
+                           min_response_w: float) -> Dict[str, Any]:
+        """Single readback for verify_dispatch()."""
+        result = {
+            'ok': False, 'dispatched': False, 'enabled': None,
+            'commanded_w': None, 'actual_w': None, 'expected_w': expected_w,
+            'reason': '',
+        }
+        try:
+            state = self._read_dispatch_state()
+        except Exception as e:
+            result['reason'] = f"readback failed: {e}"
+            return result
+        
+        enabled = state['enabled']
+        commanded = state['commanded_w']
+        actual = state['actual_w']
+        result.update(enabled=enabled, commanded_w=round(commanded), actual_w=round(actual))
+        
+        if expected_w == 0:
+            result['ok'] = result['dispatched'] = not enabled
+            result['reason'] = 'control released' if not enabled else 'control still enabled (WSetEna=1)'
+            return result
+        
+        tolerance_w = abs(expected_w) * tolerance_pct / 100
+        same_direction = (commanded > 0) == (expected_w > 0) and commanded != 0
+        
+        if not enabled:
+            result['reason'] = 'control not enabled (WSetEna=0)'
+        elif not same_direction or abs(commanded - expected_w) > tolerance_w:
+            result['reason'] = f"setpoint mismatch ({commanded:.0f}W)"
+        elif abs(actual) < min_response_w or (actual > 0) != (expected_w > 0):
+            result['reason'] = f"battery not responding ({actual:.0f}W)"
+        else:
+            result['dispatched'] = True
+            if abs(actual - expected_w) > tolerance_w:
+                result['reason'] = f"battery power {actual:.0f}W outside ±{tolerance_pct:.0f}%"
+            else:
+                result['ok'] = True
+                result['reason'] = 'verified'
+        return result
             
     def dispatch(
         self,

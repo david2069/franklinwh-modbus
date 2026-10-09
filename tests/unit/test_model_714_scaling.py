@@ -212,25 +212,28 @@ class TestModel714Scaling:
         m714 = MagicMock()
         m714.DCW_SF = MagicMock(value=0)
         
-        # Command status mock
-        mock_controller.read_control_status = MagicMock(return_value={
-            'wset_watts': 4000,
-            'wset_enabled': 1
-        })
+        # Setpoint read back from WSetPct (WSet is never written):
+        # hardware +80% = discharge 4000W of a 5000W rating
+        m704 = MagicMock()
+        m704.WSetPct_SF = MagicMock(value=0)
+        m704.WSetPct.value = 80
+        m704.WSetEna.value = 1
         
-        # Parallel batteries summing up to 3950W (within 5% tolerance of 4000W)
+        # Parallel batteries discharging 3950W in total (within 5% of 4000W)
         fixed_block = MagicMock()
         port1 = self.create_mock_block(dcw=2000)
         port2 = self.create_mock_block(dcw=1950)
         m714.blocks = [fixed_block, port1, port2]
         
-        with patch.object(mock_controller, 'get_model', return_value=m714):
-            vmc = VirtualModeController(mock_controller)
+        models = {704: m704, 714: m714}
+        with patch.object(mock_controller, 'get_model', side_effect=models.get):
+            vmc = VirtualModeController(mock_controller, min_discharge_soc=20)
+            vmc._last_commanded_power = -4000  # discharge, BatteryCommand convention
             ok, commanded, actual, diff = vmc.verify_command_execution(tolerance_percent=5.0)
             
             assert ok
-            assert commanded == 4000
-            assert actual == 3950
+            assert commanded == -4000
+            assert actual == -3950
             assert diff == 1.25  # (4000 - 3950) / 4000 = 1.25%
 
     def test_sequencer_repeating_block_resolution(self):
