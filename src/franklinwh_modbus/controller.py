@@ -137,8 +137,9 @@ class FranklinWHController:
             
             self.discover_ratings()
             
-            # Run extension write test (non-blocking, informational)
-            self._test_extension_writability()
+            # connect() must never write to the device. The extension
+            # writability test writes 15507-15509, so it is opt-in only:
+            # call test_extension_writability() explicitly.
             
             # Check for orphaned VPP state from previous session
             self._check_orphaned_vpp()
@@ -175,14 +176,20 @@ class FranklinWHController:
         except Exception as e:
             logger.debug(f"Orphan check failed (non-critical): {e}")
     
-    def _test_extension_writability(self) -> Dict[str, Any]:
+    def test_extension_writability(self) -> Dict[str, Any]:
         """
-        Test writability of FranklinWH extension registers.
+        Test writability of FranklinWH extension registers. WRITES TO THE DEVICE.
         
-        Tests OnGridMode (15507), SelfReserve (15508), and TOUReserve (15509).
-        This is informational only - non-blocking, never raises.
+        Tests OnGridMode (15507), SelfReserve (15508), and TOUReserve (15509)
+        by writing a test value (alternate mode, reserve + 1), reading it back
+        and restoring the original. On a unit where these registers are
+        writable this briefly changes the operating mode and reserves, and a
+        dropped connection between write and restore leaves them changed.
+        Call only on explicit user request (e.g. CLI --test-extension-write);
+        connect() never runs it.
         
-        Returns dict with test results stored in self._extension_write_results.
+        Never raises. Returns dict with test results stored in
+        self._extension_write_results.
         """
         import time
         import struct
@@ -323,6 +330,9 @@ class FranklinWHController:
             logger.debug("Extension registers: READ-ONLY (writes accepted but not applied)")
         
         return self._extension_write_results
+    
+    # Backward-compatible name used by tools/
+    _test_extension_writability = test_extension_writability
     
     def get_extension_write_status(self) -> Dict[str, Any]:
         """Get the results of the extension write test."""
