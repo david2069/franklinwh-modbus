@@ -7,9 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Upgrade notes
+Behaviour changes that can affect code built on the library:
+- `connect()` no longer runs the extension writability test, so `_extension_writable` stays `None` after connecting. Call `test_extension_writability()` explicitly if you need it. **That call writes 15507–15509.** (#24)
+- `VirtualModeController` calculators (`_calc_*`) return the opposite sign from before: positive = charge, negative = discharge, matching `BatteryCommand`. Subclasses or direct callers must follow. (#20)
+- Self-consumption grid-charges only below `self_reserve_pct` (default 20%), not below `target_soc`, and no longer refuses to start with a full battery. (#20)
+- `verify_command_execution()` returns `ok=False` when the readback fails. It used to assume success. (#21)
+- Failed status reads log at **warning** level (first failure, then at most once a minute, then on recovery) instead of debug. (#22)
+
 ### Fixed
 - **`connect()` no longer writes to the device.** It ran the extension writability test on every connection: it wrote 15507 (operating mode), 15508 and 15509 (reserves) with test values and restored them only if the readback matched. On a unit where those registers are writable, every connect (including every bridge reconnect) briefly changed the mode and reserves, and a dropped link could leave them changed (a 100% reserve was tested as 0%). The test is now the explicit `test_extension_writability()`, still run by `--test-extension-write`. (#24)
 - **The rating clamp no longer reverses the direction of over-limit commands.** `send_command()` clamped a charge above the device rating to a full-rate discharge, and a discharge above it to a full-rate charge (e.g. `--power 6000` on a 5 kW unit discharged at 5 kW). It now clamps to the rating in the requested direction. The same fix is in `tools/franklinwh_control_standalone.py`. (#28)
+- Virtual-mode calculators now return the `BatteryCommand` convention (positive = charge, negative = discharge) that the SoC limiter and `send_command()` expect. Self-consumption, peak-shave and the TOU `discharge` strategy returned the opposite sign, so the limiter ramped and blocked the wrong direction (a charge near the discharge floor was cut back or blocked without any log), and the inverted setpoint went out as a positive `WSetPct`, which the device ignores. Reported by @balloobbot in #12. (#20)
+- Self-consumption grid-charges at full power only below `self_reserve_pct` (`--reserve`, previously accepted but unused). Between the reserve and `target_soc` it covers home load from the battery and charges from excess solar. Before, it charged whenever SoC was below `target_soc`, which defaults to 100. Starting self-consumption with a full battery is no longer refused. (#20)
+- `--power`/`--duration` honours `--min-discharge-soc 0` instead of coercing it to 20. The 20% default on that path is unchanged. (#20)
+- `VirtualModeController.verify_command_execution()` compared the never-written `M704.WSet` with battery power, so it always passed. It now reads the setpoint back from `WSetPct` and reports a failed readback instead of assuming success. (#21)
+
+### Added
+- `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. Tolerance has a 100 W floor (M714.DCW reads in 100 W steps), and commands under 150 W are verified on the setpoint only. (#21)
+- Controller I/O health: `last_success_ts`, `last_error`, `last_error_ts`, `consecutive_failures` and `data_age_s`, so callers can tell a dead link from an empty read. (#22)
+- The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
+
+### Changed
+- Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
 

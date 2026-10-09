@@ -4,17 +4,12 @@ Integration tests for VirtualModeController.
 These tests verify the virtual mode logic works correctly with mocked hardware.
 They serve as templates for hardware-in-the-loop tests.
 
-IMPORTANT - Sign Convention Bug:
-================================
-VirtualModeController uses OPPOSITE sign convention from BatteryCommand:
-- VirtualModeController: Positive=charge, negative=discharge  
-- BatteryCommand: Positive=discharge, negative=charge
-
-This is a known bug that should be fixed during library split. For now,
-these tests match the actual code behavior (not the intended behavior).
-
-When the bug is fixed, these tests will need to be updated to use the
-BatteryCommand convention (positive=discharge, negative=charge).
+Sign convention:
+================
+Every calculator returns power in the BatteryCommand convention:
+positive = charge, negative = discharge. The inversion to the hardware's
+WSetPct convention happens once, in FranklinWHController.send_command().
+(Issue #20 fixed calculators that returned the opposite sign.)
 """
 import pytest
 import sys
@@ -109,14 +104,11 @@ class TestVirtualModeControllerIntegration:
     
     def test_self_consumption_mode_solar_excess(self, vmc, mock_controller):
         """
-        Test self_consumption mode when SoC is below target.
+        Test self_consumption mode with excess solar above reserve.
         
-        Scenario: SoC at 75% (below default target of 100%)
-        Expected: Full power charge from grid (-5000W) per vendor-matching behavior
-        
-        NOTE: _calc_self_consumption returns -max_charge when SoC < target,
-        matching the vendor app behavior of charging at full power to reach reserve.
-        Negative = charge from grid (BatteryCommand convention).
+        Scenario: SoC at 75% (above 20% reserve, below 100% target),
+        solar 3500W, home 2000W
+        Expected: Charge from the 1500W of excess solar (positive = charge)
         """
         # Set up status with solar > home load
         mock_controller.read_solar_status.return_value = {
@@ -132,8 +124,6 @@ class TestVirtualModeControllerIntegration:
         # Execute self-consumption mode
         vmc.set_mode(VirtualMode.SELF_CONSUMPTION, self_reserve_pct=20)
         
-        # Calculate expected power
-        # SoC 75% < target 100% → full power charge from grid
         power = vmc._calc_self_consumption(
             solar=3500,
             home=2000,
@@ -141,9 +131,7 @@ class TestVirtualModeControllerIntegration:
             soc=75.0
         )
         
-        # When SoC < target: returns -max_charge (negative = charging from grid)
-        assert power < 0, f"Expected charging (negative power = charge from grid), got {power}W"
-        assert power == -5000, f"Expected full-rate charge (-5000W), got {power}W"
+        assert power == 1500, f"Expected charge from excess solar (+1500W), got {power}W"
     
     def test_self_consumption_mode_grid_import(self, vmc, mock_controller):
         """
@@ -152,7 +140,7 @@ class TestVirtualModeControllerIntegration:
         Scenario: Solar producing 1000W, home using 3000W
         Expected: Discharge battery to cover deficit
         
-        NOTE: VMC uses positive=charge, negative=discharge (opposite of BatteryCommand)
+        Positive = charge, negative = discharge (BatteryCommand convention).
         """
         mock_controller.read_solar_status.return_value = {
             'dc_power_w': 1000.0,
@@ -173,9 +161,8 @@ class TestVirtualModeControllerIntegration:
             soc=75.0
         )
         
-        # In VMC: Positive=charge, negative=discharge
-        # Deficit should result in discharging (negative power)
-        assert power <= 0, f"Expected discharging (negative power in VMC), got {power}W"
+        # Deficit of 2000W covered by discharging
+        assert power == -2000, f"Expected discharge of -2000W, got {power}W"
     
     def test_emergency_backup_mode_charges_to_target(self, vmc, mock_controller):
         """
@@ -184,7 +171,7 @@ class TestVirtualModeControllerIntegration:
         Scenario: SoC at 60%, target is 95%
         Expected: Full charge rate
         
-        NOTE: VMC uses positive=charge, negative=discharge (opposite of BatteryCommand)
+        Positive = charge (BatteryCommand convention).
         """
         mock_controller.read_battery_status.return_value = {
             'soc': 60.0,
@@ -200,9 +187,8 @@ class TestVirtualModeControllerIntegration:
             soc=60.0
         )
         
-        # In VMC: Positive=charge, negative=discharge
         # Should charge (positive power) when below target
-        assert power > 0, f"Expected charging (positive power in VMC), got {power}W"
+        assert power > 0, f"Expected charging (positive power), got {power}W"
     
     def test_emergency_backup_mode_stops_at_target(self, vmc, mock_controller):
         """
@@ -233,8 +219,7 @@ class TestVirtualModeControllerIntegration:
         Scenario: Home load 6000W, threshold 5000W
         Expected: Discharge to reduce peak
         
-        NOTE: In the simplified library version, peak_shave returns positive for discharge
-        (this may vary based on implementation - check actual behavior)
+        Negative = discharge (BatteryCommand convention).
         """
         vmc.set_mode(VirtualMode.PEAK_SHAVE, peak_shave_threshold=5000)
         
@@ -245,10 +230,8 @@ class TestVirtualModeControllerIntegration:
             soc=75.0
         )
         
-        # Should return non-zero power to shave peak
-        assert power != 0, f"Expected non-zero power to shave peak, got {power}W"
-        # The direction depends on implementation convention
-        assert abs(power) > 0, f"Should have some discharge power"
+        # Net load 5000W, discharged at the 5000W rating
+        assert power == -5000, f"Expected discharge of -5000W, got {power}W"
     
     def test_peak_shave_mode_idle_below_threshold(self, vmc, mock_controller):
         """

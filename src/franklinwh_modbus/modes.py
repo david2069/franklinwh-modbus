@@ -119,13 +119,9 @@ class VirtualModeController:
         # Print summary line with all SOCs and ETA
         self._print_soc_summary(current_soc)
         
-        # Validate target SOC - EXIT if target already reached for charge modes
-        if mode == VirtualMode.SELF_CONSUMPTION and current_soc >= target_soc:
-            logger.error(f"TARGET ALREADY REACHED: Current SoC {current_soc:.1f}% >= Target {target_soc:.1f}%")
-            logger.error("Battery is already at or above target. Cannot charge further.")
-            logger.error("Exiting. Lower target SoC or wait for battery to discharge.")
-            raise ValueError(f"Target SoC {target_soc}% already reached (current: {current_soc}%)")
-        
+        # Validate target SOC - EXIT if target already reached for charge modes.
+        # Self-consumption is not a charge-to-target mode: above reserve it
+        # covers home load from the battery, so a full battery is a valid start.
         if mode == VirtualMode.EMERGENCY_BACKUP and current_soc >= target_soc:
             logger.error(f"TARGET ALREADY REACHED: Current SoC {current_soc:.1f}% >= Target {target_soc:.1f}%")
             logger.error("Battery is already at/above backup target.")
@@ -277,26 +273,30 @@ class VirtualModeController:
                                 grid: float, soc: float) -> float:
         """Self-consumption with reserve charging (like vendor app).
         
-        - Discharge to cover home load when solar insufficient
-        - Charge from excess solar when available  
-        - Charge from grid to reach target/reserve SoC (vendor-like behavior)
+        Returns BatteryCommand convention: positive = charge, negative = discharge.
+        
+        - Below self_reserve_pct: charge from grid at full power to reach reserve
+        - Above reserve: discharge to cover home load when solar is insufficient
+        - Charge from excess solar while below target_soc
         """
         max_charge = self.ctrl.RATED_MAX_CHARGE_W
         max_discharge = self.ctrl.RATED_MAX_DISCHARGE_W
         target_soc = getattr(self, 'target_soc', 100)
-        excess_solar = solar - home
+        reserve_soc = getattr(self, 'self_reserve_pct', 20)
         
-        # ABOVE target: normal self-consumption (discharge to cover load)
-        if soc >= target_soc:
-            if excess_solar < 0:
-                return max(home - solar, -max_discharge)
-            elif excess_solar > 0:
-                return min(excess_solar, max_charge)  # Charge from excess
-            return 0
-        
-        # BELOW target: FULL POWER CHARGE (matches vendor app screenshot)
+        # BELOW reserve: FULL POWER CHARGE (matches vendor app screenshot)
         # Vendor charges at maximum power to reach reserve ASAP
-        return -max_charge
+        if soc < reserve_soc:
+            return max_charge
+        
+        net_load = home - solar
+        if net_load > 0:
+            # Solar insufficient: discharge to cover the deficit
+            return -min(net_load, max_discharge)
+        if net_load < 0 and soc < target_soc:
+            # Excess solar: charge from it
+            return min(-net_load, max_charge)
+        return 0
     
     def _calc_emergency_backup(self, solar: float, home: float,
                                 grid: float, soc: float) -> float:
@@ -328,12 +328,13 @@ class VirtualModeController:
     
     def _calc_peak_shave(self, solar: float, home: float,
                          grid: float, soc: float) -> float:
-        """Discharge during peak demand."""
+        """Discharge during peak demand (negative = discharge)."""
         max_discharge = self.ctrl.RATED_MAX_DISCHARGE_W
+        net_load = home - solar
         
-        if home > self.peak_shave_threshold:
+        if home > self.peak_shave_threshold and net_load > 0:
             if soc > self.min_discharge_soc + 5:
-                return max(min(home - solar, max_discharge), -max_discharge)
+                return -min(net_load, max_discharge)
         return 0
     
     def _calc_time_of_use(self, solar: float, home: float,
@@ -356,8 +357,9 @@ class VirtualModeController:
             return 0
         
         elif strategy == "discharge":
-            if soc > max(min_soc, self.min_discharge_soc) + 5:
-                return max(min(home - solar, max_discharge), -max_discharge)
+            net_load = home - solar
+            if net_load > 0 and soc > max(min_soc, self.min_discharge_soc) + 5:
+                return -min(net_load, max_discharge)
             return 0
         
         elif strategy == "grid_zero":
@@ -375,6 +377,12 @@ class VirtualModeController:
                      grid: float, soc: float) -> float:
         """Manual power setting."""
         return self.manual_power_w
+    
+    def _log_ramp(self, message: str, key: tuple):
+        """Log a ramped command, once per distinct (direction, ramped, requested)."""
+        if key != getattr(self, '_last_ramp_key', None):
+            logger.info(message)
+            self._last_ramp_key = key
     
     def _apply_safety_limits(self, power: float, soc: float) -> float:
         """Apply SoC-based safety limits with ramping."""
@@ -402,6 +410,9 @@ class VirtualModeController:
                 ramp_progress = (soc - (max_charge_soc - ramp_window)) / ramp_window
                 ramp_factor = 1.0 - ramp_progress
                 ramped_power = power * max(ramp_factor, 0.05)
+                self._log_ramp(f"SoC {soc:.1f}% within {ramp_window}% of the charge limit "
+                               f"({max_charge_soc}%) - {ramped_power:.0f}W of {power:.0f}W",
+                               ('charge', round(ramped_power), round(power)))
                 power = ramped_power
         
         if power < 0 and soc <= (min_discharge_soc + ramp_window):
@@ -415,6 +426,9 @@ class VirtualModeController:
                 ramp_progress = ((min_discharge_soc + ramp_window) - soc) / ramp_window
                 ramp_factor = 1.0 - ramp_progress
                 ramped_power = power * max(ramp_factor, 0.05)
+                self._log_ramp(f"SoC {soc:.1f}% within {ramp_window}% of the discharge limit "
+                               f"({min_discharge_soc}%) - {abs(ramped_power):.0f}W of {abs(power):.0f}W",
+                               ('discharge', round(ramped_power), round(power)))
                 power = ramped_power
         
         return power
@@ -498,47 +512,24 @@ class VirtualModeController:
         """
         Verify that commanded power matches actual battery DC power.
         
+        Compares the setpoint read back from WSetPct (WSet is never written)
+        with M714 DC power, both in the BatteryCommand convention, via
+        FranklinWHController.verify_dispatch().
+        
         Returns:
             (ok: bool, commanded: float, actual: float, diff_percent: float)
+            A failed readback returns ok=False rather than assuming success.
         """
-        try:
-            # Get commanded power from control status
-            ctl = self.ctrl.read_control_status()
-            commanded = ctl.get('wset_watts', 0)
-            wset_ena = ctl.get('wset_enabled', 0)
-            
-            if wset_ena != 1 or commanded == 0:
-                # Not actively controlling, skip check
-                return True, 0, 0, 0
-            
-            # Get actual battery DC power from Model 714
-            m714 = self.ctrl.get_model(714)
-            if not m714:
-                return True, commanded, 0, 0  # Can't verify without Model 714
-            
-            m714.read()
-            sf_w = self.ctrl._get_scale_factor(m714, 'DCW_SF')
-            blocks = m714.blocks[1:] if hasattr(m714, 'blocks') and len(m714.blocks) > 1 else [m714]
-            actual = sum(
-                block.DCW.value * (10 ** sf_w)
-                for block in blocks
-                if hasattr(block, 'DCW') and block.DCW.value is not None
-            )
-            
-            # Calculate difference percentage
-            if commanded == 0:
-                diff_percent = 0 if actual == 0 else 100
-            else:
-                diff_percent = abs((actual - commanded) / commanded) * 100
-            
-            # Check if within tolerance
-            ok = diff_percent <= tolerance_percent
-            
-            return ok, commanded, actual, diff_percent
-            
-        except Exception as e:
-            logger.debug(f"Could not verify command execution: {e}")
-            return True, 0, 0, 0  # Fail open (assume OK) on error
+        expected = self._last_commanded_power
+        if expected == 0:
+            # Not actively controlling, nothing to verify
+            return True, 0, 0, 0
+        
+        result = self.ctrl.verify_dispatch(expected, tolerance_pct=tolerance_percent)
+        commanded = result['commanded_w'] or 0
+        actual = result['actual_w'] or 0
+        diff_percent = abs((actual - expected) / expected) * 100
+        return result['ok'], commanded, actual, diff_percent
     
     def execute_once(self, dry_run: bool = False) -> float:
         """Calculate and send single command. Returns actual power sent.
@@ -733,9 +724,8 @@ class VirtualModeController:
                     if now - last_sanity_check >= sanity_interval:
                         last_sanity_check = now
                         try:
-                            ok, commanded, actual, diff = self.verify_command_execution()
-                            if not ok:
-                                logger.warning(f"Command verification: {commanded:.0f}W vs actual {actual:.0f}W")
+                            # verify_dispatch() already logs a warning with the reason
+                            self.verify_command_execution()
                         except Exception as e:
                             logger.debug(f"Sanity check failed: {e}")
                 
