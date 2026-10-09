@@ -724,9 +724,8 @@ class VirtualModeController:
                     if now - last_sanity_check >= sanity_interval:
                         last_sanity_check = now
                         try:
-                            ok, commanded, actual, diff = self.verify_command_execution()
-                            if not ok:
-                                logger.warning(f"Command verification: {commanded:.0f}W vs actual {actual:.0f}W")
+                            # verify_dispatch() already logs a warning with the reason
+                            self.verify_command_execution()
                         except Exception as e:
                             logger.debug(f"Sanity check failed: {e}")
                 

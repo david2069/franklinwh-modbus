@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VirtualModeController.verify_command_execution()` compared the never-written `M704.WSet` with battery power, so it always passed. It now reads the setpoint back from `WSetPct` and reports a failed readback instead of assuming success. (#21)
 
 ### Added
-- `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. (#21)
+- `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. Tolerance has a 100 W floor (M714.DCW reads in 100 W steps), and commands under 150 W are verified on the setpoint only. (#21)
 - Controller I/O health: `last_success_ts`, `last_error`, `last_error_ts`, `consecutive_failures` and `data_age_s`, so callers can tell a dead link from an empty read. (#22)
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 

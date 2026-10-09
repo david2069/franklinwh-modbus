@@ -1604,6 +1604,8 @@ class FranklinWHController:
         min_response_w: float = 50.0,
         timeout_s: float = 0.0,
         poll_interval_s: float = 2.0,
+        min_tolerance_w: float = 100.0,
+        min_verify_w: float = 150.0,
     ) -> Dict[str, Any]:
         """Verify that a dispatched command actually took effect.
         
@@ -1621,6 +1623,10 @@ class FranklinWHController:
             timeout_s: Keep polling up to this long for the battery to
                 respond (it ramps); 0 checks once.
             poll_interval_s: Delay between polls when timeout_s > 0.
+            min_tolerance_w: Floor on the allowed deviation. M714.DCW reads
+                in 100 W steps, so a percentage alone fails small commands.
+            min_verify_w: Below this |expected_w| only the setpoint is
+                checked; battery power is too coarse to confirm it.
         
         Returns dict with:
             ok: setpoint matches and battery power is within tolerance
@@ -1630,7 +1636,8 @@ class FranklinWHController:
         """
         deadline = time.monotonic() + max(timeout_s, 0.0)
         while True:
-            result = self._evaluate_dispatch(expected_w, tolerance_pct, min_response_w)
+            result = self._evaluate_dispatch(expected_w, tolerance_pct, min_response_w,
+                                             min_tolerance_w, min_verify_w)
             if result['ok'] or time.monotonic() + poll_interval_s > deadline:
                 break
             time.sleep(poll_interval_s)
@@ -1642,7 +1649,8 @@ class FranklinWHController:
         return result
     
     def _evaluate_dispatch(self, expected_w: float, tolerance_pct: float,
-                           min_response_w: float) -> Dict[str, Any]:
+                           min_response_w: float, min_tolerance_w: float = 100.0,
+                           min_verify_w: float = 150.0) -> Dict[str, Any]:
         """Single readback for verify_dispatch()."""
         result = {
             'ok': False, 'dispatched': False, 'enabled': None,
@@ -1665,13 +1673,17 @@ class FranklinWHController:
             result['reason'] = 'control released' if not enabled else 'control still enabled (WSetEna=1)'
             return result
         
-        tolerance_w = abs(expected_w) * tolerance_pct / 100
+        tolerance_w = max(abs(expected_w) * tolerance_pct / 100, min_tolerance_w)
         same_direction = (commanded > 0) == (expected_w > 0) and commanded != 0
         
         if not enabled:
             result['reason'] = 'control not enabled (WSetEna=0)'
         elif not same_direction or abs(commanded - expected_w) > tolerance_w:
             result['reason'] = f"setpoint mismatch ({commanded:.0f}W)"
+        elif abs(expected_w) < min_verify_w:
+            # Too small to confirm against 100 W DCW steps; the setpoint is all we can check
+            result['ok'] = result['dispatched'] = True
+            result['reason'] = 'setpoint verified (below battery power resolution)'
         elif abs(actual) < min_response_w or (actual > 0) != (expected_w > 0):
             result['reason'] = f"battery not responding ({actual:.0f}W)"
         else:

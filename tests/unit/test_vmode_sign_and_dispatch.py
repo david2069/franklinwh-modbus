@@ -193,6 +193,32 @@ class TestVerifyDispatch:
             r = real_ctrl.verify_dispatch(1500, timeout_s=10, poll_interval_s=1)
         assert r['ok']
 
+    def _verify_state(self, ctrl, state, expected):
+        with patch.object(ctrl, '_read_dispatch_state', return_value=state):
+            return ctrl.verify_dispatch(expected)
+
+    def test_small_command_verified_on_setpoint(self, real_ctrl):
+        # 80W self-consumption trim: DCW reads in 100W steps, so 0W is expected
+        r = self._verify_state(real_ctrl, {'enabled': True, 'wset_pct': -1.6,
+                                           'commanded_w': 80, 'actual_w': 0}, 80)
+        assert r['ok'] and 'below battery power resolution' in r['reason']
+
+    def test_small_command_wrong_direction_still_detected(self, real_ctrl):
+        r = self._verify_state(real_ctrl, {'enabled': True, 'wset_pct': 1.6,
+                                           'commanded_w': -80, 'actual_w': 0}, 80)
+        assert not r['ok'] and 'setpoint mismatch' in r['reason']
+
+    def test_quantised_readback_within_floor(self, real_ctrl):
+        # 300W reads back as 200W: 33% off, but within the 100W DCW step
+        r = self._verify_state(real_ctrl, {'enabled': True, 'wset_pct': -6,
+                                           'commanded_w': 300, 'actual_w': 200}, 300)
+        assert r['ok']
+
+    def test_ignored_small_but_verifiable_command_detected(self, real_ctrl):
+        r = self._verify_state(real_ctrl, {'enabled': True, 'wset_pct': -6,
+                                           'commanded_w': 300, 'actual_w': 0}, 300)
+        assert not r['ok'] and 'not responding' in r['reason']
+
 
 # ------------------------------------------------- #22 read-failure surfacing
 
