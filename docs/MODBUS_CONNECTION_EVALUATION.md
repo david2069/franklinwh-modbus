@@ -7,7 +7,7 @@
 **Direction set by the owner on 2026-10-12:**
 
 - **FranklinWH Modbus API 2.0** will be based on this library (franklinwh-modbus 1.x) as its model, and built on **modbus-connection** as the transport.
-- **FranklinWH Modbus Bridge 2.0** will use FranklinWH Modbus API 2.0.
+- **FranklinWH Modbus Bridge 2.0** will use FranklinWH Modbus API 2.0, and is to be the **single owner of the aGate's Modbus connection**, shared by the other bridges.
 - **Direct Connect (the Local Bridge)** will likely be forked as well, and its fork would use FranklinWH Modbus API 2.0.
 - **The Energipays bridge** will likely be forked as well, and its fork would use FranklinWH Modbus API 2.0.
 - **franklinwh-modbus 1.x is not rewritten.** The connection and threading defects in the current library (see `CONNECTION_AND_THREADING.md`) stay queued and are fixed in the current design.
@@ -16,7 +16,7 @@ This follows the bridge's recommendation below, which proposed modbus-connection
 
 Still to decide: the name of the 2.0 package and its repository, the timing, whether 2.0 keeps a synchronous facade for the CLI and tools, and whether the Direct Connect and Energipays forks go ahead.
 
-With all three bridges on API 2.0, each still opens its own connection to the aGate's port 502. modbus-connection serialises requests within one process only, so sharing the aGate between processes remains a separate problem (see "What it would not fix").
+**Sharing the aGate is the role of Modbus Bridge 2.0.** modbus-connection serialises requests within one process only, so it can't stop separate programs competing for the aGate's port 502. Modbus Bridge 2.0 is to be the single owner of the aGate connection, which the other bridges share through it. Still to decide: how Direct Connect and Energipays reach the aGate through Bridge 2.0 (for example a Modbus TCP proxy that API 2.0 clients connect to, or Bridge 2.0's REST/MQTT interfaces).
 
 ## What modbus-connection is
 
@@ -62,7 +62,7 @@ Each item maps to a finding in `CONNECTION_AND_THREADING.md`.
 
 ## What it would not fix
 
-- **Three processes on one aGate.** It serialises requests within **one process**. The franklinwh-modbus-bridge, the Local Bridge and Energipay are separate processes, and each would still open its own connection to :502. That needs a single owning process or a Modbus proxy.
+- **Three processes on one aGate.** It serialises requests within **one process**. The franklinwh-modbus-bridge, the Local Bridge and Energipay are separate processes, and each would still open its own connection to :502. **Planned answer (owner, 2026-10-12):** Modbus Bridge 2.0 is the single owner of the aGate connection, and the other bridges go through it (see [Decision](#decision)).
 - **Device behaviour.** These stay in the device library whatever the transport:
   - the M704 write sequence and the pauses between writes;
   - the software command timeout (the hardware `WSetRvrtTms` reversion is cosmetic on this firmware);
