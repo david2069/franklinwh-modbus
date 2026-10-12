@@ -8,11 +8,14 @@
 
 - **FranklinWH Modbus API 2.0** will be based on this library (franklinwh-modbus 1.x) as its model, and built on **modbus-connection** as the transport.
 - **FranklinWH Modbus Bridge 2.0** will use FranklinWH Modbus API 2.0.
+- **Direct Connect (the Local Bridge)** will likely be forked as well, and its fork would use FranklinWH Modbus API 2.0.
 - **franklinwh-modbus 1.x is not rewritten.** The connection and threading defects in the current library (see `CONNECTION_AND_THREADING.md`) stay queued and are fixed in the current design.
 
 This follows the bridge's recommendation below, which proposed modbus-connection as the transport inside a franklinwh-modbus successor rather than a bridge-only switch, and only after measurement.
 
-Still to decide: the name of the 2.0 package and its repository, the timing, and whether 2.0 keeps a synchronous facade for the CLI and tools.
+Still to decide: the name of the 2.0 package and its repository, the timing, whether 2.0 keeps a synchronous facade for the CLI and tools, and whether the Direct Connect fork goes ahead.
+
+With both bridges on API 2.0, each still opens its own connection to the aGate's port 502. modbus-connection serialises requests within one process only, so sharing the aGate between processes remains a separate problem (see "What it would not fix").
 
 ## What modbus-connection is
 
