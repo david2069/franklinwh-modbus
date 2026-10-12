@@ -7,7 +7,7 @@
 **franklinwh-modbus will not be rewritten onto modbus-connection.** The owner's decision (2026-10-12):
 
 - For this library, modbus-connection is a roadmap item for a possible **forked version** only.
-- franklinwh-modbus-bridge may adopt it on its own account. Its view was requested on 2026-10-12, and is pending.
+- franklinwh-modbus-bridge was asked for its view on 2026-10-12. It recommends modbus-connection as the transport **inside a franklinwh-modbus fork**, not as a bridge-only switch, and only after measurement (see [The bridge's view](#the-bridges-view-2026-10-12)). The owner classes this as a **future recommendation, not current scope**.
 - The connection and threading defects in the current library (see `CONNECTION_AND_THREADING.md`) stay queued and will be fixed in the current design.
 
 ## What modbus-connection is
@@ -77,6 +77,24 @@ Each item maps to a finding in `CONNECTION_AND_THREADING.md`.
 ## For franklinwh-modbus-bridge
 
 The bridge is already async and runs every library call through `asyncio.to_thread` under a per-gateway lock. Its dispatch-reliability design (franklinwh-modbus-bridge PR #57) proposes a per-gateway queue, cites Home Assistant's single-client, single-lock `ModbusHub` as precedent, and wants to drop its second (vendor-register) connection. modbus-connection provides that pattern directly. If the bridge moves its Modbus I/O onto it, it takes on the device behaviour listed under "What it would not fix", or keeps this library for control, which brings back a second connection.
+
+## The bridge's view (2026-10-12)
+
+Received through the owner; documented in franklinwh-modbus-bridge PR #57, `docs/dispatch-reliability-design.md` §11. The owner classes it as a future recommendation, not current scope.
+
+- **Yes to modbus-connection as the transport, but inside franklinwh-modbus** (this roadmap item), not as a bridge-only switch. Reasons:
+  1. The bridge's own rule is that franklinwh-modbus handles all Modbus I/O; the bridge doesn't re-implement it.
+  2. A bridge-only switch would move the control logic into the bridge (M704 sequence, verify, watchdog, orphan release, quirks), or keep this library for control and bring back two sockets.
+  3. The Local Bridge also uses franklinwh-modbus, so a bridge-only switch would split the two bridges.
+- **Not before evidence.** It is untested on this aGate, and since connections are being closed mid-request (the "Response timeout" finding), a long-lived connection might help or hurt. The API is moving fast, and it doesn't solve multiple clients on :502.
+- **Fit:** it addresses the bridge's findings C1, C3, C10, C14, C15, P3/U9 and the reply-mismatch risk in one move, and the bridge is already async.
+- **Checked by the bridge:** PyPI 4.12.4, 41 releases since 2026-06-24, major versions 1–4. The bridge container runs Python 3.12.15 and pymodbus 3.13.1, which meet the requirements; the bridge's `pyproject.toml` (>= 3.11) would need raising. Feature claims were taken from this page and the project's docs, not tested.
+- **Suggested path:**
+  1. The bridge's Phase 0b measurement baseline plus its experiments E1–E5.
+  2. A read-only trial: a minimal modbus-connection poller with the bridge poller paused, compared against the baseline on connection closes, "Response timeout" vs "timed out", and latency.
+  3. If it wins, adopt it in the franklinwh-modbus fork behind an async API that keeps the dispatch semantics.
+
+  Meanwhile the bridge's Phase 1 (truthful dispatch reporting) proceeds on the current library.
 
 ## Possible spike (not scheduled)
 
