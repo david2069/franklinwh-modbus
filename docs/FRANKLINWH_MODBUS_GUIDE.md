@@ -228,7 +228,7 @@ The admin console already defines three control tiers based on SPAN availability
 
 ### 5.8 SunSpec2 Library Quirks
 
-The `sunspec2` Python client remaps addresses internally. Extension registers (15000+, 15500+) must be read via **raw Modbus TCP socket**, not `sunspec2.client.read()`:
+The library reads the extension registers (15000+, 15500+) with a **raw Modbus TCP socket**, as below. The reason once given, that the `sunspec2` client remaps addresses, is wrong: `client.read(addr, count)` sends the address unchanged (corrected 2026-10-13; see `FRANKLINWH_SUNSPEC_QUIRKS.md` and `CONNECTION_AND_THREADING.md`). The client does lack `read_holding_registers()`.
 
 ```python
 import struct

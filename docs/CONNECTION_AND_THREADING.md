@@ -18,6 +18,59 @@ The defects found are queued in the change-management queue (`docs/IN_FLIGHT_WOR
 | aGate connection limit on :502? | Unknown. Never measured. |
 | Two Modbus masters? | Not handled at the connection layer. |
 
+## Usage guidance and limitations
+
+*Added 2026-10-13. Applies to 1.x (synchronous, on pysunspec2). Each statement names its evidence: a code location, a check in `tools/repro_raw_vs_pysunspec2.py` (C1–C7, output under [Evidence: reproduction run](#evidence-reproduction-run)), a cited specification, or "not measured".*
+
+### What 1.x is suited for
+
+- The CLI, scripts, the TUI monitor and the virtual-mode loop.
+- One `FranklinWHController` per aGate per process, with calls made **one at a time**.
+- Polling at a moderate rate. No safe rate is given, because the aGate's connection limit on :502 has not been measured.
+
+### Rules for callers, especially async ones
+
+The bridges run the library from asyncio through `asyncio.to_thread`. That works within these limits:
+
+| # | Rule | Evidence |
+|---|---|---|
+| 1 | **Serialise every call per gateway**, including `connect()` and `reconnect()`. The controller has no lock around Modbus I/O. | Code: [Locks](#locks) |
+| 2 | **Every call blocks a worker thread for its whole duration**: up to two retries, `reconnect()` (1 s sleep plus a full rescan) and the pauses between writes in `send_command()`. `to_thread` runs on asyncio's default executor, a `ThreadPoolExecutor` whose default size is 32 or the CPU count plus 4, whichever is smaller, so a scheduler that starts many jobs at once fills it, and the calls queue behind the caller's lock rather than run in parallel. | Code: [Failure handling](#failure-handling-_with_retry), [reconnect()](#reconnect), [send_command() sequence](#send_command-sequence). Python docs: `asyncio.to_thread`, `concurrent.futures.ThreadPoolExecutor`. Call durations: not measured. |
+| 3 | **Cancelling doesn't stop the call.** If `asyncio.wait_for()` or a scheduler cancels a `to_thread` call, only the await stops; the thread runs to the end. A `send_command()` cancelled partway still carries on writing to the device. Don't use cancellation to abort a dispatch. | Repro C7 |
+| 4 | **Don't pass `duration_s` if you hold your own lock.** The timer it starts calls `reset_control_state()` from its own thread, outside the caller's lock. Use a watchdog in the caller instead. | Code: [The command timeout timer](#the-command-timeout-timer) |
+| 5 | **Each call opens one or more TCP connections**, so polling faster means more connections opened and closed on the aGate. Whether that causes the "Response timeout" closes is not proven. | Repro C1, C2; table under [Reads and writes](#reads-and-writes). Effect on the aGate: not measured. |
+| 6 | **One owner per aGate.** Nothing in the library coordinates separate processes. | Code: no cross-process mechanism exists |
+
+### What the Modbus TCP specification recommends
+
+Source: *MODBUS Messaging on TCP/IP Implementation Guide V1.0b*, Modbus Organization, 24 October 2006, https://www.modbus.org/file/secure/messagingimplementationguide.pdf (downloaded 2026-10-13).
+
+| Guide | Text | 1.x today |
+|---|---|---|
+| §4.2.1.1, p.10, rule 2 | "It is recommended to keep the TCP connection opened with a remote device and not to open and close it for each MODBUS/TCP transaction." The client "must be capable of accepting a close request from the server". | pysunspec2 opens and closes per read and per write (C2). |
+| §4.2.1.1, p.10, rule 3 | "It is recommended for a MODBUS Client to open a minimum of TCP connections with a remote MODBUS server … One connection per application could be a good choice." | pysunspec2 plus the raw paths, plus a second client in the bridge. |
+| §4.2.1.1, p.12 | A server keeps a pool of connections for unlisted clients; when it is full, "close the oldest connection when a new connection request arrives". | Whether the aGate does this is not known. If it does, it could explain the peer-closed "Response timeout" errors: not proven. |
+| §4.2.1.1 rule 4, p.10; p.23; §4.4.1.3, p.24 | The transaction identifier must be unique on a connection at a time; a response whose identifier matches no pending request "must be discarded". | pysunspec2 and the raw paths always send 0 and never check the reply's identifier. Safe only while one request is outstanding per connection. |
+
+These are recommendations for implementers ("it is recommended"), not a conformance test.
+
+### Why some integrations use raw Modbus TCP
+
+A Modbus TCP request is a 7-byte header (MBAP) plus a short PDU (Guide §3.1.3, p.5). The framing is not where 1.x spends its effort. The extra connections come from pysunspec2's connection handling (C1, C2), and the extra time from the library's retry, reconnect and rescan logic. Sending frames on one long-lived socket avoids both, which is why some integrations go raw.
+
+A raw client then owns what the libraries did: matching responses to requests, serialising, reconnecting, scale factors, enum values (`SUNSPEC_ENUM_BASIS.md`) and model addresses. Hardcoded model addresses break without any error if a firmware update moves the model map. The device behaviour (the M704 write sequence, pauses, verify, command timeout, orphan release) still has to live somewhere.
+
+1.x mixes the two. See [Raw Modbus TCP alongside pysunspec2](#raw-modbus-tcp-alongside-pysunspec2).
+
+### API 2.0 (modbus-connection)
+
+See `MODBUS_CONNECTION_EVALUATION.md`, which cites the project's documentation; none of this has been tested here.
+
+- One persistent link per process, with requests serialised, responses matched to requests, and typed errors. Plain register reads and writes go on the same link, so no second transport is needed.
+- Async only. The CLI and tools would need a sync facade or would have to become async.
+- Requests are serialised per process. Sharing an aGate between programs is the role of Modbus Bridge 2.0.
+- Python >= 3.12; a young API that changes quickly. Pin versions.
+
 ## Connection lifecycle
 
 ### connect()
@@ -56,6 +109,78 @@ An exception counts as a connection error if it is a `ConnectionError` or `OSErr
 ### What "Response timeout" means
 
 In pysunspec2 1.3.3, `_read()` raises `ModbusClientTimeout('Response timeout')` when `socket.recv()` returns 0 bytes, which means **the other end closed the connection** before the full reply arrived (`modbus.py:659-667`). A real socket timeout surfaces as `ModbusClientTimeout("timed out")` (`modbus.py:728-729`). Treat "Response timeout" as a dropped connection.
+
+## Raw Modbus TCP alongside pysunspec2
+
+*Added 2026-10-13. Code read on `develop`. Behaviour checked against a local fake Modbus server and the gateway emulator (C1–C7, [Evidence: reproduction run](#evidence-reproduction-run)); not tested on the aGate.*
+
+1.x reads and writes standard SunSpec models through pysunspec2. It reaches the FranklinWH extension registers (15000+, 15500+, 16000) by building Modbus TCP frames with `struct.pack` and sending them on pysunspec2's own socket (`self.dev.client.socket`).
+
+| Where | What |
+|---|---|
+| `controller.py` | `_read_extension_solar()` (15500–15513, 16000), `read_native_mode()` (15507–15509), the 15507/15508/15509 setters, the helpers inside `test_extension_writability()` |
+| `sequencer.py` | `read_value()` and `execute_writes()` for address-only tags such as `"15507"`; `write_value()` for those tags calls `client.write_hregs()` |
+| `tools/` | `probe_15000.py`, `retest_historical_discoveries.py`, `franklinwh_control_standalone.py` |
+
+### The recorded reason doesn't hold
+
+The quirks doc, the Modbus guide, the verification baseline and the code comments all said pysunspec2 "remaps addresses" and so can't reach the extension registers. That is wrong:
+- pysunspec2 1.3.3's `ModbusClientTCP.read(addr, count)` and `write(addr, data)` (`sunspec2/modbus/modbus.py:686`, `:839`) send `addr` unchanged.
+- The search through base addresses 40000, 0 and 50000 happens only inside `scan()` (`sunspec2/modbus/client.py:199`, `:242`).
+- **C3:** `client.read(15500, 14)` put address 15500 on the wire.
+
+What is true is that the client has no `read_holding_registers()`, only `read()` and `write()`, which work in bytes.
+
+Not shown: that the aGate answers `client.read(15500, 14)`. The original "Modbus exception 2" was not recorded with its request, so its cause is unknown.
+
+### Consequences
+
+| # | Finding | Evidence |
+|---|---|---|
+| 1 | **How connections behave depends on which call ran last.** The controller's raw helpers call `client.connect()` and leave the socket open, and pysunspec2 then reuses it instead of opening its own. | C4; code: [Reads and writes](#reads-and-writes) |
+| 2 | **The sequencer's raw path only works if something else left a socket open.** `read_value()` and `execute_writes()` take the raw path only `if client.socket`, and the sequencer never connects. After `scan()` the socket is `None` (C1). The raw reads then return `None`, and the raw writes are skipped with no error logged. With `verify: false` the step logs `[SENT]` and `run_sequence` returns `True`. With `verify` on (the default), the step should fail at verification, but that case wasn't run. | C6; code: `sequencer.py:132`, `:372` |
+| 3 | **`SunSpecSequencer.write_value()` for extension tags calls a method pysunspec2 doesn't have.** `client.write_hregs()` (`sequencer.py:195`, `:197`) raises `AttributeError`, which is logged at DEBUG, and nothing is written. The unit test (`tests/unit/test_sequencer_extensions.py:111`) mocks the method, so it passes. The CLI's `--sequence` path uses `execute_writes()`, not `write_value()`. | C5; code |
+| 4 | **The raw frames are minimal.** They always use transaction id 0 and a single `recv(256)` with no check of the MBAP length field, and some paths check only the response length. The Implementation Guide (§4.4.1.3, p.24) expects responses to be matched to requests by transaction id. | Code: `controller.py:222`, `:807`, `:949`; `sequencer.py:136`, `:382` |
+
+### Severity
+
+These are design defects in how 1.x reaches the extension registers. They are **not** failures seen in the main control path:
+- `send_command()` writes M704 through pysunspec2.
+- The controller's raw helpers open their own socket before use (`controller.py:217`, `:801`, `:945`, `:989`, `:1058`, `:1123`).
+- `send_command()` has been tested on hardware (`tests/results/2026-10-09_pr23_live.md`).
+
+The silent-loss risk is in the sequencer (items 2 and 3), which the CLI's `--sequence` option uses. All four are queued for a fix. For 1.x the fix is one transport for every register; API 2.0 gets that from modbus-connection.
+
+### Evidence: reproduction run
+
+`tools/repro_raw_vs_pysunspec2.py` starts a fake Modbus TCP server on 127.0.0.1 that logs every connection and every request, then runs each check through pysunspec2 and the library's own code. With `--host`/`--port` it runs against another server instead (connection counts and writes then come from that server's log). Run 2026-10-13, pysunspec2 1.3.3, Python 3.14.3:
+
+```text
+pysunspec2 1.3.3, Python 3.14.3
+C1: CONFIRMED — scan used 1 connection(s); client.socket after scan = None
+C2: CONFIRMED — 3 model reads opened 3 connection(s); socket after = None
+C3: CONFIRMED — client.read(15500, 14) sent [(3, 15500, 14)], got 28 bytes
+C4: CONFIRMED — raw call + 3 model reads used 1 connection(s); socket left open = True
+C5: CONFIRMED — hasattr(client, 'write_hregs') = False; write_value returned None; writes on the wire = []; log = [('DEBUG', "Raw write at 15508 failed: 'ModbusClientTCP' object has no attribute 'write_hregs'")]
+C6: CONFIRMED — run_sequence returned True; writes on the wire = []; errors/warnings logged = []; info log = ['Starting sequence with 1 steps...', '\n--- [1/1] raw write, no socket ---', '  Writing 15508 = 25 [Raw: 25, Addr: 15508]', '  Write 15508: None -> 25 [SENT]', '\nSequence complete.']
+C7: CONFIRMED — await outcome = cancelled; thread finished its work anyway = True
+
+7/7 claims confirmed
+```
+
+Against the gateway emulator (127.0.0.1:5020, profile agate-v10r01b04d00), 2026-10-13 19:21:14–19:21:16 AEDT: the client-side results matched. The emulator session's harness, which logs every connection and request on the server side, recorded (franklinwh-gateway-emulator `tests/results/2026-10-13_fwh_modbus_c1_c6.md`, commit `d87bc2f`):
+
+| Check | Server log |
+|---|---|
+| C1 | Connection 1: 65 fc3 reads. The probe at 40000×3 got exception 2, so the scan used base 0 and read up to 1126. Then disconnect. |
+| C2 | Connections 2, 3 and 4: one fc3 at 2×68 each, then disconnect. |
+| C3 | Connection 5: fc3 at 15500×14, then disconnect. |
+| C4 | Connection 6: fc3 at 15507×3, then three fc3 at 2×68 on the same connection, then disconnect. |
+| C5, C6 | No fc6 or fc16 anywhere in the log; no requests outside connections 1–6. |
+
+Totals: 6 connections, 0 refused, 0 writes, 73 requests, 1 exception (the 40000 probe). 15507–15509 read [2, 20, 20] afterwards, unchanged.
+
+Limits: neither server is the aGate. Device-side behaviour (its connection limit, whether it answers `client.read(15500, 14)`, how it closes connections) is not tested here.
 
 ## Threading
 

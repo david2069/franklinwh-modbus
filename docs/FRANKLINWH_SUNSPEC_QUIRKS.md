@@ -344,24 +344,13 @@ def _probe_extension_writable(self):
 
 ---
 
-## SunSpec2 Client — Address Remapping
+## SunSpec2 Client — Extension Registers (corrected 2026-10-13)
 
-**Issue:** The SunSpec2 Python library (`sunspec2.modbus.client.ModbusClientTCP`) remaps register addresses internally. The `client.read()` method adjusts addresses based on SunSpec model base offsets, causing "Modbus exception 2" (illegal address) when attempting to read FranklinWH proprietary extension registers (15000+ and 15500+).
+**Correction:** this section used to say pysunspec2 "remaps register addresses internally", causing "Modbus exception 2" on the extension registers (15000+, 15500+). That is wrong. pysunspec2 1.3.3's `ModbusClientTCP.read(addr, count)` and `write(addr, data)` send the address unchanged; the base-address search (40000, 0, 50000) happens only in `scan()`. Checked on the wire against a local fake server: `client.read(15500, 14)` sends address 15500 (check C3 in `tools/repro_raw_vs_pysunspec2.py`; output in `CONNECTION_AND_THREADING.md`). Not yet tested against the aGate. The original "exception 2" was not recorded with its request, so its cause is unknown.
 
-The SunSpec2 client also does **not** expose `read_holding_registers()` — it has only `read()` and `_read()`.
+**What is true:** the pysunspec2 client has no `read_holding_registers()`; it has `read()` and `write()`, which work in bytes.
 
-**Workaround:** Use raw Modbus TCP socket for all extension register reads:
-```python
-import struct
-client = self.dev.client
-sock = client.socket
-req = struct.pack('>HHHBBHH', 0, 0, 6, unit_id, 3, start_addr, count)
-sock.settimeout(self.timeout)  # Important for WiFi networks
-sock.sendall(req)
-resp = sock.recv(256)
-```
-
-**Code Location:** `src/franklinwh_modbus/controller.py:_read_extension_solar()`, `read_native_mode()`
+**What the code does today:** extension registers are read and written with hand-built Modbus TCP frames on pysunspec2's socket (`self.dev.client.socket`), in `controller.py` (`_read_extension_solar()`, `read_native_mode()`, the 15507–15509 setters) and `sequencer.py`. The defects this causes (socket left open, the sequencer depending on someone else's socket, `write_value()` calling a missing `write_hregs()`) are in `CONNECTION_AND_THREADING.md`, "Raw Modbus TCP alongside pysunspec2".
 
 ---
 
@@ -391,7 +380,7 @@ Standard SunSpec models (M1–M715):
   └── pymodbus base 40000:  address=40000+               → ❌ EXCEPTION 2
 
 Extension registers (15500+):
-  ├── sunspec2 library:     N/A — can't address these    → ❌ REMAPS
+  ├── sunspec2 library:     client.read(15500, n)        → sends 15500 unchanged (local check C3; aGate untested)
   ├── Raw TCP socket:       address=15500, 15507 etc.    → ✅ WORKS (base-1)
   └── pymodbus base 40000:  address=55500+               → ❌ EXCEPTION 2
 ```
