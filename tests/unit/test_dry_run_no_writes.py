@@ -4,7 +4,7 @@
 fix it took no `dry_run` parameter, so `franklinwh_cli.py --vmode ... --dry-run`
 wrote `WSetEna=1 / WSetPct=100.0` to the device and then reported
 "no commands sent". Observed on an aGate X (V10R01B04D00) on 2026-09-23 and
-witnessed independently by the Local Bridge orphaned-dispatch alert.
+witnessed independently by a client's orphaned-dispatch alert.
 """
 
 import pytest

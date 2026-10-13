@@ -30,7 +30,7 @@ Behaviour changes that can affect code built on the library:
 - `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. Tolerance has a 100 W floor (M714.DCW reads in 100 W steps), and commands under 150 W are verified on the setpoint only. (#21)
 - Controller I/O health: `last_success_ts`, `last_error`, `last_error_ts`, `consecutive_failures` and `data_age_s`, so callers can tell a dead link from an empty read. (#22)
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
-- `docs/CONNECTION_AND_THREADING.md`: how the library actually handles connections, retries, reconnects and threads (per-call TCP via pysunspec2, no I/O lock, the command-timeout timer, what "Response timeout" means), with the 2026-10-12 Q&A with the Local Bridge and Modbus Bridge.
+- `docs/CONNECTION_AND_THREADING.md`: how the library actually handles connections, retries, reconnects and threads (per-call TCP via pysunspec2, no I/O lock, the command-timeout timer, what "Response timeout" means), with the 2026-10-12 Q&A with client integrations.
 
 - `docs/CONNECTION_AND_THREADING.md`: "Usage guidance and limitations" (what 1.x suits, rules for async callers, the Modbus TCP Implementation Guide's recommendations with page references) and "Raw Modbus TCP alongside pysunspec2". Every statement names its evidence. `tools/repro_raw_vs_pysunspec2.py` checks the code-level claims against a local fake Modbus server or a given host.
 
