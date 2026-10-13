@@ -1,7 +1,7 @@
 # Safety Controls & Development Rules
 
 > **Purpose**: Protect system integrity and prevent catastrophic failures during development.
-> **Project**: FranklinWH Modbus Battery Manager (`/home/david/dev/modbus/`)
+> **Project**: FranklinWH Modbus Battery Manager (`~/dev/modbus/`)
 > **Inherited from**: fhp_demo controls, adapted for local Modbus project
 > **Created**: 2026-02-18
 
@@ -56,7 +56,7 @@ After modifying any file in `src/` or `templates/`.
 ### Restart Command
 ```bash
 # Kill THIS project only (port 8080):
-lsof -ti:8080 | xargs kill 2>/dev/null; sleep 2; cd /home/david/dev/modbus && ./run.sh -q &
+lsof -ti:8080 | xargs kill 2>/dev/null; sleep 2; cd ~/dev/modbus && ./run.sh -q &
 
 # NEVER use generic: pkill python  (kills fhp_demo on port 5000!)
 ```
@@ -117,17 +117,17 @@ tail -100 data/logs/franklinwh.log | grep -iE "error|exception|traceback"
 ## 🛡️ CRITICAL RULE #6: Project Boundary Enforcement
 
 ### This Project ONLY
-**Path**: `/home/david/dev/modbus/`
+**Path**: `~/dev/modbus/`
 **Port**: `8080`
 
 ### Out of Bounds
 | Path | What | Why |
 |------|------|-----|
-| `/home/david/dev/ha/docker/fhp_demo/` | Cloud API dashboard | Separate project |
-| `/home/david/franklinwh-clean/` | Library PR repo | Separate repo |
+| `~/dev/ha/docker/fhp_demo/` | Cloud API dashboard | Separate project |
+| `~/franklinwh-clean/` | Library PR repo | Separate repo |
 
 ### Before ANY File Write
-1. Verify path starts with `/home/david/dev/modbus/`
+1. Verify path starts with `~/dev/modbus/`
 2. If not → **STOP**: "⚠️ Path is outside modbus project. Aborting."
 
 ### Before ANY Process Kill

@@ -36,5 +36,5 @@
 cd <this repository>
 source venv/bin/activate
 PYTHONPATH=src:. python3 -m pytest tests/ --tb=short
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --status
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --status
 ```

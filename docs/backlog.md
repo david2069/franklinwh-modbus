@@ -18,7 +18,7 @@
 
 | ID | Item | Severity | Notes |
 |----|------|----------|-------|
-| ~~DEF-SCANNER-SPAN~~ | ~~SPAN Panel detection false positives~~ | ~~S3~~ | **RESOLVED** `07de71f`. Both `192.168.0.118` (AWTRIX 3 LED display) and `192.168.0.35` were false positives — neither is a SPAN Panel. No real SPAN Panel exists on this network. Fix: `probe_span()` now requires strict JSON schema from `/api/v1/status` or `/api/v1/circuits` instead of HTML content matching. **Investigation also revealed:** HA, Modbus, and SSH disappearing on second scan run was a thread-race at `--threads 100` (probers work correctly when called directly). |
+| ~~DEF-SCANNER-SPAN~~ | ~~SPAN Panel detection false positives~~ | ~~S3~~ | **RESOLVED** `07de71f`. Both `192.0.2.118` (AWTRIX 3 LED display) and `192.0.2.35` were false positives — neither is a SPAN Panel. No real SPAN Panel exists on this network. Fix: `probe_span()` now requires strict JSON schema from `/api/v1/status` or `/api/v1/circuits` instead of HTML content matching. **Investigation also revealed:** HA, Modbus, and SSH disappearing on second scan run was a thread-race at `--threads 100` (probers work correctly when called directly). |
 
 ---
 

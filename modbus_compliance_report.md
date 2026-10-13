@@ -5,8 +5,8 @@
 ## Device Metadata
 - **Manufacturer**: FranklinWH Technologies Co., Ltd
 - **Model**: aGate X
-- **Serial Number**: 10060006A02F24170091
-- **IP Address**: 192.168.0.110:502
+- **Serial Number**: <SERIAL>
+- **IP Address**: 192.0.2.110:502
 - **Slave Unit ID**: 1
 
 ## Write plane Status (SPAN Modbus Lock)
@@ -19,7 +19,7 @@
 | **Model 1** (Common Model) | *Discovery* | Implemented | ✅ | Model present |
 | | `Mn` | Implemented | ✅ Implemented | FranklinWH Technologies Co., Ltd |
 | | `Md` | Implemented | ✅ Implemented | aGate X |
-| | `SN` | Implemented | ✅ Implemented | 10060006A02F24170091 |
+| | `SN` | Implemented | ✅ Implemented | <SERIAL> |
 | **Model 502** (PV AC Measurement) | *Discovery* | Implemented | ✅ | Model present |
 | | `OutPw` | Implemented | ✅ Implemented | 0 <br>*Quirk: Coarse resolution (~100W steps), small nocturnal parasitic loads round up to 500-600W generation* |
 | **Model 701** (DER Measurement) | *Discovery* | Implemented | ✅ | Model present |

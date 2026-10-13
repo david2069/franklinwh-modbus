@@ -120,7 +120,7 @@ The following registers are declared "supported RW" in the PICS but **fail to pe
 | **Inter-test delay** | 0.3s | Between TCP connections (breathing room) |
 | **Remote Control verification** | Modbus readback only | WSetEna=1 confirmed via FC03 read of register 318. **NOT verified via Cloud API or FEM** |
 | **Remote Control activation** | Library `send_command()` | Uses `FranklinWHController.send_command(BatteryCommand(500W))` which writes WSetEna=1 + WSetPct via pysunspec2 |
-| **Target** | 192.168.0.110:502 | WiFi connection, single aGate X |
+| **Target** | 192.0.2.110:502 | WiFi connection, single aGate X |
 | **Firmware** | V10R01B04D00 | As reported by M1.Vr |
 
 ### Variables NOT Tested

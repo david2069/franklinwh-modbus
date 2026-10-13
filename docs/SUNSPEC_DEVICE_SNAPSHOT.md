@@ -11,7 +11,7 @@ This document preserves the complete, unedited output of the SunSpec device scan
 ## 1. Standard Addressing Scan (Base 40001)
 
 **Command**:  
-`python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 -dvalues --vals`
+`python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 -dvalues --vals`
 
 ```text
 Model 1: common
@@ -415,7 +415,7 @@ Addr   Name                 Label                          Value  Units    F   R
 ## 2. Native Addressing Scan (Base 1)
 
 **Command**:  
-`python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 -b 1 -dvalues --vals`
+`python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 -b 1 -dvalues --vals`
 
 ```text
 Model 1: common

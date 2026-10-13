@@ -15,7 +15,7 @@
     {
       "id": "default",
       "name": "Primary aGate",
-      "host": "192.168.0.110",
+      "host": "192.0.2.110",
       "port": 502,
       "unit_id": 1,
       "base_address": 40000,
@@ -35,14 +35,14 @@
     }
   ],
   "modbus": {
-    "host": "192.168.0.110",
+    "host": "192.0.2.110",
     "port": 502,
     "unit_id": 1,
     "base_address": 40000,
     "timeout": 10.0
   },
   "mqtt": {
-    "host": "192.168.0.109",
+    "host": "192.0.2.109",
     "port": 1883,
     "username": "mqttuser",
     "password": "mqttuser",

@@ -1,7 +1,7 @@
 # Throttling Monitor Report
 
 **Date:** 2026-02-24 21:19:42
-**Host:** 192.168.0.110 (Unit ID: 2)
+**Host:** 192.0.2.110 (Unit ID: 2)
 **Duration:** 60 minutes
 **Interval:** 30 seconds
 

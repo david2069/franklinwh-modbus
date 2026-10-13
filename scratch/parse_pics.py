@@ -1,6 +1,7 @@
 import sys
 
-tsv_path = "/Users/davidhona/Downloads/UPDATED_FranklinWH_Modbus_PICS_SM-000028 2.tsv"
+import os
+tsv_path = os.path.expanduser("~/Downloads/UPDATED_FranklinWH_Modbus_PICS_SM-000028 2.tsv")
 
 with open(tsv_path, 'r') as f:
     lines = f.readlines()

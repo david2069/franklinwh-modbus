@@ -47,21 +47,21 @@ The `modbus_sunspec2_reader.py` tool is a high-performance diagnostic utility fo
 
 ### Discover all models (Full Detail)
 ```bash
-python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -d full
+python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -d full
 ```
 
 ### Scan specific Inverter models (Values only)
 ```bash
-python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -m 101,103 -d values
+python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -m 101,103 -d values
 ```
 
 ### Raw extension scan with Non-Zero filtering
 ```bash
-python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 --raw 15500:20 --nz
+python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 --raw 15500:20 --nz
 ```
 
 ### Search for a value in raw memory (Match mode)
 ```bash
 # Finds which standard SunSpec point matches the value in raw register 15020
-python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 --raw 15000:100 --match --nz
+python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 --raw 15000:100 --match --nz
 ```

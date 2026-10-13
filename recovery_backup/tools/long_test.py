@@ -10,7 +10,7 @@ import sys
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
-AGATE_IP = "192.168.0.110"
+AGATE_IP = "192.0.2.110"
 UNIT_ID = 2
 
 # Detect pymodbus version for API compatibility

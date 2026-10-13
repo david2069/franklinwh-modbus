@@ -1,7 +1,7 @@
 # Network Troubleshooting — 2026-03-21
 
 **Date:** 2026-03-21 08:24–08:30 AEDT
-**Device:** FranklinWH aGate X @ 192.168.0.110
+**Device:** FranklinWH aGate X @ 192.0.2.110
 **Issue:** aGate WiFi lost DHCP lease, fell back to 4G cellular
 
 ## Symptom
@@ -22,8 +22,8 @@ The connection indicator shows **4G → Internet** (green ✓), confirming the L
 
 ![WiFi IP 0.0.0.0](media__1774042008823.png)
 
-- **SSID:** do_not_trespass (connected, normal signal)
-- **NIC MAC:** 4C:24:CE:67:3A:7C
+- **SSID:** <SSID> (connected, normal signal)
+- **NIC MAC:** <AGATE_MAC>
 - **IP Address:** 0.0.0.0 ← No DHCP lease
 - **DNS:** 8.8.8.8
 
@@ -50,17 +50,17 @@ Connection indicator now shows **WiFi → Internet** (green ✓). The aGate is b
 
 ## Verification
 
-Network scan confirmed the aGate is back at `192.168.0.110`:
+Network scan confirmed the aGate is back at `192.0.2.110`:
 
 ```
 IP Address       Port   Proto    Device Type        Manufacturer     Model        Serial         Version
 --------------------------------------------------------------------------------------------------------------
-192.168.0.109    1883   MQTT     mqtt_broker        -                MQTT Broker  -              -
-192.168.0.110    502    Modbus   modbus_sunspec     FranklinWH Techn aGate X      10060006A02F.. V10R01B04D
-192.168.0.17     1883   MQTT     mqtt_broker        -                MQTT Broker  -              -
-192.168.0.247    1884   MQTT     mqtt_broker        -                MQTT Broker  -              -
+192.0.2.109    1883   MQTT     mqtt_broker        -                MQTT Broker  -              -
+192.0.2.110    502    Modbus   modbus_sunspec     FranklinWH Techn aGate X      <SERIAL>.. V10R01B04D
+192.0.2.17     1883   MQTT     mqtt_broker        -                MQTT Broker  -              -
+192.0.2.247    1884   MQTT     mqtt_broker        -                MQTT Broker  -              -
 ```
 
 ## Recommendation
 
-Set a **DHCP reservation** in the router for MAC `4C:24:CE:67:3A:7C` → `192.168.0.110` to prevent this from recurring.
+Set a **DHCP reservation** in the router for MAC `<AGATE_MAC>` → `192.0.2.110` to prevent this from recurring.
