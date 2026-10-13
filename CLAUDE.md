@@ -17,6 +17,7 @@
 5. **No `ShouldAutoProceed: true`** on implementation plans — wait for user approval
 6. **Save test results** to `tests/results/` for traceability
 7. **Hardware-affecting changes** (controller, modes, power logic) need user sign-off before commit
+8. **Evidence and testing** — follow [`.agents/policies/evidence_and_testing.md`](.agents/policies/evidence_and_testing.md): cite a source for every claim, treat other sessions' and repos' statements as claims, keep local-only files and site data out of public text
 
 ## Project Layout
 
