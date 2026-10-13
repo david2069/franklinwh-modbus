@@ -1,6 +1,6 @@
 # Connections, Threading and Reconnect: How the Library Behaves
 
-*Recorded 2026-10-12. Written in answer to questions from the Local Bridge (fwh-local) and franklinwh-modbus-bridge sessions; the Q&A is logged below.*
+*Recorded 2026-10-12. Written in answer to questions from client integration sessions, including franklinwh-modbus-bridge; the Q&A is logged below.*
 
 This page describes what the code **does**, not a design. It comes from reading `controller.py` at tag `v0.9.5` and `develop` `8af8301`, and pysunspec2 1.3.3 (the version in this repo's venv). Nothing here was measured on hardware unless it says so. Line numbers are for `develop` unless marked.
 
@@ -112,9 +112,9 @@ From the code, not observed:
 
 ## Q&A log, 2026-10-12
 
-### Local Bridge (fwh-local): connection management
+### Client integrations: connection management
 
-The Local Bridge is designing pooled connections because three clients (the Local Bridge, franklinwh-modbus-bridge and Energipay) use the same aGate :502 without coordination.
+Asked because more than one client can use the same aGate :502 without coordination.
 
 | Question | Answer |
 |---|---|
