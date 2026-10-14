@@ -485,6 +485,9 @@ An undocumented register block at 16000–16002. 16000 is a higher-precision ver
 - **15017 = `BBBackupSoc`** is a candidate only: both are 20 on both sites, and neither site has changed the setting.
 - **15508, 15509 and 16001** all carry the active mode's reserve. The TOU reserve (15) is not exposed by any of these registers, which is the known 15509 defect.
 - The register reads and the settings reads are a day apart. That the settings did not change in between is not established.
+- **Reserve change, 2026-10-15:** the owner changed the Self-Consumption reserve from 5 to 8 at about 06:10 AEDT. Direct Connect 1726 read 8 at 06:15. The modbus-bridge reported 15508 = 15509 = 16001 = 8 at 06:11 (bridge-reported; not read directly here). This supports 15508, 15509 and 16001 carrying the active reserve.
+
+**M713 SoC is the displayed SoC, not the BMS SoC.** Direct Connect 1301 returns both: `fhpSoc` (BMS) and `soc` (shown in the app). `soc` = (`fhpSoc` − 5) / 0.95, with the 5 % a fixed floor, not the reserve: at 06:15 on 2026-10-15, with the reserve at 8, `fhpSoc` 18.1 gave `soc` 13.789 = (18.1 − 5) / 0.95, where a reserve-based floor would give (18.1 − 8) / 0.92 = 10.98. One read, one site. A longer paired capture on the same aGate (2026-10-08/09, 7,606 samples, reported by the emulator project) found the same relation, with M713 `SoC` following `soc` in whole % and 15035 / 10 at 0.1 %.
 
 ### Correlation Evidence
 
