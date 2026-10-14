@@ -14,13 +14,9 @@ The aGate's WiFi had IP `0.0.0.0` — associated with SSID but no DHCP lease obt
 
 ### Network Settings — 4G Fallback Active
 
-![4G Fallback](media__1774041853875.png)
-
 The connection indicator shows **4G → Internet** (green ✓), confirming the LAN interfaces have failed and the device is on cellular backup.
 
 ### WiFi Details — IP 0.0.0.0
-
-![WiFi IP 0.0.0.0](media__1774042008823.png)
 
 - **SSID:** <SSID> (connected, normal signal)
 - **NIC MAC:** <AGATE_MAC>
@@ -33,18 +29,9 @@ Reconfigured WiFi via the FranklinWH mobile app (WiFi Configuration wizard):
 
 ### Step 1–3: WiFi Configuration Wizard
 
-![Step 1 — Router check](media__1774042059815.png)
-![Step 2 — Network list](media__1774042099514.png)
-![Step 3 — Enter password](media__1774042128438.png)
-
 ### Step 4: Connection Success
 
-![Connection success](media__1774042157845.png)
-
 ### Step 5–6: Back Online
-
-![Refreshing settings](media__1774042174268.png)
-![WiFi connected](media__1774042226523.png)
 
 Connection indicator now shows **WiFi → Internet** (green ✓). The aGate is back on the LAN.
 
