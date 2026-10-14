@@ -94,7 +94,7 @@ def main():
     
     if len(sys.argv) < 2:
         print("Usage: python log_throttling_simple.py <agate_ip> [unit_id] [duration_min] [timeout_sec]")
-        print("Example: python log_throttling_simple.py 192.168.0.110 2 60 30")
+        print("Example: python log_throttling_simple.py 192.0.2.110 2 60 30")
         print("  Default unit_id: 2")
         print("  Default duration: 60 minutes")
         print("  Default timeout: 30 seconds (use 10 for Ethernet, 30+ for WiFi)")

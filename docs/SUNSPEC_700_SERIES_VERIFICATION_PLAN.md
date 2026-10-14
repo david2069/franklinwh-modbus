@@ -6,7 +6,7 @@ This document provides a rigorous compliance analysis of the new SunSpec 700 Ser
 
 ## 🔍 Key Findings & Comparative Analysis
 
-We have analyzed the claims in the new guide against our active codebase and the [aGate X Device Scan Manifest](file:///Users/davidhona/dev/modbus/docs/SUNSPEC_DEVICE_SNAPSHOT.md). The findings reveal several critical points that must be verified:
+We have analyzed the claims in the new guide against our active codebase and the [aGate X Device Scan Manifest](/docs/SUNSPEC_DEVICE_SNAPSHOT.md). The findings reveal several critical points that must be verified:
 
 ### 1. The "Disable First" Toggling Pattern
 *   **The Claim**: The official SunSpec S2 specification explicitly discourages disabling a control function before writing new values: *“It is not recommended to disable... set values first, enable last.”*

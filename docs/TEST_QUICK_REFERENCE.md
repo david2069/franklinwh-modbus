@@ -3,7 +3,7 @@
 ## ⚡ One-Command Status Check
 
 ```bash
-source venv/bin/activate && python franklinwh_cli.py -i 192.168.0.110 --status && python franklinwh_cli.py -i 192.168.0.110 --healthcheck
+source venv/bin/activate && python franklinwh_cli.py -i 192.0.2.110 --status && python franklinwh_cli.py -i 192.0.2.110 --healthcheck
 ```
 
 ## 🧪 Running Tests
@@ -26,25 +26,25 @@ python run_hardware_tests.py --list
 python run_hardware_tests.py --release
 
 # Method 2: CLI stop flag
-python franklinwh_cli.py -i 192.168.0.110 --stop
+python franklinwh_cli.py -i 192.0.2.110 --stop
 
 # Method 3: Quick Python
-python -c "import sys; sys.path.insert(0, 'src'); from franklinwh import FranklinWHController; c=FranklinWHController('192.168.0.110'); c.connect(); c.reset_control_state(); print('Released'); c.disconnect()"
+python -c "import sys; sys.path.insert(0, 'src'); from franklinwh import FranklinWHController; c=FranklinWHController('192.0.2.110'); c.connect(); c.reset_control_state(); print('Released'); c.disconnect()"
 ```
 
 ## ✅ Post-Test Verification
 
 ```bash
 # Check control released
-python franklinwh_cli.py -i 192.168.0.110 --status | grep "Control Source"
+python franklinwh_cli.py -i 192.0.2.110 --status | grep "Control Source"
 # Expected: "Cloud API" or "Idle"
 
 # Check zombie state
-python franklinwh_cli.py -i 192.168.0.110 --healthcheck | grep zombie_state
+python franklinwh_cli.py -i 192.0.2.110 --healthcheck | grep zombie_state
 # Expected: "OK (not in zombie state)"
 
 # Check alarms
-python franklinwh_cli.py -i 192.168.0.110 --status | grep -A2 "ALARMS"
+python franklinwh_cli.py -i 192.0.2.110 --status | grep -A2 "ALARMS"
 # Expected: "No alarms active"
 ```
 
@@ -62,9 +62,9 @@ latest=$(ls -t data/test_results_*.json | head -1) && python -c "import json; d=
 
 ```bash
 # Force control take then release
-python franklinwh_cli.py -i 192.168.0.110 --mode manual --power 0 --duration 1
+python franklinwh_cli.py -i 192.0.2.110 --mode manual --power 0 --duration 1
 sleep 2
-python franklinwh_cli.py -i 192.168.0.110 --stop
+python franklinwh_cli.py -i 192.0.2.110 --stop
 ```
 
 ## 📁 File Locations

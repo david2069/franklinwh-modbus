@@ -58,7 +58,7 @@ Report → Queue (in_flight_work.md) → Periodic Triage → Group by Area → P
 
 The agent MUST:
 
-1. **Enforce repo scope** — this agent works ONLY on `franklinwh-modbus` (`/Users/davidhona/dev/modbus`). If the user requests work on another repo (e.g. `franklinwh-cloud`), respond:
+1. **Enforce repo scope** — this agent works ONLY on `franklinwh-modbus` (`~/dev/modbus`). If the user requests work on another repo (e.g. `franklinwh-cloud`), respond:
    > *"That change belongs to a different repo. I'm scoped to franklinwh-modbus only. Please switch to the appropriate agent/session for that repo."*
 2. **Queue all requests** — add to `in_flight_work.md` before acting
 3. **Flag violations** — if user or agent attempts a reactive fix:

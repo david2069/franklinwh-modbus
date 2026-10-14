@@ -4,7 +4,8 @@ Example script showing programmatic usage of the network scanner.
 """
 
 import sys
-sys.path.insert(0, '/home/david/dev/modbus/tools')
+import os
+sys.path.insert(0, os.path.expanduser('~/dev/modbus/tools'))
 
 from network_scanner import (
     NetworkScanner, 

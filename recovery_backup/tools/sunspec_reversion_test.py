@@ -4,9 +4,10 @@ EXTENDED REVERSION TEST — NO FORCED CLEANUP
 Polls 3 minutes post-expiry to observe if device eventually auto-releases.
 """
 import socket, struct, time, sys
-sys.path.insert(0, '/Users/davidhona/dev/modbus/src')
+import os
+sys.path.insert(0, os.path.expanduser('~/dev/modbus/src'))
 
-IP = '192.168.0.110'; PORT = 502; UID = 1; TO = 30
+IP = '192.0.2.110'; PORT = 502; UID = 1; TO = 30
 
 def conn():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

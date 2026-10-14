@@ -44,28 +44,28 @@ For quick, one-off commands or register scans, you can pass a JSON string direct
 If you pass a flat key-value dictionary, the CLI automatically wraps it into a single write step:
 ```bash
 # Enable Remote Control and set charge rate to 30%
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --sequence '{"704.WSetEna": 1, "704.WSetPct": 30}'
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --sequence '{"704.WSetEna": 1, "704.WSetPct": 30}'
 ```
 
 #### B. In-line Reads (Scan Specific SunSpec Points)
 You can read one or more SunSpec registers by providing a dictionary with a `"reads"` key:
 ```bash
 # Read battery power (714.DCW) and grid power (701.W)
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --sequence '{"reads": ["714.DCW", "701.W"]}'
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --sequence '{"reads": ["714.DCW", "701.W"]}'
 ```
 
 #### C. Full Single-Step Definition
 You can also pass a full single-step definition as a JSON dictionary:
 ```bash
 # Disable Remote Control, wait 2 seconds, and verify
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --sequence '{"name": "Disable Remote", "writes": {"704.WSetEna": 0}, "sleep_ms": 2000}'
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --sequence '{"name": "Disable Remote", "writes": {"704.WSetEna": 0}, "sleep_ms": 2000}'
 ```
 
 #### D. Full Multi-Step Sequence
 You can pass a full multi-step sequence as a JSON array of step dictionaries:
 ```bash
 # Read battery power, enable remote control, set 30% charge, wait 10 seconds, then release remote control
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --sequence '[{"reads": ["714.DCW"]}, {"writes": {"704.WSetEna": 1, "704.WSetPct": 30}}, {"sleep_ms": 10000}, {"writes": {"704.WSetEna": 0}}]'
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --sequence '[{"reads": ["714.DCW"]}, {"writes": {"704.WSetEna": 1, "704.WSetPct": 30}}, {"sleep_ms": 10000}, {"writes": {"704.WSetEna": 0}}]'
 ```
 
 ---

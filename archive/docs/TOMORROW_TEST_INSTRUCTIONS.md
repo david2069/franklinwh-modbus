@@ -31,7 +31,7 @@ SoC 95-99%  → ThrotPct = 50-90%  (heavy throttling)
 | ☀️ | **Sunny day** - Solar PV generating | Check FranklinWH app for solar production |
 | 🔋 | **SoC < 90%** at start | FranklinWH app or previous evening charge level |
 | ⬆️ | **Battery charging** | FranklinWH app shows "Charging" status |
-| 📶 | **WiFi stable** | Can ping 192.168.0.110 |
+| 📶 | **WiFi stable** | Can ping 192.0.2.110 |
 
 ### Ideal Start Time
 
@@ -61,13 +61,13 @@ Is WiFi working? ______
 ### Step 2: Start the Logger
 
 ```bash
-cd /home/david/dev/modbus
+cd ~/dev/modbus
 source venv/bin/activate
-python log_throttling_with_heartbeat.py 192.168.0.110 2 120
+python log_throttling_with_heartbeat.py 192.0.2.110 2 120
 ```
 
 **Parameters:**
-- `192.168.0.110` = aGate IP
+- `192.0.2.110` = aGate IP
 - `2` = Unit ID
 - `120` = Duration: 2 hours (should be enough to see SoC rise)
 
@@ -161,7 +161,7 @@ Timestamp,UnixTime,ThrotPct,SoC_%,Power_W,TmpCab_C,InvState,Heartbeat_OK
 |----------|-------|--------|
 | ThrotPct always 0% | SoC never reached 90% | Try again tomorrow with longer duration |
 | ThrotPct always 0% | FranklinWH doesn't throttle | Check if different behavior with generator |
-| Connection errors | WiFi issues | Check ping to 192.168.0.110 |
+| Connection errors | WiFi issues | Check ping to 192.0.2.110 |
 | "HB = ERR" | WSetPct write failing | Check if LocRemCtl changed |
 
 ---
@@ -177,7 +177,7 @@ Timestamp,UnixTime,ThrotPct,SoC_%,Power_W,TmpCab_C,InvState,Heartbeat_OK
 # Test if WSetPct still works
 python -c "
 from pymodbus.client import ModbusTcpClient
-c = ModbusTcpClient('192.168.0.110', port=502)
+c = ModbusTcpClient('192.0.2.110', port=502)
 c.connect()
 # Read LocRemCtl first
 result = c.read_holding_registers(41089-40001, 1, device_id=2)
@@ -191,7 +191,7 @@ c.close()
 
 **Fallback:** If heartbeat fails, use simple logger instead:
 ```bash
-python log_throttling_simple.py 192.168.0.110 2 120 30
+python log_throttling_simple.py 192.0.2.110 2 120 30
 ```
 
 ### If SoC Not Increasing
