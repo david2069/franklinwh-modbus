@@ -464,10 +464,27 @@ An undocumented register block at 16000–16002. 16000 is a higher-precision ver
 | Register | Value | Mirrors | Precision |
 |:--------:|:-----:|:-------:|:---------:|
 | **16000** | Home Load (W) | 15506 | **~1W** (vs ~100W quantized) |
-| 16001 | Same value as 15508/15509 (the active mode's reserve in one observation) | 15508 | Same |
-| 16002 | **Meaning unknown** — not the TOU reserve, not ambient temperature (see below) | — | — |
+| 16001 | The active mode's reserve (same value as 15508/15509) | 15508 | Same |
+| 16002 | Generator auto-start SoC (%), Direct Connect 1901 `genStartElec` — supported on one site, see below | — | — |
 
 **Corrected 2026-10-14:** 16002 was listed as "TOU Reserve (%)". In a 30-minute read-only run (897 samples) it read a constant 20 while the TOU reserve was 15 and the active Self-Consumption reserve was 5 (the settings as read from the app and the cloud after the run). It also stayed at 20 while M701.TmpAmb rose from 16.2 to 17.0 °C, so it is not a mirror of TmpAmb either. In the same run 16000 tracked home load to within 50 W of solar + grid + battery power in every sample, and 15506 equalled 16000 rounded to 100 W in 99.8 % of samples.
+
+**Cross-checked 2026-10-15 against the aGate's local Direct Connect settings** (read-only reads of cmdTypes 1405, 1725 and 1901 at 06:04 AEDT, reference aGate, settings unchanged by these reads):
+
+| Setting | Value | Modbus register (read 2026-10-13/14) |
+|---|---|---|
+| 1726 Self-Consumption `reserved_soc` (active mode) | 5 | 15508 = 15509 = 16001 = 5 |
+| 1726 TOU (`Solar & Battery Plan`) `reserved_soc` | 15 | none of the registers read |
+| 1726 Emergency Backup `reserved_soc` | 100 | none of the registers read |
+| 1901 `genStartElec` (generator auto-start SoC) | 20 | 16002 = 20 |
+| 1901 `genCloseElec` (generator stop SoC) | 80 | none of the registers read |
+| 1405 `BBBackupSoc` | 20 | 15017 = 20 |
+| 1405 `genStartSoc` and the eight per-mode min/max fields | 0 | — |
+
+- **16002 = `genStartElec`** is supported by another site (reported in #18): there 16002 followed `genStartElec` from 10 to 30 and back to 10 in the same sample, and equalled it in all 885 samples. On this site both are 20, which is consistent but does not separate it from `BBBackupSoc` (also 20).
+- **15017 = `BBBackupSoc`** is a candidate only: both are 20 on both sites, and neither site has changed the setting.
+- **15508, 15509 and 16001** all carry the active mode's reserve. The TOU reserve (15) is not exposed by any of these registers, which is the known 15509 defect.
+- The register reads and the settings reads are a day apart. That the settings did not change in between is not established.
 
 ### Correlation Evidence
 
