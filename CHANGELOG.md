@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrade notes
 Behaviour changes that can affect code built on the library:
+- **The library no longer decides what an alarm means; the client does.** (#40, #46)
+  - `check_blocking_alarms()` is deprecated (it warns, and will be removed). Use `read_alarms()` or the new `active_alarms()` and apply your own rule.
+  - `healthcheck()` lists active alarms in `details['alarms']` and in its recommendations, but they no longer affect `healthy` or `message`. `details['blocking_alarms']` and `details['can_operate']` are gone.
+  - The conflict check's `result['alarms']` is now `{'active', 'system_alrm', 'decoded'}`; `can_operate` and `blocking` are gone.
+  - `VirtualModeController.run_continuous(enable_safety_checks=True)` no longer stops after two alarm checks. Its SoC-limit and dispatch-verification checks are unchanged.
+  - `--check-alarms` exits 1 if **any** alarm is active (before: only the fixed "critical" set). `--healthcheck` and `--status` print "ACTIVE ALARMS".
 - `connect()` no longer runs the extension writability test, so `_extension_writable` stays `None` after connecting. Call `test_extension_writability()` explicitly if you need it. **That call writes 15507–15509.** (#24)
 - `VirtualModeController` calculators (`_calc_*`) return the opposite sign from before: positive = charge, negative = discharge, matching `BatteryCommand`. Subclasses or direct callers must follow. (#20)
 - Self-consumption grid-charges only below `self_reserve_pct` (default 20%), not below `target_soc`, and no longer refuses to start with a full battery. (#20)
@@ -26,6 +32,7 @@ Behaviour changes that can affect code built on the library:
 - `VirtualModeController.verify_command_execution()` compared the never-written `M704.WSet` with battery power, so it always passed. It now reads the setpoint back from `WSetPct` and reports a failed readback instead of assuming success. (#21)
 
 ### Added
+- `FranklinWHController.active_alarms(alarms=None)`: every active alarm by name (system, DC port, solar, and the battery when not OK), from `read_alarms()`. Reports only. (#46)
 - `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. Tolerance has a 100 W floor (M714.DCW reads in 100 W steps), and commands under 150 W are verified on the setpoint only. (#21)
 - Controller I/O health: `last_success_ts`, `last_error`, `last_error_ts`, `consecutive_failures` and `data_age_s`, so callers can tell a dead link from an empty read. (#22)
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)

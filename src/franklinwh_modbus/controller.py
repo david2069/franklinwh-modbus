@@ -9,6 +9,7 @@ import logging
 import time
 import struct
 import threading
+import warnings
 from typing import Dict, Any, Optional, Tuple, List, Union
 
 from .types import BatteryCommand, HealthStatus, ONGRID_MODES
@@ -2048,12 +2049,34 @@ class FranklinWHController:
             'vendor_info': alarms['vendor_info'],
         }
     
+    def active_alarms(self, alarms: Optional[Dict[str, Any]] = None) -> List[str]:
+        """
+        Every active alarm by name, from read_alarms() (read now if not given).
+        
+        Reports only: which alarms should stop operation is for the caller to decide.
+        """
+        if alarms is None:
+            alarms = self.read_alarms()
+        decoded = alarms.get('decoded', {})
+        active = list(decoded.get('system', [])) + list(decoded.get('dc_port', []))
+        active += [f"Solar: {name}" for name in decoded.get('solar', [])]
+        battery = decoded.get('battery_status')
+        if battery and battery != 'OK':
+            active.append(f"Battery: {battery}")
+        return active
+    
     def check_blocking_alarms(self) -> Tuple[bool, List[str]]:
         """
-        Check if any alarms are blocking operation.
+        Deprecated: the library reports alarms; deciding which ones block is up
+        to the client. Use read_alarms() or active_alarms() and apply your own rule.
         
-        Returns (can_operate, blocking_reasons).
+        Returns (can_operate, blocking_reasons) using a fixed rule that will be
+        removed in a future release.
         """
+        warnings.warn(
+            "check_blocking_alarms() is deprecated: use read_alarms() or "
+            "active_alarms() and decide in the client",
+            DeprecationWarning, stacklevel=2)
         alarms = self.read_alarms()
         blocking = []
         
@@ -2204,12 +2227,12 @@ class FranklinWHController:
                         'min_operational': reserve + self.SAFETY_MARGIN_PCT,
                     }
             
-            # Check alarms
-            can_operate, blocking = self.check_blocking_alarms()
+            # Report alarms (deciding what they mean is up to the caller)
+            alarms = self.read_alarms()
             result['alarms'] = {
-                'can_operate': can_operate,
-                'blocking': blocking,
-                'system_alrm': self.read_alarms().get('system_alrm', 0),
+                'active': self.active_alarms(alarms),
+                'system_alrm': alarms.get('system_alrm', 0),
+                'decoded': alarms.get('decoded', {}),
             }
             
             # Check for control conflicts
@@ -2419,15 +2442,10 @@ class FranklinWHController:
         if nameplate:
             checks['nameplate'] = nameplate
         
-        # 8. Alarm check
-        can_operate, blocking = self.check_blocking_alarms()
-        checks['blocking_alarms'] = blocking if blocking else []
-        checks['can_operate'] = can_operate
-        
-        if not can_operate:
-            healthy = False
-            message = f"BLOCKING ALARMS: {', '.join(blocking)}"
-            recommendations.append("Clear alarms before operating battery")
+        # 8. Alarms: reported, not judged (the caller decides what they mean)
+        checks['alarms'] = self.active_alarms()
+        if checks['alarms']:
+            recommendations.append(f"Active alarms: {', '.join(checks['alarms'])}")
         
         # 9. Control conflict check
         if checks['wset_ena'] == 1:
