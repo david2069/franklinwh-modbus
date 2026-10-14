@@ -28,6 +28,29 @@ except ImportError:
 CLOUD_API_AVAILABLE = False
 
 
+def _sunspec_symbols(model_id: int, point: str, group: Optional[str] = None) -> Dict[int, str]:
+    """Symbol names for a point, from the SunSpec model definitions in pysunspec2.
+
+    Returns {value: name}; for a bitfield the value is the bit number. Empty if
+    the definitions are unavailable or the point has no symbols.
+    """
+    try:
+        from sunspec2.device import get_model_def
+        g = get_model_def(model_id)['group']
+        if group:
+            g = next(sg for sg in g.get('groups', []) if sg['name'] == group)
+        pdef = next(p for p in g['points'] if p['name'] == point)
+        return {sym['value']: sym['name'] for sym in pdef.get('symbols', [])}
+    except Exception as e:
+        logger.debug(f"No SunSpec symbols for {model_id}.{point}: {e}")
+        return {}
+
+
+def _bit_names(value: int, names: Dict[int, str]) -> List[str]:
+    """Names of the set bits in value; bits without a name come out as BIT_n."""
+    return [names.get(bit, f'BIT_{bit}') for bit in range(32) if value & (1 << bit)]
+
+
 class FranklinWHController:
     """FranklinWH aGate controller using sunspec2 model-based access."""
     
@@ -1965,11 +1988,38 @@ class FranklinWHController:
             m713 = self.get_model(713)
             if m713 and hasattr(m713, 'Sta'):
                 alarms['battery_sta'] = m713.Sta.value if m713.Sta.value else 0
+            
+            alarms['decoded'] = self._decode_alarms(alarms, m714)
                 
         except Exception as e:
             logger.debug(f"Could not read alarms: {e}")
         
         return alarms
+    
+    def _decode_alarms(self, alarms: Dict[str, Any], m714) -> Dict[str, Any]:
+        """Name the alarm bits and battery status using the SunSpec model definitions.
+
+        M714.PrtAlrms flags which DC ports have an alarm (bit 0 = first port);
+        the alarm itself is in that port's DCAlrm.
+        """
+        dc_port = []
+        ports = getattr(m714, 'Prt', None) or []
+        port_names = _sunspec_symbols(714, 'DCAlrm', group='Prt')
+        for idx in range(32):
+            if not alarms['dc_port_alrm'] & (1 << idx):
+                continue
+            port_alrm = ports[idx].DCAlrm.value if idx < len(ports) else None
+            if port_alrm:
+                dc_port += [f"Port {idx}: {n}" for n in _bit_names(port_alrm, port_names)]
+            else:
+                dc_port.append(f"Port {idx}")
+        
+        sta = alarms['battery_sta']
+        return {
+            'system': _bit_names(alarms['system_alrm'], _sunspec_symbols(701, 'Alrm')),
+            'dc_port': dc_port,
+            'battery_status': _sunspec_symbols(713, 'Sta').get(sta, f'UNDEFINED ({sta})'),
+        }
     
     def check_blocking_alarms(self) -> Tuple[bool, List[str]]:
         """
