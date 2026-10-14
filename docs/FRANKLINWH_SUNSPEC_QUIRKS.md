@@ -25,16 +25,18 @@ Documenting non-standard behaviors, missing registers, and implementation-specif
 
 **Workaround:** Derive battery state from M714 DCW power direction (±50W deadband):
 ```python
-# M714.DCW sign convention (confirmed empirically 2026-03-10):
-#   positive = power INTO battery (Charging)
-#   negative = power OUT of battery (Discharging)
-if dc_power > 50:
+# M714.DCW sign convention (corrected 2026-10-14; matches controller.py):
+#   positive = power OUT of battery (Discharging)
+#   negative = power INTO battery (Charging)
+if dc_power < -50:
     state = 'CHARGING'
-elif dc_power < -50:
+elif dc_power > 50:
     state = 'DISCHARGING'
 else:
     state = 'IDLE'
 ```
+
+**Sign evidence (2026-10-14, firmware V10R01B04D00, read-only):** over 897 samples (30 min) with the battery charging — M713.SoC rising 9 → 14 % and M714.DCWhAbs rising 580 Wh while DCWhInj stayed constant — M714.DCW read −1100 to −1400 W in every sample. A night run on 2026-10-13 read +200 W while discharging. Earlier versions of this page stated the opposite sign; the code was already correct.
 
 **Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta, always 0)
 
@@ -46,7 +48,7 @@ else:
 **Issue:** The DCA register in Model 714 returns 0 or is not implemented.
 
 **Standard SunSpec Model 714 Fields:**
-- `DCW` - DC Power (W) ✅ **Working** — positive=charging (into battery), negative=discharging (out of battery)
+- `DCW` - DC Power (W) ✅ **Working** — positive=discharging (out of battery), negative=charging (into battery); 100 W steps
 - `DCV` - DC Voltage (V) ✅ **Working** 
 - `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
 - `Tmp` - Battery Temperature (°C) ✅ **Working**
@@ -457,13 +459,15 @@ We use `unit_id=2` (FranklinWH default) but any UID works. No per-UID register p
 
 **Discovered:** 2026-03-15 (accidental typo) · **Severity:** Beneficial · **Status:** IN USE
 
-An undocumented register block at 16000–16002 mirrors extension registers 15506–15509 but with **higher precision on the home load reading:**
+An undocumented register block at 16000–16002. 16000 is a higher-precision version of the home load in 15506:
 
 | Register | Value | Mirrors | Precision |
 |:--------:|:-----:|:-------:|:---------:|
 | **16000** | Home Load (W) | 15506 | **~1W** (vs ~100W quantized) |
-| 16001 | Self Reserve (%) | 15508 | Same |
-| 16002 | TOU Reserve (%) | 15509 | Same |
+| 16001 | Same value as 15508/15509 (the active mode's reserve in one observation) | 15508 | Same |
+| 16002 | **Meaning unknown** — not the TOU reserve, not ambient temperature (see below) | — | — |
+
+**Corrected 2026-10-14:** 16002 was listed as "TOU Reserve (%)". In a 30-minute read-only run (897 samples) it read a constant 20 while the TOU reserve was 15 and the active Self-Consumption reserve was 5 (the settings as read from the app and the cloud after the run). It also stayed at 20 while M701.TmpAmb rose from 16.2 to 17.0 °C, so it is not a mirror of TmpAmb either. In the same run 16000 tracked home load to within 50 W of solar + grid + battery power in every sample, and 15506 equalled 16000 rounded to 100 W in 99.8 % of samples.
 
 ### Correlation Evidence
 

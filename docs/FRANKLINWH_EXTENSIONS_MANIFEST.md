@@ -12,7 +12,7 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 |:-----------------|:----------------|:-----------|:----|:------|:---|:------|
 | **15011**        | ModelID (Internal) | **707**    | `ID`   | - | - | Matches Model 707 ID |
 | **15013**        | ModelID (Internal) | **701**    | `ID`   | - | - | Matches Model 701 ID |
-| **15017**        | TmpAmb (Internal) | **701**    | `TmpAmb`| °C | - | Matches 701.TmpAmb (scaled) |
+| **15017**        | Unknown          | -          | -      | - | - | **Meaning unknown.** Constant 20 on 2026-10-14 while 701.TmpAmb rose 16.2 → 17.0 °C: not TmpAmb (earlier label refuted) |
 | **15020**        | WHRtg (Internal) | **713**    | `WHRtg`| Wh | - | Matches 13600 WH |
 | **15022**        | NPt (Internal)   | **705**    | `NPt`  | - | - | Matches 705.NPt |
 | **15025**        | V_LNV (Internal) | **701**    | `LNV`  | V | -1 | Matches 241.8V (2380-2418) |
@@ -20,12 +20,12 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 | **15506**        | LoadActiveP      | **714**    | `DCW`? | W | 0 | **Speculation**: Often matches 714.DCW when IDLE/balanced. |
 | **15507**        | OnGridMode       | **715**    | `St`   | Enum | - | Maps to native DER states |
 | **15508**        | SelfReserve      | **712**    | `NPt`  | % | - | Matches 712.NPt (Number of points) |
-| **15509**        | TouReserve       | **712**    | `NPt`  | % | - | Matches 712.NPt (Number of points) |
+| **15509**        | TouReserve       | -          | -      | % | - | Vendor name (PICS SPAN tab), but reads the same value as 15508 — the known firmware defect in the PICS. On 2026-10-14 it read 5 (the active Self-Consumption reserve) while the TOU reserve was 15. Not related to 712.NPt (earlier note removed) |
 | **15510**        | PVOutputWh (H)   | **502**    | `OutWh`| Wh | - | Matches PV Total Energy |
 | **15512**        | proxOutputWh (H) | **502**    | `OutWh`| Wh | - | Matches PV Proximal Energy |
 | **16000**        | HomeLoadHighRes  | **None**   | N/A | W | 0 | High-precision home load (1W) |
 | **16001**        | NPt (Mirror)     | **712**    | `NPt`  | - | - | Mirror of 15508/15509 (Reserves=6) |
-| **16002**        | TmpAmb (Mirror)  | **701**    | `TmpAmb`| °C | - | Matches 701.TmpAmb (scaled=20) |
+| **16002**        | Unknown          | -          | -      | - | - | **Meaning unknown.** Same constant 20 as 15017; not TmpAmb, not the TOU reserve (earlier labels refuted 2026-10-14) |
 
 ---
 
