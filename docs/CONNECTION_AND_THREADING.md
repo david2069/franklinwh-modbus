@@ -168,7 +168,7 @@ C7: CONFIRMED — await outcome = cancelled; thread finished its work anyway = T
 7/7 claims confirmed
 ```
 
-Against the gateway emulator (127.0.0.1:5020, profile agate-v10r01b04d00), 2026-10-13 19:21:14–19:21:16 AEDT: the client-side results matched. The emulator session's harness, which logs every connection and request on the server side, recorded (franklinwh-gateway-emulator `tests/results/2026-10-13_fwh_modbus_c1_c6.md`, commit `d87bc2f`):
+Against the gateway emulator (127.0.0.1:5020, profile agate-v10r01b04d00), 2026-10-13 19:21:14–19:21:16 AEDT: the client-side results matched. The emulator session's harness, which logs every connection and request on the server side, recorded (franklinwh-gateway-emulator `tests/results/2026-10-13_fwh_modbus_c1_c6.md` on `main`):
 
 | Check | Server log |
 |---|---|
