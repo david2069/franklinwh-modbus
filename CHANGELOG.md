@@ -15,6 +15,9 @@ Behaviour changes that can affect code built on the library:
 - `verify_command_execution()` returns `ok=False` when the readback fails. It used to assume success. (#21)
 - Failed status reads log at **warning** level (first failure, then at most once a minute, then on recovery) instead of debug. (#22)
 
+### Known issues
+- `SunSpecSequencer` raw-address writes are skipped, with no error, when no socket is open, and with `verify: false` the step reports `[SENT]` and succeeds. `SunSpecSequencer.write_value()` on an address-only tag calls `write_hregs()`, which pysunspec2 doesn't have, so nothing is written. Not yet fixed; see `docs/CONNECTION_AND_THREADING.md`.
+
 ### Fixed
 - **`connect()` no longer writes to the device.** It ran the extension writability test on every connection: it wrote 15507 (operating mode), 15508 and 15509 (reserves) with test values and restored them only if the readback matched. On a unit where those registers are writable, every connect (including every bridge reconnect) briefly changed the mode and reserves, and a dropped link could leave them changed (a 100% reserve was tested as 0%). The test is now the explicit `test_extension_writability()`, still run by `--test-extension-write`. (#24)
 - **The rating clamp no longer reverses the direction of over-limit commands.** `send_command()` clamped a charge above the device rating to a full-rate discharge, and a discharge above it to a full-rate charge (e.g. `--power 6000` on a 5 kW unit discharged at 5 kW). It now clamps to the rating in the requested direction. The same fix is in `tools/franklinwh_control_standalone.py`. (#28)
@@ -29,7 +32,10 @@ Behaviour changes that can affect code built on the library:
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 - `docs/CONNECTION_AND_THREADING.md`: how the library actually handles connections, retries, reconnects and threads (per-call TCP via pysunspec2, no I/O lock, the command-timeout timer, what "Response timeout" means), with the 2026-10-12 Q&A with client integrations.
 
+- `docs/CONNECTION_AND_THREADING.md`: "Usage guidance and limitations" (what 1.x suits, rules for async callers, the Modbus TCP Implementation Guide's recommendations with page references) and "Raw Modbus TCP alongside pysunspec2". Every statement names its evidence. `tools/repro_raw_vs_pysunspec2.py` checks the code-level claims against a local fake Modbus server or a given host.
+
 ### Changed
+- Corrected the claim that pysunspec2 "remaps addresses" and so can't reach the extension registers, in `FRANKLINWH_SUNSPEC_QUIRKS.md` and `FRANKLINWH_MODBUS_GUIDE.md` §5.8. pysunspec2 sends the address unchanged (checked against a local fake server; not yet against the aGate).
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
