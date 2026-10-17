@@ -118,6 +118,8 @@ class FranklinWHController:
         self.last_error_ts: Optional[float] = None
         self.consecutive_failures: int = 0
         self._last_failure_warning_ts: float = 0.0
+        # Models that failed inside an otherwise successful read: name -> last warning ts
+        self._partial_failures: Dict[str, float] = {}
         self._extension_writable: Optional[bool] = None
         
         # Software command timeout (hardware WSetRvrtTms doesn't work)
@@ -444,6 +446,27 @@ class FranklinWHController:
         else:
             logger.debug(f"Failed to read {what}: {error}")
     
+    def _record_partial_failure(self, model: str, error: Exception):
+        """Record one model failing inside a read that otherwise succeeded.
+
+        Warns on the first failure of that model and then at most once a minute.
+        Does not count towards consecutive_failures: the link is up.
+        """
+        now = time.time()
+        self.last_error = f"Model {model}: {error}"
+        self.last_error_ts = now
+        last = self._partial_failures.get(model)
+        if last is None or now - last >= self.READ_FAILURE_WARN_INTERVAL_S:
+            logger.warning(f"Could not read Model {model}: {error} (result is partial)")
+            self._partial_failures[model] = now
+        else:
+            logger.debug(f"Could not read Model {model}: {error}")
+    
+    def _record_partial_success(self, model: str):
+        """Log once when a model that was failing reads again."""
+        if self._partial_failures.pop(model, None) is not None:
+            logger.warning(f"Model {model} read recovered")
+    
     def _record_io_success(self):
         """Record a successful Modbus operation, logging recovery after failures."""
         if self.consecutive_failures:
@@ -535,6 +558,8 @@ class FranklinWHController:
             status_raw: M713.Sta raw value (always 0 on FranklinWH — do not use)
             battery_state: Derived from M714 DCW power direction (CHARGING/DISCHARGING/IDLE)
             battery_power_w, battery_current_a, battery_temp_c (from M714)
+            partial: list of models that failed to read (e.g. ['714']); present
+                only when some data is missing. Their keys are left out.
         """
         def _do_read():
             m713 = self.get_model(713)
@@ -629,8 +654,13 @@ class FranklinWHController:
                         }
                         for idx, block in enumerate(blocks)
                     ]
+                    self._record_partial_success('714')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 714: {e}")
+                    for key in ('battery_power_w', 'battery_state', 'battery_current_a',
+                                'battery_temp_c', 'individual_batteries'):
+                        result.pop(key, None)
+                    result['partial'] = ['714']
+                    self._record_partial_failure('714', e)
             
             return result
         
@@ -753,8 +783,13 @@ class FranklinWHController:
             return {}
     
     def read_solar_status(self) -> dict:
-        """Read solar status from Model 502 (AC output), Model 714 (battery DC), and extensions."""
+        """Read solar status from Model 502 (AC output), Model 714 (battery DC), and extensions.
+
+        A model that fails to read is listed in 'partial' (e.g. ['502']) and its
+        keys are left out, rather than reported as 0.
+        """
         def _do_read():
+            partial = []
             # Model 502 - Solar AC Output (for AC-coupled systems like aGate X)
             m502 = self.get_model(502)
             solar_ac_power = 0
@@ -765,8 +800,10 @@ class FranklinWHController:
                     # Model 502 uses OutPw (Output Power), not W
                     if hasattr(m502, 'OutPw') and m502.OutPw.value is not None:
                         solar_ac_power = m502.OutPw.value * (10 ** sf_w)
+                    self._record_partial_success('502')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 502: {e}")
+                    partial.append('502')
+                    self._record_partial_failure('502', e)
             
             # Model 714 - Battery DC Power (not solar!)
             m714 = self.get_model(714)
@@ -781,16 +818,19 @@ class FranklinWHController:
                         for block in blocks
                         if hasattr(block, 'DCW') and block.DCW.value is not None
                     )
+                    self._record_partial_success('714')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 714: {e}")
+                    partial.append('714')
+                    self._record_partial_failure('714', e)
             
-            solar_status = {
+            solar_status = {}
+            if '502' not in partial:
                 # Model 502 - Actual solar AC output
-                'ac_power_w': solar_ac_power,
+                solar_status['ac_power_w'] = solar_ac_power
+            if '714' not in partial:
                 # Model 714 - Battery DC (for backward compat, but this is BATTERY not solar!)
-                'dc_power_w': battery_dc_power,
-                'battery_dc_power_w': battery_dc_power,
-            }
+                solar_status['dc_power_w'] = battery_dc_power
+                solar_status['battery_dc_power_w'] = battery_dc_power
             
             # FranklinWH extensions (15500+) - may have total solar including remote
             try:
@@ -800,12 +840,14 @@ class FranklinWHController:
                     # If extension has total solar, use it
                     if ext_solar.get('total_solar', 0) > 0:
                         solar_status['total_solar_w'] = ext_solar['total_solar']
-                        # Also update ac_power_w if Model 502 was 0
-                        if solar_ac_power == 0:
+                        # Also update ac_power_w if Model 502 was 0 or failed
+                        if solar_status.get('ac_power_w', 0) == 0:
                             solar_status['ac_power_w'] = ext_solar['total_solar']
             except Exception as e:
                 logger.debug(f"Could not read extension solar: {e}")
             
+            if partial:
+                solar_status['partial'] = partial
             return solar_status
         
         try:
@@ -1513,6 +1555,13 @@ class FranklinWHController:
                 expiry. Observed for 186s post-expiry with no reversion.
                 This software timeout (duration_s) is the ONLY safety
                 mechanism. Set this for ALL unattended VPP operations.
+                
+                THREADING (#54): the timeout runs reset_control_state() on
+                its own threading.Timer thread, without any lock the caller
+                holds, so it can interleave with the caller's reads or a new
+                command on the same connection. If the controller is shared
+                across threads or polled concurrently, leave duration_s unset
+                and release from your own watchdog under your own lock.
             dry_run: If True, report what would happen without writing
         """
         def _do_send():

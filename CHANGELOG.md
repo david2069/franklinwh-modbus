@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
+
+## [0.9.6] - 2026-10-17
+
+> **Upgrade advisory: all 0.9.5 users should upgrade.** 0.9.5 has two S1 defects that act on the battery. `connect()` writes the operating mode and reserves (15507–15509) on every connection (#24), and a charge or discharge above the device rating is clamped to full power in the **opposite** direction (#28). 0.9.6 also fixes the battery ERROR status, which was never recognised (#38). Read the upgrade notes below before upgrading: several behaviours changed.
+
 ### Upgrade notes
 Behaviour changes that can affect code built on the library:
 - `connect()` no longer runs the extension writability test, so `_extension_writable` stays `None` after connecting. Call `test_extension_writability()` explicitly if you need it. **That call writes 15507–15509.** (#24)
@@ -14,10 +21,11 @@ Behaviour changes that can affect code built on the library:
 - Self-consumption grid-charges only below `self_reserve_pct` (default 20%), not below `target_soc`, and no longer refuses to start with a full battery. (#20)
 - `verify_command_execution()` returns `ok=False` when the readback fails. It used to assume success. (#21)
 - Failed status reads log at **warning** level (first failure, then at most once a minute, then on recovery) instead of debug. (#22)
+- When one model fails inside `read_battery_status()` or `read_solar_status()`, the result now carries `partial` (e.g. `['714']`) and **leaves that model's keys out**. `read_solar_status()` used to report them as `0`. Use `.get()` on `ac_power_w`, `dc_power_w` and `battery_dc_power_w`, and treat a present `partial` as an incomplete sample. (#52)
 
 ### Fixed
-- **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
-- **Battery status is read with the SunSpec values.** Model 713 defines `Sta` as 0 OK, 1 WARNING, 2 ERROR (pysunspec2 1.3.3 `model_713.json`); the library tested for 6, which SunSpec does not define, so a battery ERROR was never recognised. `--status` now prints ERROR or WARNING, and `check_blocking_alarms()` (deprecated, see below) reports `BATTERY_FAULT` on 2 instead of 6. A WARNING, or a value SunSpec does not define, is logged. Only `Sta = 0` has been observed on the aGate. (#38)
+- **Partial read failures are no longer silent.** A model 714 (or 502) read that failed inside an otherwise successful `read_battery_status()` or `read_solar_status()` was logged at debug level only. Battery power, state, current and temperature disappeared without trace, and `read_solar_status()` reported `0` W, which looks the same as an idle battery or no solar. It now logs a warning (first failure, then at most once a minute per model, then on recovery), updates `last_error`, and lists the model in `partial`. A failed M502 still falls back to the extension solar total when one is available. `consecutive_failures` keeps counting whole-read failures only. (#52)
+- **Battery status is read with the SunSpec values.** Model 713 defines `Sta` as 0 OK, 1 WARNING, 2 ERROR (pysunspec2 1.3.3 `model_713.json`); the library tested for 6, which SunSpec does not define, so a battery ERROR was never recognised. `--status` now prints ERROR or WARNING, and `check_blocking_alarms()` reports `BATTERY_FAULT` on 2 instead of 6. A WARNING, or a value SunSpec does not define, is logged. Only `Sta = 0` has been observed on the aGate. (#38)
 - **`connect()` no longer writes to the device.** It ran the extension writability test on every connection: it wrote 15507 (operating mode), 15508 and 15509 (reserves) with test values and restored them only if the readback matched. On a unit where those registers are writable, every connect (including every bridge reconnect) briefly changed the mode and reserves, and a dropped link could leave them changed (a 100% reserve was tested as 0%). The test is now the explicit `test_extension_writability()`, still run by `--test-extension-write`. (#24)
 - **The rating clamp no longer reverses the direction of over-limit commands.** `send_command()` clamped a charge above the device rating to a full-rate discharge, and a discharge above it to a full-rate charge (e.g. `--power 6000` on a 5 kW unit discharged at 5 kW). It now clamps to the rating in the requested direction. The same fix is in `tools/franklinwh_control_standalone.py`. (#28)
 - Virtual-mode calculators now return the `BatteryCommand` convention (positive = charge, negative = discharge) that the SoC limiter and `send_command()` expect. Self-consumption, peak-shave and the TOU `discharge` strategy returned the opposite sign, so the limiter ramped and blocked the wrong direction (a charge near the discharge floor was cut back or blocked without any log), and the inverted setpoint went out as a positive `WSetPct`, which the device ignores. Reported by @balloobbot in #12. (#20)
@@ -31,6 +39,7 @@ Behaviour changes that can affect code built on the library:
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 
 ### Changed
+- `send_command(duration_s=…)` documents that its timeout runs `reset_control_state()` on a timer thread without the caller's lock. Callers that share the controller across threads should release from their own watchdog instead. A lock fix is tracked in #54.
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
@@ -163,7 +172,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...HEAD
+[0.9.6]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.2...v0.9.3
