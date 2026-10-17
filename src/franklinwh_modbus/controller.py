@@ -52,6 +52,11 @@ class FranklinWHController:
         3: 'TOU',
         4: 'Manual'
     }
+
+    # SunSpec 713 Sta (model_713.json): storage status
+    M713_STA_OK = 0
+    M713_STA_WARNING = 1
+    M713_STA_ERROR = 2
     
     def __init__(
         self,
@@ -2033,9 +2038,13 @@ class FranklinWHController:
         if alarms['dc_port_alrm'] & 0x3F:
             blocking.append(f"DC port alarm: 0x{alarms['dc_port_alrm']:08X}")
         
-        # Battery fault status
-        if alarms['battery_sta'] == 6:  # FAULT
+        # Battery status: SunSpec 713 Sta is 0 OK, 1 WARNING, 2 ERROR
+        if alarms['battery_sta'] == self.M713_STA_ERROR:
             blocking.append('BATTERY_FAULT')
+        elif alarms['battery_sta'] == self.M713_STA_WARNING:
+            logger.warning("Battery reports WARNING (M713.Sta = 1)")
+        elif alarms['battery_sta'] not in (self.M713_STA_OK, self.M713_STA_WARNING, self.M713_STA_ERROR):
+            logger.warning(f"Battery status not defined by SunSpec (M713.Sta = {alarms['battery_sta']})")
         
         return len(blocking) == 0, blocking
     

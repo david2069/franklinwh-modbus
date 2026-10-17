@@ -545,8 +545,11 @@ def print_status(ctrl: FranklinWHController):
     if alarms.get('dc_port_alrm', 0):
         print(f"    ⚠️  DC Port Alarm:  0x{alarms['dc_port_alrm']:08X}")
         has_alarms = True
-    if alarms.get('battery_sta', 0) == 6:
-        print(f"    ⚠️  Battery Status: FAULT")
+    if alarms.get('battery_sta', 0) == ctrl.M713_STA_ERROR:
+        print(f"    ⚠️  Battery Status: ERROR  (M713.Sta)")
+        has_alarms = True
+    elif alarms.get('battery_sta', 0) == ctrl.M713_STA_WARNING:
+        print(f"    ⚠️  Battery Status: WARNING  (M713.Sta)")
         has_alarms = True
     if not has_alarms:
         print(f"    ✓ No alarms active")
