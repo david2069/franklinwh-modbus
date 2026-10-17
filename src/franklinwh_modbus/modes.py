@@ -605,8 +605,9 @@ class VirtualModeController:
         
         Args:
             duration_seconds: Run for N seconds, or None for indefinite
-            enable_safety_checks: If True, enable alarm/sanity/SoC limit checks
-                                  (adds Modbus overhead, use for automation only)
+            enable_safety_checks: If True, enable sanity/SoC limit checks
+                                  (adds Modbus overhead, use for automation only).
+                                  Alarms are not checked here: the client decides.
             stop_event: Optional threading.Event to signal shutdown.
                         If None, runs until duration expires or failure limit hit.
                         For CLI usage, use run_with_signal_handling() instead.
@@ -621,11 +622,8 @@ class VirtualModeController:
         last_off_grid_check = 0
         
         # Safety check intervals (only used if enable_safety_checks=True)
-        alarm_interval = 60.0
         sanity_interval = 30.0
-        last_alarm_check = 0
         last_sanity_check = 0
-        alarm_failures = 0
         
         # Off-grid check at start
         if self.is_off_grid():
@@ -705,21 +703,6 @@ class VirtualModeController:
                 
                 # Optional safety checks (for automation mode only)
                 if enable_safety_checks and consecutive_failures == 0:
-                    # Alarm check
-                    if now - last_alarm_check >= alarm_interval:
-                        last_alarm_check = now
-                        try:
-                            can_operate, blocking = self.ctrl.check_blocking_alarms()
-                            if not can_operate:
-                                logger.error(f"🚨 BLOCKING ALARMS: {', '.join(blocking)}")
-                                alarm_failures += 1
-                                if alarm_failures >= 2:
-                                    break
-                            else:
-                                alarm_failures = 0
-                        except Exception as e:
-                            logger.debug(f"Alarm check failed: {e}")
-                    
                     # Sanity check
                     if now - last_sanity_check >= sanity_interval:
                         last_sanity_check = now

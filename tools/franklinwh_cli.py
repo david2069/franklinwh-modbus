@@ -632,11 +632,11 @@ def print_health(health):
         else:
             print(f"    {key}: {value}")
     
-    # Blocking alarms
-    blocking = details.get('blocking_alarms', [])
-    if blocking:
-        print(f"\n  ⚠️  BLOCKING ALARMS:")
-        for alarm in blocking:
+    # Active alarms
+    active = details.get('alarms', [])
+    if active:
+        print(f"\n  ⚠️  ACTIVE ALARMS:")
+        for alarm in active:
             print(f"    • {alarm}")
     
     print("\n  Recommendations:")
@@ -729,10 +729,10 @@ def print_startup_summary(state: dict, requested_mode: str = None, args=None):
     
     # Display alarms if any
     alarms = current.get('alarms', {})
-    blocking = alarms.get('blocking', [])
-    if blocking:
-        print(f"\n  🚨 BLOCKING ALARMS:")
-        for alarm in blocking:
+    active = alarms.get('active', [])
+    if active:
+        print(f"\n  🚨 ACTIVE ALARMS:")
+        for alarm in active:
             print(f"    • {alarm}")
     
     # Display conflicts and info messages
@@ -1011,15 +1011,15 @@ def main():
             if decoded.get('vendor_info'):
                 print(f"  Vendor Alarm Info: {decoded['vendor_info']}")
             
-            # Check if blocking
-            can_operate, blocking = ctrl.check_blocking_alarms()
-            if blocking:
-                print(f"\n  🚨 BLOCKING ALARMS: {', '.join(blocking)}")
+            # The CLI's own rule: exit 1 if any alarm is active
+            active = ctrl.active_alarms(alarms)
+            if active:
+                print(f"\n  🚨 ACTIVE ALARMS: {', '.join(active)}")
             else:
-                print(f"\n  ✓ No blocking alarms - operation permitted")
+                print(f"\n  ✓ No active alarms")
             
             print("=" * 70)
-            sys.exit(0 if can_operate else 1)
+            sys.exit(1 if active else 0)
         
         # Stop control
         if args.stop:
