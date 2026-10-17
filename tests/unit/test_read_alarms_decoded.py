@@ -72,12 +72,12 @@ def test_undefined_system_bit_is_named_by_number(ctrl):
 def test_dc_port_alarms_name_the_port_and_its_dcalrm_bits(ctrl):
     # PrtAlrms bit 1 = second port; its DCAlrm bit 7 = OVER_TEMP (model_714.json)
     d = _read(ctrl, prt_alrms=1 << 1, port_alrms=(0, 1 << 7))
-    assert d['dc_port'] == ['Port 1: OVER_TEMP']
+    assert d['dc_port'] == ['Port 2: OVER_TEMP']
 
 
 def test_dc_port_flagged_without_port_detail(ctrl):
     d = _read(ctrl, prt_alrms=1 << 0, port_alrms=())
-    assert d['dc_port'] == ['Port 0']
+    assert d['dc_port'] == ['Port 1']
 
 
 @pytest.mark.parametrize('sta, name', [
@@ -96,14 +96,14 @@ def test_several_system_and_solar_alarms_are_all_listed(ctrl):
 
 def test_several_ports_each_with_several_alarms(ctrl):
     d = _read(ctrl, prt_alrms=0b101, port_alrms=((1 << 0) | (1 << 7), 0, 1 << 12))
-    assert d['dc_port'] == ['Port 0: GROUND_FAULT', 'Port 0: OVER_TEMP',
-                            'Port 2: BLOWN_FUSE']
+    assert d['dc_port'] == ['Port 1: GROUND_FAULT', 'Port 1: OVER_TEMP',
+                            'Port 3: BLOWN_FUSE']
 
 
 def test_port_status_warning_or_error_is_reported(ctrl):
     # Prt.DCSta 0 OFF, 1 ON, 2 WARNING, 3 ERROR (model_714.json)
     d = _read(ctrl, port_alrms=(0, 0), port_sta=[3, 2])
-    assert d['dc_port'] == ['Port 0: status ERROR', 'Port 1: status WARNING']
+    assert d['dc_port'] == ['Port 1: status ERROR', 'Port 2: status WARNING']
 
 
 def test_vendor_alarm_text_is_reported(ctrl):
@@ -126,3 +126,29 @@ def test_refresh_false_uses_the_last_read(ctrl):
     with patch.object(ctrl, 'get_model', side_effect=models.get):
         ctrl.read_alarms(refresh=False)
     assert not any(m.read.called for m in models.values())
+
+
+def test_ports_are_numbered_from_one_like_individual_batteries(ctrl):
+    # First port (bit 0, Prt[0]) is "Port 1", matching
+    # read_battery_status()['individual_batteries'][0]['port'] == 1.
+    assert _read(ctrl, prt_alrms=0b1, port_alrms=(1 << 7,))['dc_port'] == ['Port 1: OVER_TEMP']
+
+
+def test_failed_read_is_reported_not_silent(ctrl, caplog):
+    # A failed read must not look like "no alarms".
+    import logging
+    models = _models()
+    models[701].read.side_effect = OSError('timed out')
+    with patch.object(ctrl, 'get_model', side_effect=models.get), \
+         caplog.at_level(logging.DEBUG, logger='franklinwh_modbus.controller'):
+        alarms = ctrl.read_alarms()
+    assert 'timed out' in alarms['error']
+    assert ctrl.consecutive_failures == 1
+    assert any(r.levelno == logging.WARNING and 'Failed to read alarms' in r.getMessage()
+               for r in caplog.records)
+
+
+def test_successful_read_has_no_error(ctrl):
+    models = _models()
+    with patch.object(ctrl, 'get_model', side_effect=models.get):
+        assert 'error' not in ctrl.read_alarms()
