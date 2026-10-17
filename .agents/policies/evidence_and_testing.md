@@ -52,7 +52,7 @@ Evidence cited in a public file (docs, CHANGELOG, PR text, commit messages) must
 Anything that writes to hardware, changes dispatch, alters safety behaviour, or migrates a schema is critical. It needs either:
 
  - a REAL HARDWARE TEST on the reference aGate, coordinated with the owner and with other clients quiesced where contention matters; or
- - an APPROVED EMULATOR run that genuinely covers the path. Approved means the FranklinWH Gateway Emulator or the library's in-process Emulator — not a mock written for the test in hand, which proves only that the test agrees with itself.
+ - an APPROVED EMULATOR run that genuinely covers the path. Approved means the FranklinWH Gateway Emulator, or an in-process emulator where the client library provides one (franklinwh-modbus has none; see `release_policy.md` §3) — not a mock written for the test in hand, which proves only that the test agrees with itself.
 
 A passing unit test is not evidence that a device behaves as assumed.
 
