@@ -59,7 +59,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 
 | Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
-| **DCW** | 1067 | 41067 | **I, V** | **DC Power (W)**: Real-time battery flow. Positive=Charging, Negative=Discharging. |
+| **DCW** | 1067 | 41067 | **I, V** | **DC Power (W)**: Real-time battery flow. Positive=Discharging, Negative=Charging (measured 2026-10-14; matches the library code). |
 | **DCV** | 1069 | 41069 | **I, V** | **DC Voltage (V)**: Combined DC bus voltage of the battery strings. |
 | **DCA** | 1070 | 41070 | **I, U** | **DC Current (A)**: Battery current. *Note: Returns 0. Derive via I = P/V.* |
 | **Tmp** | 1071 | 41071 | **I, V** | **Internal Temperature (°C)**: Internal battery cell/stack temperature. |

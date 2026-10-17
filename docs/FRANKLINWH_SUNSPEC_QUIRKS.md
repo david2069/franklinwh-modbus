@@ -25,16 +25,18 @@ Documenting non-standard behaviors, missing registers, and implementation-specif
 
 **Workaround:** Derive battery state from M714 DCW power direction (±50W deadband):
 ```python
-# M714.DCW sign convention (confirmed empirically 2026-03-10):
-#   positive = power INTO battery (Charging)
-#   negative = power OUT of battery (Discharging)
-if dc_power > 50:
+# M714.DCW sign convention (corrected 2026-10-14; matches controller.py):
+#   positive = power OUT of battery (Discharging)
+#   negative = power INTO battery (Charging)
+if dc_power < -50:
     state = 'CHARGING'
-elif dc_power < -50:
+elif dc_power > 50:
     state = 'DISCHARGING'
 else:
     state = 'IDLE'
 ```
+
+**Sign evidence (2026-10-14, firmware V10R01B04D00, read-only):** over 897 samples (30 min) with the battery charging — M713.SoC rising 9 → 14 % and M714.DCWhAbs rising 580 Wh while DCWhInj stayed constant — M714.DCW read −1100 to −1400 W in every sample. A night run on 2026-10-13 read +200 W while discharging. Earlier versions of this page stated the opposite sign; the code was already correct.
 
 **Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta, always 0)
 
@@ -46,7 +48,7 @@ else:
 **Issue:** The DCA register in Model 714 returns 0 or is not implemented.
 
 **Standard SunSpec Model 714 Fields:**
-- `DCW` - DC Power (W) ✅ **Working** — positive=charging (into battery), negative=discharging (out of battery)
+- `DCW` - DC Power (W) ✅ **Working** — positive=discharging (out of battery), negative=charging (into battery); 100 W steps
 - `DCV` - DC Voltage (V) ✅ **Working** 
 - `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
 - `Tmp` - Battery Temperature (°C) ✅ **Working**
@@ -457,13 +459,35 @@ We use `unit_id=2` (FranklinWH default) but any UID works. No per-UID register p
 
 **Discovered:** 2026-03-15 (accidental typo) · **Severity:** Beneficial · **Status:** IN USE
 
-An undocumented register block at 16000–16002 mirrors extension registers 15506–15509 but with **higher precision on the home load reading:**
+An undocumented register block at 16000–16002. 16000 is a higher-precision version of the home load in 15506:
 
 | Register | Value | Mirrors | Precision |
 |:--------:|:-----:|:-------:|:---------:|
 | **16000** | Home Load (W) | 15506 | **~1W** (vs ~100W quantized) |
-| 16001 | Self Reserve (%) | 15508 | Same |
-| 16002 | TOU Reserve (%) | 15509 | Same |
+| 16001 | The active mode's reserve (same value as 15508/15509) | 15508 | Same |
+| 16002 | Generator auto-start SoC (%), Direct Connect 1901 `genStartElec` — supported on one site, see below | — | — |
+
+**Corrected 2026-10-14:** 16002 was listed as "TOU Reserve (%)". In a 30-minute read-only run (897 samples) it read a constant 20 while the TOU reserve was 15 and the active Self-Consumption reserve was 5 (the settings as read from the app and the cloud after the run). It also stayed at 20 while M701.TmpAmb rose from 16.2 to 17.0 °C, so it is not a mirror of TmpAmb either. In the same run 16000 tracked home load to within 50 W of solar + grid + battery power in every sample, and 15506 equalled 16000 rounded to 100 W in 99.8 % of samples.
+
+**Cross-checked 2026-10-15 against the aGate's local Direct Connect settings** (read-only reads of cmdTypes 1405, 1725 and 1901 at 06:04 AEDT, reference aGate, settings unchanged by these reads):
+
+| Setting | Value | Modbus register (read 2026-10-13/14) |
+|---|---|---|
+| 1726 Self-Consumption `reserved_soc` (active mode) | 5 | 15508 = 15509 = 16001 = 5 |
+| 1726 TOU (`Solar & Battery Plan`) `reserved_soc` | 15 | none of the registers read |
+| 1726 Emergency Backup `reserved_soc` | 100 | none of the registers read |
+| 1901 `genStartElec` (generator auto-start SoC) | 20 | 16002 = 20 |
+| 1901 `genCloseElec` (generator stop SoC) | 80 | none of the registers read |
+| 1405 `BBBackupSoc` | 20 | 15017 = 20 |
+| 1405 `genStartSoc` and the eight per-mode min/max fields | 0 | — |
+
+- **16002 = `genStartElec`** is supported by another site (reported in #18): there 16002 followed `genStartElec` from 10 to 30 and back to 10 in the same sample, and equalled it in all 885 samples. On this site both are 20, which is consistent but does not separate it from `BBBackupSoc` (also 20).
+- **15017 = `BBBackupSoc`** is a candidate only: both are 20 on both sites, and neither site has changed the setting.
+- **15508, 15509 and 16001** all carry the active mode's reserve. The TOU reserve (15) is not exposed by any of these registers, which is the known 15509 defect.
+- The register reads and the settings reads are a day apart. That the settings did not change in between is not established.
+- **Reserve change, 2026-10-15:** the owner changed the Self-Consumption reserve from 5 to 8 at about 06:10 AEDT. Direct Connect 1726 read 8 at 06:15. The modbus-bridge reported 15508 = 15509 = 16001 = 8 at 06:11 (bridge-reported; not read directly here). This supports 15508, 15509 and 16001 carrying the active reserve.
+
+**M713 SoC is the displayed SoC, not the BMS SoC.** Direct Connect 1301 returns both: `fhpSoc` (BMS) and `soc` (shown in the app). `soc` = (`fhpSoc` − 5) / 0.95, with the 5 % a fixed floor, not the reserve: at 06:15 on 2026-10-15, with the reserve at 8, `fhpSoc` 18.1 gave `soc` 13.789 = (18.1 − 5) / 0.95, where a reserve-based floor would give (18.1 − 8) / 0.92 = 10.98. One read, one site. A longer paired capture on the same aGate (2026-10-08/09, 7,606 samples, reported by the emulator project) found the same relation, with M713 `SoC` following `soc` in whole % and 15035 / 10 at 0.1 %.
 
 ### Correlation Evidence
 

@@ -12,7 +12,9 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 |:-----------------|:----------------|:-----------|:----|:------|:---|:------|
 | **15011**        | ModelID (Internal) | **707**    | `ID`   | - | - | Matches Model 707 ID |
 | **15013**        | ModelID (Internal) | **701**    | `ID`   | - | - | Matches Model 701 ID |
-| **15017**        | TmpAmb (Internal) | **701**    | `TmpAmb`| °C | - | Matches 701.TmpAmb (scaled) |
+| **15016**        | RunState?        | -          | -      | Enum | - | **Run state / power source, provisional.** This site: **2** = on grid (Self-Consumption, charging and discharging; 2026-10-15 on grid 68/68); **3** = islanded by a commanded off-grid, with AC-coupled PV running (2026-10-15, 10/10 samples); **6** = SunSpec 704 remote dispatch held (3 events, 2026-10-09/10/13, same-sample edges). Another site (#18): **0** = islanded on battery, **3** = generator start/run/stop. Hypothesis, unconfirmed: 3 = off-grid with an AC source running, 0 = off-grid on battery only. 1, 4, 5 not seen. Not OnGridMode, and not the cloud's `run_status` (1/2 for charging/discharging, 9 for remote dispatch). Information only |
+| **15026**        | GridConnected?   | -          | -      | Flag | - | **1 = grid connected, 0 = not.** This site 2026-10-15: 0 in 10/10 samples while islanded (M701.ConnSt 0, DERMode Grid Forming), 1 in 68/68 on grid. Agrees with another site (#18), where it flips with 15016 |
+| **15017**        | BBBackupSoc?     | -          | -      | % | - | **Candidate: Direct Connect 1405 `BBBackupSoc`, unconfirmed.** Reads 20 on two sites, and `BBBackupSoc` is 20 on both; neither has changed it. Not 1901 `genStartElec` (another site, #18: 15017 stayed 20 while `genStartElec` was 10). Not TmpAmb: constant 20 on 2026-10-14 while 701.TmpAmb rose 16.2 → 17.0 °C |
 | **15020**        | WHRtg (Internal) | **713**    | `WHRtg`| Wh | - | Matches 13600 WH |
 | **15022**        | NPt (Internal)   | **705**    | `NPt`  | - | - | Matches 705.NPt |
 | **15025**        | V_LNV (Internal) | **701**    | `LNV`  | V | -1 | Matches 241.8V (2380-2418) |
@@ -20,12 +22,12 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 | **15506**        | LoadActiveP      | **714**    | `DCW`? | W | 0 | **Speculation**: Often matches 714.DCW when IDLE/balanced. |
 | **15507**        | OnGridMode       | **715**    | `St`   | Enum | - | Maps to native DER states |
 | **15508**        | SelfReserve      | **712**    | `NPt`  | % | - | Matches 712.NPt (Number of points) |
-| **15509**        | TouReserve       | **712**    | `NPt`  | % | - | Matches 712.NPt (Number of points) |
+| **15509**        | TouReserve       | -          | -      | % | - | Vendor name (PICS SPAN tab), but reads the same value as 15508 — the known firmware defect in the PICS. On 2026-10-14 it read 5 (the active Self-Consumption reserve) while the TOU reserve was 15. Not related to 712.NPt (earlier note removed) |
 | **15510**        | PVOutputWh (H)   | **502**    | `OutWh`| Wh | - | Matches PV Total Energy |
 | **15512**        | proxOutputWh (H) | **502**    | `OutWh`| Wh | - | Matches PV Proximal Energy |
 | **16000**        | HomeLoadHighRes  | **None**   | N/A | W | 0 | High-precision home load (1W) |
-| **16001**        | NPt (Mirror)     | **712**    | `NPt`  | - | - | Mirror of 15508/15509 (Reserves=6) |
-| **16002**        | TmpAmb (Mirror)  | **701**    | `TmpAmb`| °C | - | Matches 701.TmpAmb (scaled=20) |
+| **16001**        | Active reserve   | -          | -      | % | - | Same value as 15508/15509: the active mode's reserve. Read 5 on 2026-10-13/14; Direct Connect 1726 gives Self-Consumption (active) `reserved_soc` 5, TOU 15, Emergency Backup 100 (read 2026-10-15) |
+| **16002**        | GenStartSoc      | -          | -      | % | - | **Generator auto-start SoC (Direct Connect 1901 `genStartElec`), supported on one site.** Reported in #18: on that site 16002 followed `genStartElec` 10 → 30 → 10 in the same sample and equalled it in 885 of 885 samples. Here both read 20 (consistent, but `BBBackupSoc` is also 20, so this site cannot separate them). Not TmpAmb, not the TOU reserve (refuted 2026-10-14) |
 
 ---
 

@@ -29,6 +29,7 @@ Behaviour changes that can affect code built on the library:
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 
 ### Changed
+- Docs: corrected from a 30-minute read-only correlation run on 2026-10-14 (firmware V10R01B04D00). `M714.DCW` is negative while charging and positive while discharging; the quirks doc and glossary said the opposite (the code was already right). 16002 and 15017 are now "meaning unknown": they are neither the TOU reserve nor a mirror of `M701.TmpAmb`. 15509 keeps its vendor name but is noted as reading the same value as 15508. Cross-checked against the aGate's local Direct Connect settings (2026-10-15): 16002 is labelled as the generator auto-start SoC (`genStartElec`), supported by another site's data in #18; 15017 is a candidate for `BBBackupSoc`; 16001 is the active mode's reserve. 15016 is labelled provisionally as a run state / power source (2 on grid, 3 islanded with AC-coupled PV, 6 under SunSpec 704 dispatch here; 0 islanded on battery and 3 generator on another site, #18). 15026 is labelled 1 = grid connected, 0 = not. M713 `SoC` is noted as the app's displayed SoC, (BMS SoC − 5) / 0.95, not the BMS SoC.
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
