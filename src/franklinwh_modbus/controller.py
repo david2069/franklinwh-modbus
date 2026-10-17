@@ -695,7 +695,8 @@ class FranklinWHController:
             else:
                 grid_mode = 'Grid Following (default)'
             
-            # Determine AC type based on voltage
+            # Determine AC type from the voltage band (not M701.ACType, which is
+            # unverified on the aGate; #42)
             if 200 <= voltage <= 260:
                 ac_type = 'Single-Phase (230V Nominal)'
             elif 100 <= voltage < 200:

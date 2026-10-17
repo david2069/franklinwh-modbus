@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `--status --detail` labels AC Type `(derived from M701.LNV)`. It said `(M701.ACType)`, a point the library doesn't read; the value comes from the voltage band. (#42)
+
 ## [0.9.6] - 2026-10-17
 
 > **Upgrade advisory: all 0.9.5 users should upgrade.** 0.9.5 has two S1 defects that act on the battery. `connect()` writes the operating mode and reserves (15507–15509) on every connection (#24), and a charge or discharge above the device rating is clamped to full power in the **opposite** direction (#28). 0.9.6 also fixes the battery ERROR status, which was never recognised (#38). Read the upgrade notes below before upgrading: several behaviours changed.
