@@ -157,3 +157,6 @@ tools/NETWORK_SCANNER_MDNS_GUIDE.md
 tools/NETWORK_SCANNER_SUMMARY.md
 tools/network_scanner_README.md
 site/
+
+# Owner-private notes: local only, never committed (site data, captures, unpublished findings)
+private/
