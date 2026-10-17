@@ -8,22 +8,22 @@ Documenting non-standard behaviors, missing registers, and implementation-specif
 
 ### Sta (Status) Register Always 0
 
-**Issue:** The `Sta` register in Model 713 always returns 0 (OFF) regardless of actual battery state.
+> **Corrected 2026-10-12.** An earlier version of this section treated 0 as "OFF" and listed a charge-state enum (OFF/EMPTY/DISCHARGING/CHARGING/FULL/HOLDING/TESTING). That table is not the 713.Sta enum. Basis and sources: [SunSpec Enum Values: Basis and Cross-Reference](SUNSPEC_ENUM_BASIS.md).
 
-**SunSpec 2 M713.Sta enum:**
+**Observation:** The `Sta` register in Model 713 reads 0 whatever the battery is doing.
+
+**SunSpec M713.Sta enum** (DER Information Model Specification V1.2, p. 75; same in pysunspec2 and the PICS symbol list):
 | Value | Meaning |
 |-------|---------|
-| 0 | OFF |
-| 1 | EMPTY |
-| 2 | DISCHARGING |
-| 3 | CHARGING |
-| 4 | FULL |
-| 5 | HOLDING |
-| 6 | TESTING |
+| 0 | OK (no error) |
+| 1 | WARNING |
+| 2 | ERROR |
 
-**Observed:** Battery actively charging at -400W (M714.DCW), SoC 79% — M713.Sta remains 0 (OFF).
+**Interpretation:** 0 means the storage reports no error. A constant 0 on a healthy battery is expected behaviour, not a deviation. 713.Sta is a health status; it does not report charge direction.
 
-**Workaround:** Derive battery state from M714 DCW power direction (±50W deadband):
+**Observed:** Battery actively charging at -400W (M714.DCW), SoC 79% — M713.Sta remains 0 (OK).
+
+**Charge direction:** Derive battery state from M714 DCW power direction (±50W deadband):
 ```python
 # M714.DCW sign convention (confirmed empirically 2026-03-10):
 #   positive = power INTO battery (Charging)
@@ -36,7 +36,7 @@ else:
     state = 'IDLE'
 ```
 
-**Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta, always 0)
+**Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta: 0 = OK)
 
 ---
 
@@ -257,7 +257,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | Controller heartbeat | Client writes ControllerHb; DER monitors | ❌ Confirmed non-functional (write accepted, readback=0) | Not implemented — no alternative | Report as defect |
 | Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | ✅ **WORKS with proper sequencing!** Timer=60s accepted, countdown active (59→55→52) | Software `threading.Timer` via `duration_s` (may become optional) | N/A — working correctly |
 | Reversion enable (WSetEnaRvrt) | Enables reversion behavior | ✅ **WORKS!** Readback=1 after write | N/A | N/A — working correctly |
-| Battery state (M713.Sta) | Reflects CHARGING/DISCHARGING/IDLE | Always 0 (OFF) | Derived from M714.DCW ±50W deadband | Report; workaround is robust |
+| Battery state (M713.Sta) | Storage status: OK 0 / WARNING 1 / ERROR 2 (V1.2) | Always 0 (OK) — conforms; see [enum basis](SUNSPEC_ENUM_BASIS.md) | Charge direction derived from M714.DCW ±50W deadband | None (corrected 2026-10-12) |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
 | Extension register writes | N/A (vendor-specific) | Read-only without SPAN Modbus unlock | Cloud API bypass (Tier 2) for mode changes | SPAN unlock required; vendor provisioning |

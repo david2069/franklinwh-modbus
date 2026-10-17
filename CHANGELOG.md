@@ -23,13 +23,19 @@ Behaviour changes that can affect code built on the library:
 - `--power`/`--duration` honours `--min-discharge-soc 0` instead of coercing it to 20. The 20% default on that path is unchanged. (#20)
 - `VirtualModeController.verify_command_execution()` compared the never-written `M704.WSet` with battery power, so it always passed. It now reads the setpoint back from `WSetPct` and reports a failed readback instead of assuming success. (#21)
 
+### Known issues
+- `get_pics_enum_desc()` / `FranklinWHController.get_enum_desc()` return the wrong name for several M701, M703 and M704 enums. `PICS_ENUMS` numbers them from 1, following the 2021 Draft of the SunSpec DER Information Model; the approved V1.2 and the aGate number them from 0. For example, `get_pics_enum_desc(701, "ConnSt", 1)` returns `"DISCONNECTED"` for a grid-connected site. `read_grid_status()` is not affected. Present since 0.9.3. Not yet fixed; see `docs/SUNSPEC_ENUM_BASIS.md`.
+- `read_grid_status()` reports `ac_type` from line voltage instead of reading M701.ACType.
+
 ### Added
 - `FranklinWHController.verify_dispatch(expected_w, tolerance_pct=20, timeout_s=0)` reads back `WSetEna`/`WSetPct` and `M714.DCW`, compares them in the `BatteryCommand` convention, and returns `ok`, `dispatched`, `commanded_w`, `actual_w` and `reason`. It detects a dispatch the device accepted but did not act on. With `timeout_s` it polls while the battery ramps. Tolerance has a 100 W floor (M714.DCW reads in 100 W steps), and commands under 150 W are verified on the setpoint only. (#21)
 - Controller I/O health: `last_success_ts`, `last_error`, `last_error_ts`, `consecutive_failures` and `data_age_s`, so callers can tell a dead link from an empty read. (#22)
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
+- `docs/SUNSPEC_ENUM_BASIS.md`: which SunSpec edition the library decodes enum registers by (DER Information Model V1.2, 0-based), with page references, device evidence, the PICS SM-000028 differences, and every place in the repo that decodes these enums.
 
 ### Changed
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
+- `FRANKLINWH_SUNSPEC_QUIRKS.md`: M713.Sta reading 0 is no longer listed as a quirk. The table in that section was not the 713.Sta enum; per V1.2, 0 means OK.
 
 ## [0.9.5] - 2026-10-07
 

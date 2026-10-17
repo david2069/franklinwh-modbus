@@ -242,6 +242,8 @@ DEVICE_ARCHITECTURE = {
 
 
 # Certified FranklinWH PICS Enum Mappings (Sourced from PICS documentation SM-000028)
+# NOTE: several maps below are 1-based (2021 Draft numbering); SunSpec V1.2 and the
+# aGate are 0-based. Known issue, not yet fixed. See docs/SUNSPEC_ENUM_BASIS.md.
 PICS_ENUMS = {
     701: {
         "ACType": {
