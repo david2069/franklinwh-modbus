@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Upgrade notes
+- `read_alarms()` now reads models 701, 713, 714 and 502 itself (pass `refresh=False` if you read them in the same poll), and it fills `decoded`. DC ports in `decoded['dc_port']` are numbered from 1, the same as `read_battery_status()['individual_batteries']`. (#39)
+- If `read_alarms()` fails, the result has an `error` key and the failure is logged at warning level. It used to return zeros at debug level, which looked like "no alarms". Check `error` before trusting an empty alarm list. (#39)
+
 ### Fixed
 - **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
 

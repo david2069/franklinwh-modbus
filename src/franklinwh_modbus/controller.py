@@ -2026,6 +2026,9 @@ class FranklinWHController:
         dc_port_alrm = M714.PrtAlrms, battery_sta = M713.Sta,
         solar_evt = M502.Evt, vendor_info = M701.MnAlrmInfo) and 'decoded',
         which names every active alarm (see _decode_alarms).
+        
+        If the read fails, 'error' holds the reason and the values are not
+        meaningful: no alarms reported is not the same as no alarms.
         """
         alarms = {
             'system_alrm': 0,
@@ -2061,7 +2064,8 @@ class FranklinWHController:
             alarms['decoded'] = self._decode_alarms(alarms, m714)
                 
         except Exception as e:
-            logger.debug(f"Could not read alarms: {e}")
+            alarms['error'] = str(e)
+            self._record_read_failure('alarms', e)
         
         return alarms
     
@@ -2069,7 +2073,8 @@ class FranklinWHController:
         """Name every active alarm using the SunSpec model definitions.
 
         M714.PrtAlrms flags which DC ports have an alarm (bit 0 = first port);
-        the alarm itself is in that port's DCAlrm. A port whose DCSta is
+        the alarm itself is in that port's DCAlrm. Ports are numbered from 1,
+        matching read_battery_status()['individual_batteries']. A port whose DCSta is
         WARNING or ERROR is reported even if PrtAlrms doesn't flag it.
         """
         dc_port = []
@@ -2081,12 +2086,12 @@ class FranklinWHController:
             port_alrm = port.DCAlrm.value if port is not None and hasattr(port, 'DCAlrm') else None
             flagged = idx < 32 and alarms['dc_port_alrm'] & (1 << idx)
             if port_alrm:
-                dc_port += [f"Port {idx}: {n}" for n in _bit_names(port_alrm, port_names)]
+                dc_port += [f"Port {idx + 1}: {n}" for n in _bit_names(port_alrm, port_names)]
             elif flagged:
-                dc_port.append(f"Port {idx}")
+                dc_port.append(f"Port {idx + 1}")
             port_sta = port.DCSta.value if port is not None and hasattr(port, 'DCSta') else None
             if sta_names.get(port_sta) in ('WARNING', 'ERROR'):
-                dc_port.append(f"Port {idx}: status {sta_names[port_sta]}")
+                dc_port.append(f"Port {idx + 1}: status {sta_names[port_sta]}")
         
         sta = alarms['battery_sta']
         return {
