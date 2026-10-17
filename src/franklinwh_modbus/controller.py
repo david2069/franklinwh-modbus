@@ -2108,9 +2108,13 @@ class FranklinWHController:
         Every active alarm by name, from read_alarms() (read now if not given).
         
         Reports only: which alarms should stop operation is for the caller to decide.
+        A failed read is reported as an entry ("Alarm read failed: …"), never as
+        an empty list, so it cannot pass for "no alarms".
         """
         if alarms is None:
             alarms = self.read_alarms()
+        if alarms.get('error'):
+            return [f"Alarm read failed: {alarms['error']}"]
         decoded = alarms.get('decoded', {})
         active = list(decoded.get('system', [])) + list(decoded.get('dc_port', []))
         active += [f"Solar: {name}" for name in decoded.get('solar', [])]
@@ -2125,13 +2129,17 @@ class FranklinWHController:
         to the client. Use read_alarms() or active_alarms() and apply your own rule.
         
         Returns (can_operate, blocking_reasons) using a fixed rule that will be
-        removed in a future release.
+        removed in a future release. Known issue (#46): CRITICAL_BITS were chosen
+        from a bit table one bit off from SunSpec model 701; kept unchanged
+        until removal. A failed alarm read blocks.
         """
         warnings.warn(
             "check_blocking_alarms() is deprecated: use read_alarms() or "
             "active_alarms() and decide in the client",
             DeprecationWarning, stacklevel=2)
         alarms = self.read_alarms()
+        if alarms.get('error'):
+            return False, [f"ALARM_READ_FAILED: {alarms['error']}"]
         blocking = []
         
         # Critical system alarm bits

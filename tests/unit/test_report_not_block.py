@@ -105,3 +105,21 @@ def test_run_continuous_does_not_stop_on_alarms():
         c.read_battery_status.return_value = {'soc': 50}
         vmc.run_continuous(enable_safety_checks=True, stop_event=stop)
     c.check_blocking_alarms.assert_not_called()
+
+
+def test_active_alarms_reports_a_failed_read(ctrl):
+    # A failed read must not come back as [] ("no alarms").
+    a = _alarms()
+    a['error'] = 'timed out'
+    assert ctrl.active_alarms(a) == ['Alarm read failed: timed out']
+
+
+def test_deprecated_check_blocks_on_a_failed_read(ctrl):
+    a = _alarms()
+    a['error'] = 'timed out'
+    with patch.object(ctrl, 'read_alarms', return_value=a), \
+         warnings.catch_warnings():
+        warnings.simplefilter('ignore', DeprecationWarning)
+        ok, reasons = ctrl.check_blocking_alarms()
+    assert ok is False
+    assert reasons == ['ALARM_READ_FAILED: timed out']
