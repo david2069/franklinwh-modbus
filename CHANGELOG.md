@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FranklinWHController.active_alarms(alarms=None)`: every active alarm by name (system, DC port, solar, and the battery when not OK), from `read_alarms()`. Reports only. (#46)
 
 ### Fixed
+- `--status --detail` labels AC Type `(derived from M701.LNV)`. It said `(M701.ACType)`, a point the library doesn't read; the value comes from the voltage band. (#42)
 - **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
 
 ## [0.9.6] - 2026-10-17

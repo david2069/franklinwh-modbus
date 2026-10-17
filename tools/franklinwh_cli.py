@@ -463,7 +463,7 @@ def print_status(ctrl: FranklinWHController):
     print("  " + "─" * 54)
     print(f"    Architecture:     AC-Coupled (aGate X)")
     print(f"    Solar Inputs:     2x 63A AC circuits (+ remote via aPbox/aHub)")
-    print(f"    AC Type:          {grid.get('ac_type', 'Unknown')}  (M701.ACType)")
+    print(f"    AC Type:          {grid.get('ac_type', 'Unknown')}  (derived from M701.LNV)")
     print(f"    Voltage:          {grid.get('voltage_v', 0):.1f}V  (M701.LNV)")
     print(f"    Frequency:        {grid.get('frequency_hz', 0):.2f}Hz  (M701.Hz)")
     
