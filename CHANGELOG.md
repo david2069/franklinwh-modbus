@@ -14,8 +14,10 @@ Behaviour changes that can affect code built on the library:
 - Self-consumption grid-charges only below `self_reserve_pct` (default 20%), not below `target_soc`, and no longer refuses to start with a full battery. (#20)
 - `verify_command_execution()` returns `ok=False` when the readback fails. It used to assume success. (#21)
 - Failed status reads log at **warning** level (first failure, then at most once a minute, then on recovery) instead of debug. (#22)
+- When one model fails inside `read_battery_status()` or `read_solar_status()`, the result now carries `partial` (e.g. `['714']`) and **leaves that model's keys out**. `read_solar_status()` used to report them as `0`. Use `.get()` on `ac_power_w`, `dc_power_w` and `battery_dc_power_w`, and treat a present `partial` as an incomplete sample. (#52)
 
 ### Fixed
+- **Partial read failures are no longer silent.** A model 714 (or 502) read that failed inside an otherwise successful `read_battery_status()` or `read_solar_status()` was logged at debug level only. Battery power, state, current and temperature disappeared without trace, and `read_solar_status()` reported `0` W, which looks the same as an idle battery or no solar. It now logs a warning (first failure, then at most once a minute per model, then on recovery), updates `last_error`, and lists the model in `partial`. A failed M502 still falls back to the extension solar total when one is available. `consecutive_failures` keeps counting whole-read failures only. (#52)
 - **`connect()` no longer writes to the device.** It ran the extension writability test on every connection: it wrote 15507 (operating mode), 15508 and 15509 (reserves) with test values and restored them only if the readback matched. On a unit where those registers are writable, every connect (including every bridge reconnect) briefly changed the mode and reserves, and a dropped link could leave them changed (a 100% reserve was tested as 0%). The test is now the explicit `test_extension_writability()`, still run by `--test-extension-write`. (#24)
 - **The rating clamp no longer reverses the direction of over-limit commands.** `send_command()` clamped a charge above the device rating to a full-rate discharge, and a discharge above it to a full-rate charge (e.g. `--power 6000` on a 5 kW unit discharged at 5 kW). It now clamps to the rating in the requested direction. The same fix is in `tools/franklinwh_control_standalone.py`. (#28)
 - Virtual-mode calculators now return the `BatteryCommand` convention (positive = charge, negative = discharge) that the SoC limiter and `send_command()` expect. Self-consumption, peak-shave and the TOU `discharge` strategy returned the opposite sign, so the limiter ramped and blocked the wrong direction (a charge near the discharge floor was cut back or blocked without any log), and the inverted setpoint went out as a positive `WSetPct`, which the device ignores. Reported by @balloobbot in #12. (#20)
@@ -29,6 +31,7 @@ Behaviour changes that can affect code built on the library:
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 
 ### Changed
+- `send_command(duration_s=…)` documents that its timeout runs `reset_control_state()` on a timer thread without the caller's lock. Callers that share the controller across threads should release from their own watchdog instead. A lock fix is tracked in #54.
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
