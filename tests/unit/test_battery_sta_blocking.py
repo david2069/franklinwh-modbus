@@ -9,6 +9,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# check_blocking_alarms() is deprecated (the client decides); it still has to be right meanwhile
+pytestmark = pytest.mark.filterwarnings('ignore::DeprecationWarning')
+
 from franklinwh_modbus import FranklinWHController
 
 

@@ -7,8 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Upgrade notes
+- **The library no longer decides what an alarm means; the client does.** (#40, #46)
+  - `check_blocking_alarms()` is deprecated (it warns, and will be removed). Use `read_alarms()` or the new `active_alarms()` and apply your own rule.
+  - `healthcheck()` lists active alarms in `details['alarms']` and in its recommendations, but they no longer affect `healthy` or `message`. `details['blocking_alarms']` and `details['can_operate']` are gone.
+  - The conflict check's `result['alarms']` is now `{'active', 'system_alrm', 'decoded'}`; `can_operate` and `blocking` are gone.
+  - `VirtualModeController.run_continuous(enable_safety_checks=True)` no longer stops after two alarm checks. Its SoC-limit and dispatch-verification checks are unchanged.
+  - A failed alarm read is never "no alarms": `active_alarms()` returns `["Alarm read failed: …"]`, so `--check-alarms` exits 1, and the deprecated `check_blocking_alarms()` returns `(False, ["ALARM_READ_FAILED: …"])`. Its `CRITICAL_BITS` are still the set that is one bit off from model 701 (#46); it's kept unchanged until the function is removed.
+  - `--check-alarms` exits 1 if **any** alarm is active (before: only the fixed "critical" set). `--healthcheck` and `--status` print "ACTIVE ALARMS".
+- `read_alarms()` now reads models 701, 713, 714 and 502 itself (pass `refresh=False` if you read them in the same poll), and it fills `decoded`. DC ports in `decoded['dc_port']` are numbered from 1, the same as `read_battery_status()['individual_batteries']`. (#39)
+- If `read_alarms()` fails, the result has an `error` key and the failure is logged at warning level. It used to return zeros at debug level, which looked like "no alarms". Check `error` before trusting an empty alarm list. (#39)
+
+### Added
+- `FranklinWHController.active_alarms(alarms=None)`: every active alarm by name (system, DC port, solar, and the battery when not OK), from `read_alarms()`. Reports only. (#46)
+
 ### Fixed
 - `--status --detail` labels AC Type `(derived from M701.LNV)`. It said `(M701.ACType)`, a point the library doesn't read; the value comes from the voltage band. (#42)
+- **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
 
 ## [0.9.6] - 2026-10-17
 
