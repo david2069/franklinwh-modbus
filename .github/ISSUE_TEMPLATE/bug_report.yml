@@ -50,6 +50,18 @@ body:
       required: true
 
   - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (your best guess; the maintainer may change it)
+      options:
+        - "S1 — wrong battery control, unintended device write, safety or data loss"
+        - "S2 — feature broken, workaround exists"
+        - "S3 — degraded, UX or non-functional"
+        - "S4 — cosmetic, nice-to-have"
+    validations:
+      required: true
+
+  - type: dropdown
     id: component
     attributes:
       label: Component
@@ -106,10 +118,10 @@ body:
       required: true
 
   - type: dropdown
-    id: span_unlock
+    id: extension_writable
     attributes:
-      label: SPAN Modbus Unlock
-      description: Are extension registers (15507–15509) unlocked for writes? Check with `--status --detail`.
+      label: Extension Register Writes
+      description: Are extension registers (15507–15509) writable on your unit? Check with `--status --detail`.
       options:
         - "Yes — writes to extension registers work"
         - "No — read-only (silent write failures)"
@@ -141,7 +153,7 @@ body:
       description: |
         Paste the output of `franklinwh_cli.py -i YOUR_IP --status --detail` (redacted).
 
-        **⚠️ IMPORTANT: Replace your aGate IP with `192.168.x.x` and redact any serial numbers.**
+        **⚠️ IMPORTANT: Replace your aGate IP with `<AGATE_IP>` and redact any serial numbers.**
       render: text
 
   - type: textarea
