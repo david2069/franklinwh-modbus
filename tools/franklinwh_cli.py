@@ -997,8 +997,19 @@ def main():
             else:
                 print(f"    ✓ None active")
             
+            # Solar events
+            print(f"\n  Solar Events (Model 502): 0x{alarms.get('solar_evt', 0):08X}")
+            solar = decoded.get('solar', [])
+            if solar:
+                for event in solar:
+                    print(f"    ⚠️  {event}")
+            else:
+                print(f"    ✓ None active")
+            
             # Battery status
             print(f"\n  Battery Status: {decoded.get('battery_status', 'UNKNOWN')}")
+            if decoded.get('vendor_info'):
+                print(f"  Vendor Alarm Info: {decoded['vendor_info']}")
             
             # Check if blocking
             can_operate, blocking = ctrl.check_blocking_alarms()
