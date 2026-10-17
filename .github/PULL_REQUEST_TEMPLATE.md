@@ -1,36 +1,32 @@
-## Description
+## What changed
 
 Brief description of the change and why it's needed.
 
-## Type of Change
+Refs #  <!-- use "Refs", never "Fixes"/"Closes": the issue closes after the PyPI release is verified -->
 
-- [ ] Bug fix (non-breaking change that fixes an issue)
-- [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] Documentation update
+## Severity and nature
 
-## Changes Made
+- Severity: <!-- sev:S1-blocker / S2-high / S3-medium / S4-low -->
+- Nature: <!-- code / device / doc / test-gap / design-risk -->
+- Regression risk: <!-- low / medium / high — touches X, which could affect Y -->
 
-- 
+## Evidence
 
-## Testing
+<!-- Cite the source for every claim: vendor doc (revision, date), SunSpec model, a live read (time, firmware, request), or the code. Mark what is unverified. Quote output inline; do not cite tests/results/ or other local-only files. -->
 
-- [ ] Unit tests pass (`pytest tests/unit/ -v`)
-- [ ] Integration tests pass (`pytest tests/integration/ -v`)
-- [ ] Hardware tested (if applicable — describe setup)
-- [ ] New tests added for this change
+## Mutation check
 
-## Hardware Testing Notes
+- [ ] I disabled the change and these tests failed: <!-- list them -->
 
-> If this PR touches Modbus register reads/writes, battery control, or extension registers:
-> - aGate firmware version tested against:
-> - SPAN Modbus unlock status:
-> - Any quirks discovered:
+## Gates (see `.agents/policies/release_policy.md`)
+
+- [ ] **G0** — full suite passes, syntax check on changed files
+- [ ] **G1** — Gateway Emulator run (or: not run — emulator not deployed)
+- [ ] **G2** — real aGate, owner-coordinated (required for device writes, dispatch or safety changes): firmware ___
+- Not run, and why:
 
 ## Checklist
 
-- [ ] Code follows PEP 8 style
-- [ ] Docstrings added/updated for public methods
-- [ ] Documentation updated (if public API changed)
-- [ ] **CHANGELOG.md updated** under `[Unreleased]`
-- [ ] No hardcoded IP addresses or device-specific data
+- [ ] `CHANGELOG.md` updated under `[Unreleased]` (Upgrade notes for behaviour changes)
+- [ ] Docstrings updated for changed public methods
+- [ ] No site data in tracked files: no LAN IPs, serials, MACs or home paths (use `<AGATE_IP>`, 192.0.2.x, `~`)
