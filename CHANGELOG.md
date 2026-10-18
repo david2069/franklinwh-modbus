@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-17
+
+> **Alarms are reported, not decided.** The library now names every active alarm from the SunSpec models and leaves the decision to the caller. `check_blocking_alarms()` is deprecated, and `healthcheck()` no longer turns unhealthy on alarms. A failed alarm read is never reported as "no alarms". Read the upgrade notes if you use `healthcheck()`, `--check-alarms` or `check_blocking_alarms()`.
+
 ### Upgrade notes
 - **The library no longer decides what an alarm means; the client does.** (#40, #46)
   - `check_blocking_alarms()` is deprecated (it warns, and will be removed). Use `read_alarms()` or the new `active_alarms()` and apply your own rule.
@@ -187,7 +191,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...v0.10.0
 [0.9.6]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.3...v0.9.4

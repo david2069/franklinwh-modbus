@@ -16,7 +16,7 @@ Example usage:
     vmc.run_continuous(duration_seconds=3600)
 """
 
-__version__ = '0.9.6'
+__version__ = '0.10.0'
 
 from .types import (
     ControlMode,
