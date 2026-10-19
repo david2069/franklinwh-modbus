@@ -4,7 +4,7 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
 
 !!! warning "Read before you start"
     - **Monitor only.** This guide reads registers and never writes. Don't add `modbus.write_register` automations against the aGate: there's no clamp, no release and no verification here. For battery control, use a FranklinWH integration built on this library.
-    - **One Modbus client per aGate.** The aGate serves one Modbus TCP client at a time. Use this **instead of** any other Modbus client (a FranklinWH bridge, this library's CLI or TUI), never alongside it. Two clients cause dropped connections and "unavailable" sensors.
+    - **One Modbus client per aGate: stop or uninstall the others first.** Home Assistant's Modbus integration keeps its own TCP connection open to the aGate. Before adding this YAML, **stop or uninstall** any FranklinWH bridge add-on or integration, and anything else that talks to port 502: this library's CLI or TUI, or a tool that probes :502. Two clients cause dropped connections and "unavailable" sensors.
     - **Scale factors are fixed in the YAML.** SunSpec keeps scale factors in separate registers; the values below were read on firmware V10R01B04D00 on 2026-05-14. Check yours (step 1), and again after a firmware update.
     - **Proof of concept, not yet run in Home Assistant.** The addresses and types come from a device scan and the HA Modbus documentation. Compare HA's values with the CLI (step 4) before relying on them.
 
@@ -22,6 +22,7 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
 | Self-consumption reserve (%) | 15508 | FranklinWH extension |
 | Operating mode (raw number) | 15507 | FranklinWH extension |
 | Grid import / export energy (Wh, lifetime) | 93 / 89 | SunSpec M701 `TotWhAbs` / `TotWhInj` |
+| Solar energy (Wh, lifetime) | 15510–15511 | FranklinWH extension, uint32, high word first |
 | Battery charged / discharged energy (Wh, lifetime) | 1053 / 1049 | SunSpec M714 `DCWhAbs` / `DCWhInj` |
 
 Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Never add 40000 or 40001: the aGate answers those with exception 2. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
@@ -145,6 +146,16 @@ modbus:
         scan_interval: 60
 
       # --- FranklinWH extension registers ------------------------------
+      - name: aGate Solar Energy
+        unique_id: agate_solar_energy
+        device_address: 2
+        address: 15510            # PVOutputWh: uint32, high word first
+        data_type: uint32
+        unit_of_measurement: Wh
+        device_class: energy
+        state_class: total_increasing
+        scan_interval: 60
+
       - name: aGate Solar Power
         unique_id: agate_solar_power
         device_address: 2
@@ -183,7 +194,8 @@ modbus:
 
 **Notes:**
 - **Unit ID.** `device_address: 2` is the FranklinWH default. The aGate answers on any unit ID ([QUIRKS](FRANKLINWH_SUNSPEC_QUIRKS.md)).
-- **Scan intervals.** About 10 s for power and longer for energy and settings keeps traffic modest: 11 sensors means 11 requests per cycle. HA's default is 15 s.
+- **Scan intervals.** About 10 s for power and longer for energy and settings keeps traffic modest: 12 sensors means 12 requests per cycle. HA's default is 15 s. Polling faster than about 5 s hasn't been tested against an aGate.
+- **Reconnects.** HA's Modbus client reconnects by itself. How it behaves when the aGate drops the session hasn't been measured.
 - **TOU reserve isn't included.** 15509 reads the same value as 15508 on current firmware, so it isn't the TOU reserve (#63).
 - **Operating mode is shown as a raw number.** Which number means which mode is still being confirmed (#75). The library and a 2026-05 device scan say 1 = Emergency Backup, 2 = Self-Consumption, 3 = TOU, but treat that as provisional.
 - **Battery power is the DC side** (M714). With more than one aPower, PDU 1048 is the model's top-level total. That hasn't been verified on a multi-battery site.
@@ -192,7 +204,7 @@ modbus:
 
 ## 3. Restart and check
 
-Restart Home Assistant (**Settings → System → Restart**). Then open **Settings → Devices & services → Entities** and search for `aGate`. All 11 sensors should have values within a minute.
+Restart Home Assistant (**Settings → System → Restart**). Then open **Settings → Devices & services → Entities** and search for `aGate`. All 12 sensors should have values within a minute.
 
 | Symptom | Likely cause |
 |---|---|
@@ -223,10 +235,11 @@ Compare SoC, battery power, grid power, solar and home load with what HA showed 
 |---|---|
 | Grid consumption | `aGate Grid Import Energy` |
 | Return to grid | `aGate Grid Export Energy` |
+| Solar production | `aGate Solar Energy` |
 | Battery: energy going in | `aGate Battery Charged Energy` |
 | Battery: energy coming out | `aGate Battery Discharged Energy` |
 
-Solar energy isn't included. The Modbus side has only lifetime PV energy in 15510–15513, a 32-bit pair that this guide doesn't map yet ([extension registers](FRANKLINWH_MODBUS_EXTENSIONS.md)).
+Solar energy comes from extension register 15510–15511, total PV including remote inputs. It's a 32-bit value with the high word first: a reader capture on 2026-10-19 showed `00F1 D254` = 15,848,020 Wh, as reported by the franklinwh-modbus-bridge session. All energy sensors here are in **Wh**; the Energy dashboard accepts Wh.
 
 ---
 
