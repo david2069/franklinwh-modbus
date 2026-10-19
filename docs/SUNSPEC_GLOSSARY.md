@@ -10,10 +10,12 @@ This document serves as the definitive reference for all SunSpec Info Points and
 
 ---
 
+> **Addresses:** "PDU address" is the 0-based Modbus address sent on the wire, as listed in the FranklinWH PICS. The "PDU + 40000" column is where a device whose SunSpec map starts at 40000 would place the point. The aGate's map starts at PDU 0, and reads at PDU 40000+ return exception 2. It is not the Modicon 4xxxx reference, which would be PDU + 40001. See QUIRKS, Register Addressing.
+
 ## 1. FranklinWH Extension Registers (15500+)
 **Purpose**: Proprietary registers for operating modes, solar granularity, and internal reserves.
 
-| Point | Franklin Addr (Base 1) | Status | Description |
+| Point | PDU address | Status | Description |
 | :--- | :---: | :---: | :--- |
 | **PVUse** | 15500 | **I, V** | **PV Installed (Native)**: Indicates if proximal solar is configured. |
 | **apBoxPVUse** | 15501 | **I, V** | **Remote PV Installed**: Indicates if aPbox/aHub solar is configured. |
@@ -31,7 +33,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 2. M704 — DER AC Controls
 **Purpose**: Primary control path for active and reactive power.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **WSetEna** | 318 | 40318 | **I, V** | **Remote Control Enable**: Master switch for external control. Must be `1` for the aGate to accept power setpoints. |
 | **WSetMod** | 319 | 40319 | **I, V** | **Power Setpoint Mode**: Configuration mode for power commands. |
@@ -45,7 +47,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 3. M713 — Storage Capacity
 **Purpose**: Battery energy ratings and State of Charge.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **WHRtg** | 1035 | 41035 | **I, V** | **Total Energy Rating (Wh)**: The nameplate capacity of the battery system. |
 | **WHAvail** | 1036 | 41036 | **I, V** | **Available Energy (Wh)**: Remaining energy available for discharge. |
@@ -57,7 +59,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 4. M714 — DC Measurement
 **Purpose**: Granular DC-side battery telemetry.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **DCW** | 1067 | 41067 | **I, V** | **DC Power (W)**: Real-time battery flow. Positive=Charging, Negative=Discharging. |
 | **DCV** | 1069 | 41069 | **I, V** | **DC Voltage (V)**: Combined DC bus voltage of the battery strings. |
@@ -71,7 +73,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 5. M701 — DER Measurement
 **Purpose**: Real-time AC grid and inverter telemetry.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **St** | 73 | 40073 | **I, V** | **Operating State**: 1=Off, 2=Sleeping, 3=Starting, 4=Mppt, 5=Throttled, 6=Shutting down, 7=Fault, 8=Standby. |
 | **W** | 80 | 40080 | **I, V** | **Total Active Power (W)**: Real-time grid power. Positive=Import, Negative=Export. |
@@ -87,7 +89,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 6. M1 — Common
 **Purpose**: Device identification and metadata.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **Mn** | 4 | 40004 | **I, V** | **Manufacturer**: "FranklinWH Technologies Co., Ltd". |
 | **Md** | 20 | 40020 | **I, V** | **Model**: "aGate X". |
@@ -100,7 +102,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 ## 7. M715 — DER Lifecycle
 **Purpose**: Safety heartbeats and control authorization.
 
-| Point | Franklin Addr (Base 1) | SunSpec Addr (Base 40001) | Status | Description |
+| Point | PDU address | PDU + 40000 (map at 40000; not the aGate) | Status | Description |
 | :--- | :---: | :---: | :---: | :--- |
 | **LocRemCtl** | 1089 | 41089 | **I, V** | **Control Status**: 0=Remote, 1=Local. *Note: FranklinWH is always Local(1).* |
 | **ControllerHb**| 1092 | 41092 | **I, U** | **Heartbeat**: Watchdog counter. *Note: Accepted but ignored by aGate.* |

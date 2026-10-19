@@ -8,7 +8,9 @@ This document preserves the complete, unedited output of the SunSpec device scan
 
 ---
 
-## 1. Standard Addressing Scan (Base 40001)
+## 1. Scan with addresses printed as PDU + 40000
+
+> **Address notation:** this section's addresses are the reader tool's display, **PDU address + 40000** (e.g. Model 1 ID at `40002` = PDU 2, ControllerHb at `41092` = PDU 1092). They are not the addresses to send: the aGate's SunSpec map starts at PDU 0, and PDU 40000+ returns exception 2. They are also not Modicon 4xxxx references (which would be PDU + 40001). See QUIRKS, Register Addressing.
 
 **Command**:  
 `python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 -dvalues --vals`
@@ -412,7 +414,9 @@ Addr   Name                 Label                          Value  Units    F   R
 
 ---
 
-## 2. Native Addressing Scan (Base 1)
+## 2. Scan with addresses printed as PDU addresses
+
+> **Address notation:** this section's addresses are **PDU addresses** (0-based, as sent on the wire, and as listed in the FranklinWH PICS): Model 1 ID at `2`, ControllerHb at `1092`. The reader was run with `-b 1`; the printed numbers are PDU addresses regardless.
 
 **Command**:  
 `python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 -b 1 -dvalues --vals`

@@ -240,7 +240,7 @@ resp = sock.recv(256)
 
 ### 5.9 M715 Address Space
 
-M715 registers are **only accessible at base-1 addresses** via raw TCP. Base-40000 addresses (41087+) return `ILLEGAL_DATA_ADDRESS`.
+M715 registers are read and written at their **PDU addresses** (1087–1095, as in the FranklinWH PICS). Offsetting by 40000 (PDU 41087+) returns exception 2 (`ILLEGAL_DATA_ADDRESS`). The aGate's SunSpec map starts at PDU 0; see QUIRKS, Register Addressing.
 
 ---
 
