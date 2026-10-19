@@ -303,19 +303,4 @@ Prefer `read_native_mode()` and `read_solar_status()`, which already do this and
 
 ## 9. Modbus vs the FranklinWH cloud API
 
-For the cloud API, see the [franklinwh-cloud API Cookbook](https://david2069.github.io/franklinwh-cloud/API_COOKBOOK/). Cloud values are kW and kWh; Modbus values are W and Wh.
-
-| Metric | Cloud (`stats.…`) | Modbus (this library) | Notes |
-|---|---|---|---|
-| Solar power | `current.solar_production` (`p_sun`) | `read_solar_status()['total_solar_w']` | |
-| Battery power | `current.battery_use` (`p_fhp`, − = charging) | `read_battery_status()['battery_power_w']` (− = charging) | Modbus is the DC side |
-| Grid power | `current.grid_use` (`p_uti`, + = import) | `read_grid_status()['grid_power_w']` (+ = import) | |
-| Home load | `current.home_load` (`p_load`) | `read_solar_status()['extension']['home_load_ext']` | |
-| Battery SoC | `current.battery_soc` (`soc`) | `read_battery_status()['soc']` | |
-| Operating mode | `current.work_mode_desc` | `read_native_mode()['mode_name']` | Compare by name |
-| Run status | `current.run_status_desc` (`run_status`) | Inferred: `battery_state`, plus `read_control_status()['wset_enabled']` for remote dispatch | Not the same field |
-| Grid connection | `current.grid_connection_state` (4 states) | `read_grid_status()['connection_state']` (Connected/Disconnected/Fault) | Modbus has no outage or simulated-off-grid state |
-| Daily energy totals | `totals.*` (kWh, reset at local midnight) | Lifetime only: `grid_import_wh`, `grid_export_wh`; battery via §3.3 | No solar, home or generator energy over Modbus |
-| Generator, smart circuits, V2L | `generator_production`, `switch_*_load`, `v2l_use` | — | Cloud only |
-
-Modbus-only: SoH, capacity, per-battery detail, AC electrical detail, temperatures, remote-control state, and the `partial`/`error` read-quality flags.
+See **[Modbus TCP vs Cloud API — Metrics Comparison](MODBUS_CLOUD_COMPARISON.md)** for a field-by-field map, with units, signs, grid states, energy and evidence labels. For the cloud side, see the [franklinwh-cloud API Cookbook](https://david2069.github.io/franklinwh-cloud/API_COOKBOOK/).
