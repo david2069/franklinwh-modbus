@@ -120,8 +120,8 @@ Labels are shared with the bridge repos (`sev:*`, `nature:*` and the state label
 
 ### 4.3 Owner Decisions
 
-Questions for the owner go in the pinned issue **#50 — "Owner decisions needed (running list)"**, never as question lists in chat or pop-ups:
+Questions for the owner go in the pinned issue **#68 — "Owner decisions needed (running list)"** (it replaced #50, deleted 2026-10-19), never as question lists in chat or pop-ups:
 
 - One numbered checklist item per question (`- [ ] **N.** …`), with context and the agent's recommendation. Numbers are never reused.
-- In chat, say only "added as #50 item N".
+- In chat, say only "added as #68 item N".
 - The owner answers in a comment (`3: release it`) or ticks the box. The agent strikes the item through and records the answer and where it was acted on.

@@ -38,6 +38,7 @@ Evidence cited in a public file (docs, CHANGELOG, PR text, commit messages) must
 
  - Do not cite gitignored or local-only files (e.g. `tests/results/`, local planning docs). Quote the relevant output inline instead.
  - Do not publish personal or site data: device serial numbers, MAC addresses, LAN IP addresses, home-directory paths, account identifiers, or captures from the owner's site. Mask them (e.g. `<AGATE_IP>`, `<SERIAL>`, `~`) or use documentation ranges such as 192.0.2.x.
+ - **NEVER publish private correspondence.** Anything received privately (emails, messages, documents shared in confidence), from anyone, goes nowhere public or shared: not issues, comments, PRs, commits, releases, the pinned decisions issue, the docs site, or messages to other sessions. That includes the content, paraphrases of it, and any mention that it exists. Keep it in `private/` (gitignored) and in chat with the owner. Findings reach public text only as our own device measurements, and only with the owner's explicit OK.
  - Check a change for these before committing it; if any slip through, report it to the owner rather than quietly rewriting history.
 
 ## Test thoroughly
