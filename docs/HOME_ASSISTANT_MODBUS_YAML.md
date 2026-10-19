@@ -271,7 +271,10 @@ The core YAML above covers the main numbers. This section adds the rest of what 
 Paste the `sensors` entries **under the same `sensors:` list** as the core YAML, and the template entries **under the existing `template:` list**. Home Assistant allows only one `modbus:` hub entry per aGate and one top-level `template:` key.
 
 !!! note "Where these addresses come from"
-    Most come from the device scan (2026-05-14, V10R01B04D00). Two of them, battery voltage (1073) and battery temperature (1083), are in model 714's **per-port block**, which the scan doesn't print. They're **computed** from the SunSpec model 714 definition (model at 1042; port 1 starts at 1062). Verify them with step 4 before relying on them. With more than one aPower, each port's block follows the previous one, 25 registers on.
+    Most come from the device scan (2026-05-14, V10R01B04D00). Two of them, battery voltage (1073) and battery temperature (1083), are in model 714's **per-port block**, which the scan doesn't print. They're **computed** from the SunSpec model 714 definition (model at 1042; port 1 starts at 1062). The emulator test confirmed the addresses against the emulator's own SunSpec map. With more than one aPower, each port's block follows the previous one, 25 registers on.
+
+!!! warning "Battery voltage and temperature may read 0"
+    On firmware V10R01B04D00 these two may read **0**. The FranklinWH Gateway Emulator's default profile, which its maintainers base on a real scan of this firmware, has model 714's whole port block at 0. Our [QUIRKS](FRANKLINWH_SUNSPEC_QUIRKS.md) page lists `DCV` and `Tmp` as working. That conflict is unresolved, so check yours with step 4. If they read 0, Battery Current shows as unavailable, and you can leave the three out.
 
 ### Extra Modbus sensors
 
@@ -518,6 +521,7 @@ The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Kee
         unit_of_measurement: A
         device_class: current
         state_class: measurement
+        availability: "{{ states('sensor.agate_battery_voltage') | float(0) > 0 }}"
         state: >
           {% set w = states('sensor.agate_battery_power') | float(0) %}
           {% set v = states('sensor.agate_battery_voltage') | float(0) %}
@@ -536,7 +540,7 @@ The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Kee
           {% for i in range(names | length) %}
             {% if a | bitwise_and(2 ** i) %}{% set ns.on = ns.on + [names[i]] %}{% endif %}
           {% endfor %}
-          {{ ns.on | join(', ') if ns.on else 'None' }}
+          {{ ns.on | join(', ') if ns.on else 'No alarms' }}
 
   - binary_sensor:
       - name: aGate PV Clipped
@@ -552,8 +556,14 @@ The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Kee
 | Grid Status / Grid Connected | `ConnSt` + `DERMode` | On grid, Backup (off-grid), Grid disconnected (core YAML) |
 | PV Clipped | M701 `DERMode` bit 2 | Solar is being curtailed, typically off-grid; not yet observed |
 | Operating Mode | Extension 15507 | **Provisional names (#75):** 1 Emergency Backup, 2 Self-Consumption, 3 TOU, 4 Manual |
-| Battery Current | Power ÷ voltage | M714 `DCA` isn't populated on the aGate, so current is worked out as the library does |
-| Active Alarms | M701 `Alrm` | Names of the set bits, from SunSpec model 701 |
+| Battery Current | Power ÷ voltage | M714 `DCA` isn't populated on the aGate, so current is worked out as the library does. Unavailable while the voltage reads 0 |
+| Active Alarms | M701 `Alrm` | Names of the set bits, from SunSpec model 701, or "No alarms". A template result of `None` would show as unknown in Home Assistant |
+
+Tested 2026-10-20 against the gateway emulator: all 34 Modbus sensors and 9 templates loaded with no errors. Switching the emulator off-grid turned Grid Status to "Backup (off-grid)", Grid Connected to "Disconnected" and Grid Mode to "Grid Forming".
+
+| On grid | Off grid (emulator) |
+|---|---|
+| ![On grid](images/ha-modbus-yaml/09-core-card-grid-status.png){ width="380" } | ![Off grid: Backup (off-grid), Disconnected](images/ha-modbus-yaml/11a-off-grid-core-card.png){ width="380" } |
 
 ### TUI panel → Home Assistant entities
 
@@ -579,6 +589,8 @@ Check the configuration first (**Developer tools → YAML → Check configuratio
 ![Check configuration passes](images/ha-modbus-yaml/02-check-configuration.png){ width="600" }
 
  Then open **Settings → Devices & services → Entities** and search for `aGate`. All 16 Modbus sensors and the 2 template sensors should have values within a minute.
+
+![The aGate entities: Modbus sensors and templates](images/ha-modbus-yaml/03-entities-agate.png){ width="600" }
 
 | Symptom | Likely cause |
 |---|---|
