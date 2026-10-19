@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
 
 ### Added
+- **Modbus Client Libraries** (`docs/MODBUS_CLIENT_LIBRARIES.md`), every claim sourced. It covers:
+  - this library's dependencies;
+  - the Python Modbus client libraries, with PyPI facts;
+  - the pros and cons of raw register reads;
+  - worked pysunspec2 examples;
+  - the Open Home Foundation's modbus-connection, its pros, cons and boundary;
+  - whether a FranklinWH-specific library is needed.
+
+### Added
 - **FranklinWH Extension Registers** page (`docs/FRANKLINWH_MODBUS_EXTENSIONS.md`): one table of every extension register (15000–15043, 15500–15513, 16000–16002), with access, type and unit, meaning, library accessor and evidence, plus how to read and write them. QUIRKS and the cookbook now point to it instead of keeping their own copies. The Extensions Manifest is marked as raw scan evidence, with its correlation guesses flagged as speculative.
 - **API Cookbook** (`docs/API_COOKBOOK.md`): worked examples for connecting, a full status snapshot, every TUI panel and key mapped to its API call, each CLI command with its Python equivalent, battery control, virtual modes, alarms, the FranklinWH extension registers (what they are, how to read and write them, quirks), and a link to the cloud comparison.
 - **Modbus vs Cloud API comparison** (`docs/MODBUS_CLOUD_COMPARISON.md`): a field-by-field map of the Modbus client and the FranklinWH cloud API, covering units, signs, the 3 vs 4 grid states, energy and evidence labels. It's kept in step with franklinwh-cloud's own copy.

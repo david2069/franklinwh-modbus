@@ -65,6 +65,7 @@ nav:
     - Modbus vs Cloud API: MODBUS_CLOUD_COMPARISON.md
     - Modbus Protocol Guide: FRANKLINWH_MODBUS_GUIDE.md
     - What is Modbus TCP?: WHAT_IS_MODBUS_TCP.md
+    - Modbus Client Libraries: MODBUS_CLIENT_LIBRARIES.md
     - Architecture Overview: ARCHITECTURE.md
   - Command Line Tools:
     - CLI Command Reference: CLI_COMMAND_REFERENCE.md
