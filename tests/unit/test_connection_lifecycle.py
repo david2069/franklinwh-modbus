@@ -88,6 +88,16 @@ class TestIsConnected:
         ctrl.dev = AGateLikeDevice()
         assert ctrl.is_connected() is True
 
+    def test_true_when_requested_base_differs_from_the_scanned_one(self):
+        # The CLI passes base_address=40000; sunspec2's scan finds "SunS" at
+        # PDU 0 on the aGate and records it in dev.base_addr.
+        with patch('franklinwh_modbus.controller.SUNSPEC_AVAILABLE', True):
+            c = FranklinWHController(ip_address='127.0.0.1', base_address=40000)
+        dev = AGateLikeDevice()
+        dev.base_addr = 0
+        c.dev = dev
+        assert c.is_connected() is True
+
     def test_false_when_the_read_fails(self, ctrl):
         dev = AGateLikeDevice()
         dev.read = MagicMock(side_effect=OSError('broken pipe'))

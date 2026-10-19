@@ -402,14 +402,18 @@ class FranklinWHController:
     def is_connected(self) -> bool:
         """Check if connection is alive by reading the SunSpec marker.
         
-        Reads the 2-register "SunS" marker at base_address (PDU 0 on the
-        aGate). It used to read PDU 40071, which the aGate rejects with
-        exception 2, so it always returned False (#71).
+        Reads the 2-register "SunS" marker where the scan found it
+        (sunspec2 records it in dev.base_addr: PDU 0 on the aGate, whatever
+        base_address was requested). It used to read PDU 40071, which the
+        aGate rejects with exception 2, so it always returned False (#71).
         """
         if self.dev is None:
             return False
+        addr = getattr(self.dev, 'base_addr', None)
+        if addr is None:
+            addr = self.base_address
         try:
-            return self.dev.read(self.base_address, 2) == b'SunS'
+            return self.dev.read(addr, 2) == b'SunS'
         except Exception:
             return False
     
