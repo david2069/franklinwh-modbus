@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **HA Modbus YAML guide: "everything the TUI shows" (§2b).** It adds 18 optional sensors: battery SoH, energy available and rating, voltage and temperature; AC voltage, current, frequency, PF, VA and VAR; ambient and cabinet temperature; solar proximal and remote 1/2; model and firmware. It adds **description templates** for inverter state, battery state (Charging / Discharging / Idle), grid mode (Grid Forming / Grid Following), operating mode (provisional, #75), battery current, active alarm names and PV clipped. Also a TUI panel → entity map and a TUI-style card. The battery voltage and temperature addresses are computed from SunSpec model 714 and marked to verify.
+
 ### Added
 - **Home Assistant: Monitoring with Modbus YAML** (`docs/HOME_ASSISTANT_MODBUS_YAML.md`): a monitor-only proof of concept using Home Assistant's built-in Modbus integration. It covers 16 sensors (SoC, battery, grid, solar, home, reserve, mode, lifetime grid, battery and solar energy, and M701 grid connection, inverter state, DER mode and alarm bits), plus template sensors for **grid status** (on grid / backup (off-grid) / disconnected) and **grid connected**, Energy dashboard mapping, a built-in-cards dashboard, a scale-factor check, verification against the CLI, troubleshooting, and pros and cons. Tested against the gateway emulator in HA 2026.10.1, with screenshots; not yet tested against a real aGate.
 

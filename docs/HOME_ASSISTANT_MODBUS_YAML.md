@@ -264,6 +264,314 @@ template:
 
 ---
 
+## 2b. Optional: everything the TUI shows
+
+The core YAML above covers the main numbers. This section adds the rest of what the [TUI monitor](API_COOKBOOK.md#3-the-tui-monitor-as-a-showcase) displays, plus **description templates** that turn codes into words: inverter state, battery state (charging, discharging), grid mode (grid forming, grid following), operating mode and active alarms.
+
+Paste the `sensors` entries **under the same `sensors:` list** as the core YAML, and the template entries **under the existing `template:` list**. Home Assistant allows only one `modbus:` hub entry per aGate and one top-level `template:` key.
+
+!!! note "Where these addresses come from"
+    Most come from the device scan (2026-05-14, V10R01B04D00). Two of them, battery voltage (1073) and battery temperature (1083), are in model 714's **per-port block**, which the scan doesn't print. They're **computed** from the SunSpec model 714 definition (model at 1042; port 1 starts at 1062). Verify them with step 4 before relying on them. With more than one aPower, each port's block follows the previous one, 25 registers on.
+
+### Extra Modbus sensors
+
+```yaml
+      # --- Battery (TUI: DC Power panel) --------------------------------
+      - name: aGate Battery SoH
+        unique_id: agate_battery_soh
+        device_address: 2
+        address: 1038             # M713 SoH, Pct_SF = -1
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        nan_value: "0xFFFF"
+        unit_of_measurement: "%"
+        state_class: measurement
+        scan_interval: 3600
+
+      - name: aGate Battery Energy Available
+        unique_id: agate_battery_energy_available
+        device_address: 2
+        address: 1036             # M713 WHAvail, WH_SF = 0
+        data_type: uint16
+        nan_value: "0xFFFF"
+        unit_of_measurement: Wh
+        device_class: energy_storage
+        state_class: measurement
+        scan_interval: 60
+
+      - name: aGate Battery Energy Rating
+        unique_id: agate_battery_energy_rating
+        device_address: 2
+        address: 1035             # M713 WHRtg, WH_SF = 0
+        data_type: uint16
+        nan_value: "0xFFFF"
+        unit_of_measurement: Wh
+        device_class: energy_storage
+        scan_interval: 3600
+
+      - name: aGate Battery Voltage
+        unique_id: agate_battery_voltage
+        device_address: 2
+        address: 1073             # M714 port 1 DCV, DCV_SF = 0 (computed address)
+        data_type: uint16
+        nan_value: "0xFFFF"
+        unit_of_measurement: V
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate Battery Temperature
+        unique_id: agate_battery_temperature
+        device_address: 2
+        address: 1083             # M714 port 1 Tmp, Tmp_SF = 0 (computed address)
+        data_type: int16
+        nan_value: "0x8000"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 60
+
+      # --- AC side (TUI: AC Power panel) --------------------------------
+      - name: aGate AC Voltage
+        unique_id: agate_ac_voltage
+        device_address: 2
+        address: 86               # M701 LNV, V_SF = -1
+        data_type: uint16
+        scale: 0.1
+        precision: 1
+        nan_value: "0xFFFF"
+        unit_of_measurement: V
+        device_class: voltage
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate AC Current
+        unique_id: agate_ac_current
+        device_address: 2
+        address: 84               # M701 A, A_SF = -1
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        nan_value: "0x8000"
+        unit_of_measurement: A
+        device_class: current
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate AC Frequency
+        unique_id: agate_ac_frequency
+        device_address: 2
+        address: 87               # M701 Hz (uint32), Hz_SF = -3
+        data_type: uint32
+        scale: 0.001
+        precision: 2
+        nan_value: "0xFFFFFFFF"
+        unit_of_measurement: Hz
+        device_class: frequency
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate Power Factor
+        unique_id: agate_power_factor
+        device_address: 2
+        address: 83               # M701 PF, PF_SF = -3
+        data_type: int16
+        scale: 0.001
+        precision: 3
+        nan_value: "0x8000"
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate Apparent Power
+        unique_id: agate_apparent_power
+        device_address: 2
+        address: 81               # M701 VA, VA_SF = 0
+        data_type: int16
+        nan_value: "0x8000"
+        unit_of_measurement: VA
+        device_class: apparent_power
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate Reactive Power
+        unique_id: agate_reactive_power
+        device_address: 2
+        address: 82               # M701 Var, Var_SF = 0
+        data_type: int16
+        nan_value: "0x8000"
+        unit_of_measurement: var
+        device_class: reactive_power
+        state_class: measurement
+        scan_interval: 30
+
+      - name: aGate Ambient Temperature
+        unique_id: agate_ambient_temperature
+        device_address: 2
+        address: 105              # M701 TmpAmb, Tmp_SF = -1
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        nan_value: "0x8000"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 60
+
+      - name: aGate Cabinet Temperature
+        unique_id: agate_cabinet_temperature
+        device_address: 2
+        address: 106              # M701 TmpCab, Tmp_SF = -1
+        data_type: int16
+        scale: 0.1
+        precision: 1
+        nan_value: "0x8000"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        scan_interval: 60
+
+      # --- Solar inputs (TUI: Solar AC Inputs panel) --------------------
+      - name: aGate Solar Proximal
+        unique_id: agate_solar_proximal
+        device_address: 2
+        address: 15503            # PV on the aGate's own inputs
+        data_type: uint16
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        scan_interval: 10
+
+      - name: aGate Solar Remote 1
+        unique_id: agate_solar_remote_1
+        device_address: 2
+        address: 15504            # aPbox / aHub remote PV 1
+        data_type: uint16
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        scan_interval: 10
+
+      - name: aGate Solar Remote 2
+        unique_id: agate_solar_remote_2
+        device_address: 2
+        address: 15505            # aPbox / aHub remote PV 2
+        data_type: uint16
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        scan_interval: 10
+
+      # --- Device info (TUI: Device Info panel) -------------------------
+      - name: aGate Model
+        unique_id: agate_model
+        device_address: 2
+        address: 20               # M1 Md, 16 registers
+        data_type: string
+        count: 16
+        scan_interval: 86400
+
+      - name: aGate Firmware
+        unique_id: agate_firmware
+        device_address: 2
+        address: 44               # M1 Vr, 8 registers
+        data_type: string
+        count: 8
+        scan_interval: 86400
+```
+
+The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Keep it out of screenshots and shared configs.
+
+### Description templates
+
+```yaml
+  - sensor:
+      - name: aGate Inverter State
+        unique_id: agate_inverter_state
+        state: >
+          {% set names = {0: 'Off', 1: 'Sleeping', 2: 'Starting', 3: 'Running',
+                          4: 'Throttled', 5: 'Shutting down', 6: 'Fault', 7: 'Standby'} %}
+          {% set v = states('sensor.agate_inverter_state_raw') | int(-1) %}
+          {{ names.get(v, 'Unknown (' ~ v ~ ')') }}
+
+      - name: aGate Battery State
+        unique_id: agate_battery_state
+        state: >
+          {% set w = states('sensor.agate_battery_power') | float(0) %}
+          {% if w < -50 %}Charging{% elif w > 50 %}Discharging{% else %}Idle{% endif %}
+
+      - name: aGate Grid Mode
+        unique_id: agate_grid_mode
+        state: >
+          {% set m = states('sensor.agate_der_mode_raw') | int(0) %}
+          {% if m | bitwise_and(2) %}Grid Forming{% elif m | bitwise_and(1) %}Grid Following{% else %}Unknown{% endif %}
+
+      - name: aGate Operating Mode
+        unique_id: agate_operating_mode
+        state: >
+          {% set names = {1: 'Emergency Backup', 2: 'Self-Consumption', 3: 'TOU', 4: 'Manual'} %}
+          {% set v = states('sensor.agate_operating_mode_raw') | int(-1) %}
+          {{ names.get(v, 'Unknown (' ~ v ~ ')') }}
+
+      - name: aGate Battery Current
+        unique_id: agate_battery_current
+        unit_of_measurement: A
+        device_class: current
+        state_class: measurement
+        state: >
+          {% set w = states('sensor.agate_battery_power') | float(0) %}
+          {% set v = states('sensor.agate_battery_voltage') | float(0) %}
+          {{ (w / v) | round(1) if v > 0 else 0 }}
+
+      - name: aGate Active Alarms
+        unique_id: agate_active_alarms
+        state: >
+          {% set names = ['GROUND_FAULT', 'DC_OVER_VOLT', 'AC_DISCONNECT', 'DC_DISCONNECT',
+                          'GRID_DISCONNECT', 'CABINET_OPEN', 'MANUAL_SHUTDOWN', 'OVER_TEMP',
+                          'OVER_FREQUENCY', 'UNDER_FREQUENCY', 'AC_OVER_VOLT', 'AC_UNDER_VOLT',
+                          'BLOWN_STRING_FUSE', 'UNDER_TEMP', 'MEMORY_LOSS', 'HW_TEST_FAILURE',
+                          'MANUFACTURER_ALRM'] %}
+          {% set a = states('sensor.agate_alarm_bits_raw') | int(0) %}
+          {% set ns = namespace(on=[]) %}
+          {% for i in range(names | length) %}
+            {% if a | bitwise_and(2 ** i) %}{% set ns.on = ns.on + [names[i]] %}{% endif %}
+          {% endfor %}
+          {{ ns.on | join(', ') if ns.on else 'None' }}
+
+  - binary_sensor:
+      - name: aGate PV Clipped
+        unique_id: agate_pv_clipped
+        state: "{{ states('sensor.agate_der_mode_raw') | int(0) | bitwise_and(4) > 0 }}"
+```
+
+| Template | Built from | Meaning |
+|---|---|---|
+| Inverter State | M701 `InvSt` | SunSpec names: Off, Sleeping, Starting, Running, Throttled, Shutting down, Fault, Standby |
+| Battery State | Battery power | Charging below −50 W, Discharging above +50 W, else Idle: the same 50 W deadband as the library. M713 `Sta` isn't populated on the aGate, so it can't be used |
+| Grid Mode | M701 `DERMode` | Grid Forming (bit 1: the aPower makes its own AC, i.e. off-grid) or Grid Following (bit 0: on grid) |
+| Grid Status / Grid Connected | `ConnSt` + `DERMode` | On grid, Backup (off-grid), Grid disconnected (core YAML) |
+| PV Clipped | M701 `DERMode` bit 2 | Solar is being curtailed, typically off-grid; not yet observed |
+| Operating Mode | Extension 15507 | **Provisional names (#75):** 1 Emergency Backup, 2 Self-Consumption, 3 TOU, 4 Manual |
+| Battery Current | Power ÷ voltage | M714 `DCA` isn't populated on the aGate, so current is worked out as the library does |
+| Active Alarms | M701 `Alrm` | Names of the set bits, from SunSpec model 701 |
+
+### TUI panel → Home Assistant entities
+
+| TUI panel | Entities |
+|---|---|
+| Power Flow | Solar Power, Battery Power, Grid Power, Home Load, Battery State |
+| Battery SoC | Battery SoC, Self-Consumption Reserve |
+| DC Power (Battery) | Battery Power, Battery Current, Battery Voltage, Battery Temperature, Battery SoH, Battery Energy Available / Rating |
+| AC Power | AC Voltage, AC Current, AC Frequency, Power Factor, Apparent Power, Reactive Power, Grid Mode |
+| Solar AC Inputs | Solar Power, Solar Proximal, Solar Remote 1 and 2 |
+| Lifetime Energy | Grid Import / Export, Battery Charged / Discharged, Solar Energy |
+| Device Info | Model, Firmware, Operating Mode, Inverter State |
+| Alarms & Status | Active Alarms, Grid Status, Grid Connected, PV Clipped |
+
+More sensors mean more Modbus requests per cycle. The long `scan_interval` values on slow-changing points (SoH, ratings, device info) keep the load down.
+
+---
+
 ## 3. Restart and check
 
 Check the configuration first (**Developer tools → YAML → Check configuration**), then restart Home Assistant (**Settings → System → Restart**).
@@ -363,6 +671,54 @@ cards:
 Entity IDs follow the `name:` values; check yours in the entity list if they differ.
 
 ![The dashboard card (emulator values)](images/ha-modbus-yaml/05-dashboard-card.png){ width="500" }
+
+**Optional, if you added section 2b:** a TUI-style card with the descriptions.
+
+```yaml
+type: grid
+columns: 2
+square: false
+cards:
+  - type: entities
+    title: Status
+    entities:
+      - entity: sensor.agate_operating_mode
+        name: Operating mode (provisional)
+      - entity: sensor.agate_battery_state
+        name: Battery
+      - entity: sensor.agate_inverter_state
+        name: Inverter
+      - entity: sensor.agate_grid_mode
+        name: Grid mode
+      - entity: sensor.agate_grid_status
+        name: Grid status
+      - entity: sensor.agate_active_alarms
+        name: Alarms
+  - type: entities
+    title: Battery
+    entities:
+      - sensor.agate_battery_soc
+      - sensor.agate_battery_soh
+      - sensor.agate_battery_voltage
+      - sensor.agate_battery_current
+      - sensor.agate_battery_temperature
+      - sensor.agate_battery_energy_available
+  - type: entities
+    title: AC
+    entities:
+      - sensor.agate_ac_voltage
+      - sensor.agate_ac_current
+      - sensor.agate_ac_frequency
+      - sensor.agate_power_factor
+      - sensor.agate_cabinet_temperature
+  - type: entities
+    title: Solar
+    entities:
+      - sensor.agate_solar_power
+      - sensor.agate_solar_proximal
+      - sensor.agate_solar_remote_1
+      - sensor.agate_solar_remote_2
+```
 
 ---
 
