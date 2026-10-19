@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **"What is Modbus TCP?" rewritten** with sourced background:
+  - Modbus origins (Modicon 1979, Modbus Organization 2004, TCP/IP 1999) and its specifications;
+  - the SunSpec Alliance, the "SunS" model chain, the 700-series DER models and IEEE 1547-2018;
+  - SunSpec publications;
+  - what a PICS is and how certification works, plus FranklinWH's PICS;
+  - where the FranklinWH extension registers sit in that context: outside the SunSpec chain, not vendor models, and not covered by certification.
+
+  It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
+
 ### Added
 - **FranklinWH Extension Registers** page (`docs/FRANKLINWH_MODBUS_EXTENSIONS.md`): one table of every extension register (15000–15043, 15500–15513, 16000–16002), with access, type and unit, meaning, library accessor and evidence, plus how to read and write them. QUIRKS and the cookbook now point to it instead of keeping their own copies. The Extensions Manifest is marked as raw scan evidence, with its correlation guesses flagged as speculative.
 - **API Cookbook** (`docs/API_COOKBOOK.md`): worked examples for connecting, a full status snapshot, every TUI panel and key mapped to its API call, each CLI command with its Python equivalent, battery control, virtual modes, alarms, the FranklinWH extension registers (what they are, how to read and write them, quirks), and a link to the cloud comparison.
