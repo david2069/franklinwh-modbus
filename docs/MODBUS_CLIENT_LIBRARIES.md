@@ -158,9 +158,34 @@ ext = await unit.read_holding_registers(15507, 3)      # FranklinWH extension re
 
 The modbus-connection author's survey of about 60 Modbus libraries ([R8](#references)) rates this library **"Friction"**: "auto-reconnect, inter-write sleeps + watchdog + read-back-verify". It rates pysunspec2 **"Blocked"**: "own transport + richer dynamic model". It places heartbeats, keepalives and read-back verification with the device library: they "are owner responsibilities the design accommodates". In other words, modbus-connection replaces the **transport** layer, not the FranklinWH-specific behaviour.
 
-### Direction
+### Decision and next steps
 
-The owner set the direction on 2026-10-12, as recorded in the evaluation in PR #32, and restated it on 2026-10-19. The **new FranklinWH Modbus library (API 2.0)** will be built on modbus-connection as its transport, using this library (1.x) as its model. franklinwh-modbus 1.x is not rewritten; its defects are fixed in place.
+**Decision (owner, 2026-10-12; restated 2026-10-19).** First recorded in the evaluation in PR #32, which this section replaces.
+
+- **FranklinWH Modbus API 2.0** will be built on **modbus-connection** as its transport, using this library (1.x) as its model.
+- **FranklinWH Modbus Bridge 2.0** will use API 2.0 and be the **single owner of the aGate's Modbus connection**, shared by the other bridges. modbus-connection serialises requests only within one process, so sharing the aGate across programs is the bridge's job.
+- **The Energipays bridge** is likely to be forked as well, onto API 2.0.
+- **franklinwh-modbus 1.x is not rewritten.** Its connection and threading defects (#53, #54, #70, #71) are fixed in place.
+
+**Still to decide:**
+- the 2.0 package's name and repository;
+- the timing;
+- whether 2.0 keeps a synchronous interface for the CLI and tools;
+- whether the Energipays fork goes ahead.
+
+**The bridge's view (2026-10-12, as recorded in PR #32; a claim from that repo, not checked here).**
+- **Use modbus-connection inside the FranklinWH library, not as a bridge-only switch.** Otherwise the control logic (the M704 sequence, verification, watchdog, orphan release and quirks) would move into the bridge, or the bridge would go back to two sockets.
+- **Not before evidence:**
+  1. a measurement baseline;
+  2. then a read-only trial poller compared against it (connection closes, timeouts, latency);
+  3. only then adoption.
+
+**Spike (not scheduled; read-only, against the Gateway Emulator, not the live aGate):**
+1. Read models 701, 713 and 714 with modbus-connection's `scan()` and generated classes.
+2. Compare the decoded values (enums, scale factors) with `read_grid_status()` and `read_battery_status()`.
+3. Compare the number of TCP connections opened per status pass.
+
+No writes. Any control experiment needs the owner's sign-off and a coordinated window.
 
 ---
 
