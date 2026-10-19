@@ -61,6 +61,7 @@ nav:
   - Getting Started:
     - Setup Guide: GETTING_STARTED.md
     - Python Integration: HOWTO_PYTHON.md
+    - Home Assistant (Modbus YAML): HOME_ASSISTANT_MODBUS_YAML.md
     - API Cookbook: API_COOKBOOK.md
     - Modbus vs Cloud API: MODBUS_CLOUD_COMPARISON.md
     - Modbus Protocol Guide: FRANKLINWH_MODBUS_GUIDE.md
