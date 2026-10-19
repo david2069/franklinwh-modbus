@@ -136,25 +136,14 @@ elif der_mode_raw & (1 << 0):
 
 ---
 
-## Extension Registers (15500-15513) — Documented
+## Extension Registers
 
-FranklinWH provides proprietary extension registers beyond standard SunSpec:
+The FranklinWH extension registers (15000–15043, 15500–15513, 16000–16002), with access, units, library accessors and evidence, are listed in one place: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**.
 
-| Address | Register | Status | Notes |
-|---------|----------|--------|-------|
-| 15500-15501 | PV Installed flags | ✅ Working | Not actively used |
-| 15502-15505 | Solar breakdown | ✅ Working | PV Total, Proximal, Remote 1/2 (W) |
-| 15506 | Home Load | ✅ Working | Active load in W |
-| 15507 | Operating Mode | ✅ Working | 0=Emergency, 1=TOU, 2=Self-Consumption, 3=Manual |
-| 15508 | Self-Consumption Reserve | ✅ Working | Reserve SOC % |
-| 15509 | TOU Reserve | ⚠️ **Known defect** | Always mirrors 15508 — see below |
-| 15510-15513 | PV Energy | ✅ Working | Total/Proximal Wh (uint32 high:low pairs) |
-
-> **Note:** Write access to 15507-15509 requires **SPAN Modbus** unlock in FranklinWH installer app.
-
-### SOC Reserve Registers — Known Defect
-
-Registers 15508 (Self-Consumption Reserve) and 15509 (TOU Reserve) **always return the same value**, even when set differently in the FranklinWH app. This is a known firmware defect documented in the SPAN tab of the official SunSpec PICS file.
+Quirks covered there:
+- 15509 (TOU reserve) reads the same value as 15508; confirmed on V10R01B04D00, 2026-10-18 (#63).
+- The 15507 operating-mode values are under review (#75).
+- 16000 gives the home load at ~1 W resolution (15506 is in ~100 W steps).
 
 ### Official SunSpec PICS Reference
 
@@ -168,27 +157,13 @@ This XLSX documents:
 !!! warning
     **We do not fully trust this document.** Our live testing has found discrepancies between what the PICS document claims and actual aGate behavior. Always verify against the live device. Use the PICS as a starting point, not ground truth.
 
-See: `docs/VERIFICATION_BASELINE.md` for full register map and cross-verification.
+Register-by-register PICS findings: [PICS Conformance](PICS_CONFORMANCE_CROSS_REFERENCE.md).
 
 ---
 
-## Extension Registers (15000-15039) — Undocumented
+## Extension Registers (15000–15043) — Undocumented
 
-Discovered by accident (typo of 15500). Proprietary registers — likely aPower battery telemetry mirrors. See `docs/VERIFICATION_BASELINE.md` Section 4 for full dump.
-
-Notable high-confidence matches:
-- `15020` = 13600 → exact match to `713.WHRtg` (battery energy rating)
-- `15036` = 961 → exact match to `713.SoH` raw (96.1%)
-- `15024` = ~50010 → grid frequency mirror (~50.0Hz)
-- `15025` = ~2420 → grid voltage mirror (~242.0V)
-
-**Write-probe (2026-03-08):** All 40 registers accept writes at protocol level but ALL are silently discarded. No sticky registers found. See `tests/results/2026-03-08_extension_write_probe.md`.
-
-**Unit ID scan:** All unit IDs (1-247 sampled) return the same aGate X device (DA=1). No hidden sub-devices.
-
-> **Caution:** These are undocumented and may change with firmware updates.
-
-> **Future TODO:** Overnight brute-force scan of address ranges 15040-15499 and 16000-20000+ for additional populated register ranges. The 15000 range was found by accident — there may be more. Scan ~5000 addresses at 100ms each ≈ 8 minutes.
+Mirrors of SunSpec values (e.g. 15020 = M713 `WHRtg`). Writes are accepted at protocol level but silently discarded (write probe, 2026-03-08). The aGate answers on every unit ID with the same device. See [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md) and the raw scans in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md).
 
 ---
 
@@ -441,34 +416,7 @@ We use `unit_id=2` (FranklinWH default), but any UID works.
 
 ## Register 16000 — High-Resolution Home Load (Discovered 2026-03-15)
 
-**Discovered:** 2026-03-15 (accidental typo) · **Severity:** Beneficial · **Status:** IN USE
-
-An undocumented register block at 16000–16002 mirrors extension registers 15506–15509 but with **higher precision on the home load reading:**
-
-| Register | Value | Mirrors | Precision |
-|:--------:|:-----:|:-------:|:---------:|
-| **16000** | Home Load (W) | 15506 | **~1W** (vs ~100W quantized) |
-| 16001 | Self Reserve (%) | 15508 | Same |
-| 16002 | TOU Reserve (%) | 15509 | Same |
-
-### Correlation Evidence
-
-```
-    Time |  16000 (hires)  15506 (quantized)
------------+----------------------------------
-12:51:14 |    1004 W         1000 W
-12:51:21 |     929 W          900 W
-12:51:29 |     812 W          800 W
-12:51:34 |     835 W          800 W
-```
-
-Register 16000 varies continuously while 15506 snaps to ~100W steps. The wider scan (15900–16100) found **no other non-zero registers** — this is an isolated 3-register block.
-
-### Usage
-
-The library now reads register 16000 as the primary home load source, falling back to 15506 if the high-res read fails. See `_read_extension_solar()` in `controller.py`.
-
-**Risk:** This register is undocumented and could change with firmware updates. The fallback to 15506 mitigates this.
+16000 gives the home load at ~1 W resolution, while 15506 is in ~100 W steps. Measured 2026-03-15: 1004/1000, 929/900, 812/800 and 835/800 W (16000/15506). The library uses 16000 and falls back to 15506. It's undocumented, so firmware could change it. 16001 and 16002 are covered in [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md).
 
 ---
 

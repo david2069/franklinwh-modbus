@@ -1,5 +1,7 @@
 # FranklinWH Proprietary Extensions Manifest
 
+> **Raw scan evidence.** For the register list, meanings and how to use them, see **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**. This page keeps the raw scans that list is based on. The "Correlation" table below is **speculative**: matching a value to a SunSpec point is a guess, not a definition. Several guesses have since been overtaken (e.g. 16002 now looks like `BBBackupSoc`, #63; 15508/15509 are reserve %, not `712.NPt`).
+
 This document records the discovered proprietary Modbus registers outside the SunSpec 40001+ range. These include the so-called "SPAN Extensions" (15500+) and internal diagnostic registers (15000+).
 
 ---

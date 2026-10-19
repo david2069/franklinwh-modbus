@@ -257,19 +257,7 @@ Alongside the SunSpec models, FranklinWH exposes **proprietary holding registers
 
 ### 8.2 Map
 
-| PDU | Meaning | Read by | Notes |
-|---|---|---|---|
-| 15500–15501 | PV installed flags (proximal, remote) | `_read_extension_solar()` | |
-| 15502 | Total PV power (W) | `read_solar_status()['extension']['total_solar']` | Includes aPbox/aHub remote PV |
-| 15503–15505 | PV proximal, remote 1, remote 2 (W) | `...['pv_proximal']`, `['pv_remote1']`, `['pv_remote2']` | |
-| 15506 | Home load (W, ~100 W steps) | `...['home_load_ext_quantized']` | |
-| 15507 | Operating mode | `read_native_mode()['mode_raw']` and `['mode_name']` | ⚠️ Written by `set_native_mode()`. **Value mapping under review (#75)** |
-| 15508 | Self-consumption reserve (%) | `read_native_mode()['self_reserve_pct']` | ⚠️ Written by `set_self_consumption_reserve()` |
-| 15509 | TOU reserve (%) | `read_native_mode()['tou_reserve_pct']` | **Repeats 15508**, not the TOU reserve; confirmed on V10R01B04D00, 2026-10-18 (#63) |
-| 15510–15513 | PV energy (Wh, 32-bit pairs) | — | |
-| 16000 | Home load, ~1 W resolution | `...['home_load_ext']` | Undocumented |
-| 16001 | Mirrors 15508 | — | Undocumented |
-| 16002 | 20 on the reference site; matches the local API's `BBBackupSoc` | — | Undocumented, **unconfirmed** (#63) |
+The full register list, with access, units, library accessors and evidence, is on its own page: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**. In short: 15502–15506 solar and home load, 15507 mode, 15508–15509 reserves, 15510–15513 PV energy, and 16000 high-resolution home load.
 
 ### 8.3 Reading them yourself
 
