@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - worked pysunspec2 examples;
   - the Open Home Foundation's modbus-connection, its pros, cons and boundary;
   - whether a FranklinWH-specific library is needed.
+  - the API 2.0 decision record and the read-only spike plan, folded in from PR #32's evaluation, which this page supersedes.
 
 ### Added
 - **FranklinWH Extension Registers** page (`docs/FRANKLINWH_MODBUS_EXTENSIONS.md`): one table of every extension register (15000–15043, 15500–15513, 16000–16002), with access, type and unit, meaning, library accessor and evidence, plus how to read and write them. QUIRKS and the cookbook now point to it instead of keeping their own copies. The Extensions Manifest is marked as raw scan evidence, with its correlation guesses flagged as speculative.
