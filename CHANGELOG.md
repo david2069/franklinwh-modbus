@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Stopping a virtual mode releases control again.** `is_connected()` probed PDU 40071, which the aGate rejects (its SunSpec map starts at PDU 0), so it always returned False. `VirtualModeController.run_continuous()` cleanup then reconnected and never called `reset_control_state()`, which could leave remote control active (`WSetEna = 1`) after a mode stopped. `is_connected()` now reads the "SunS" marker at `base_address`, and cleanup always attempts the release, judging it by `reset_control_state()`'s own read-back. (#71)
+- **Disconnects close the Modbus session.** pysunspec2's `close()` does nothing on a TCP device, so `disconnect()`, `reconnect()` and a failed `connect()` left the old session open on an aGate that serves one client. They now call the device's `disconnect()`, and `connect()` closes any previous session first. `tools/modbus_sunspec2_reader.py` had the same no-op. (#70)
+
 ### Changed
 - **Docs: Modbus addressing uses modbus.org terms.** Every register address in the docs is now a Modbus **PDU address** (0-based, as sent on the wire, as in the FranklinWH PICS: ControllerHb is 1092). The "base-1" and "base-40000" labels, which wrongly called PDU addresses base-1, are gone. QUIRKS now separates what Modbus defines (PDU address, register number, holding registers, the Modicon 4xxxx reference) from what SunSpec adds (the "SunS" marker at PDU 0, 40000 or 50000). The aGate's map starts at PDU 0. Device snapshot sections and glossary columns say which notation they print. Dead links to the proprietary PICS spreadsheet, which is not distributed here, now cite it by name. (#43)
 

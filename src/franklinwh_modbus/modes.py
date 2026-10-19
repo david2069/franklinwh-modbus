@@ -726,10 +726,11 @@ class VirtualModeController:
                     else:
                         logger.error("Could not reconnect for cleanup - control may still be active!")
                 
-                if self.ctrl.is_connected():
-                    self.ctrl.reset_control_state()
+                # Always attempt the release and judge it by its own
+                # read-back, not by is_connected() (#71)
+                cleanup_ok = self.ctrl.reset_control_state()
+                if cleanup_ok:
                     logger.info("Control released (WSetEna=0)")
-                    cleanup_ok = True
             except Exception as e:
                 logger.error(f"Cleanup failed: {e}")
             

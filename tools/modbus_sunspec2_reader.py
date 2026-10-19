@@ -375,18 +375,18 @@ def read_sunspec_device(
                         "data": data_bytes
                     }
                     if not scan_models:
-                         modbus_client.close()
+                         modbus_client.disconnect()
                          return device_info, None
                 else:
                     if not scan_models:
-                        modbus_client.close()
+                        modbus_client.disconnect()
                         return None, "No data returned (None)"
             except Exception as e:
-                modbus_client.close()
+                modbus_client.disconnect()
                 return None, f"Raw read failed: {str(e)}"
 
         if not scan_models:
-            modbus_client.close()
+            modbus_client.disconnect()
             return device_info, None
 
         # keep both numeric and string keys
@@ -503,7 +503,7 @@ def read_sunspec_device(
                     model_info["points"] = get_model_points(model, device_base_address=base_address, verbose=verbose)   
                     device_info["models"][model_key] = model_info
                     continue
-        modbus_client.close()
+        modbus_client.disconnect()
         return device_info, None
 
     except Exception as e:
