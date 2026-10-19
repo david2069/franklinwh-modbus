@@ -6,7 +6,7 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
     - **Monitor only.** This guide reads registers and never writes. Don't add `modbus.write_register` automations against the aGate: there's no clamp, no release and no verification here. For battery control, use a FranklinWH integration built on this library.
     - **One Modbus client per aGate: stop or uninstall the others first.** Home Assistant's Modbus integration keeps its own TCP connection open to the aGate. Before adding this YAML, **stop or uninstall** any FranklinWH bridge add-on or integration, and anything else that talks to port 502: this library's CLI or TUI, or a tool that probes :502. Two clients cause dropped connections and "unavailable" sensors.
     - **Scale factors are fixed in the YAML.** SunSpec keeps scale factors in separate registers; the values below were read on firmware V10R01B04D00 on 2026-05-14. Check yours (step 1), and again after a firmware update.
-    - **Proof of concept, not yet run in Home Assistant.** The addresses and types come from a device scan and the HA Modbus documentation. Compare HA's values with the CLI (step 4) before relying on them.
+    - **Tested against the gateway emulator, not yet against a real aGate.** On 2026-10-20 the guide's first 12 sensors and the dashboard card worked in Home Assistant 2026.10.1 (HAOS VM) against the FranklinWH Gateway Emulator 0.1.0. The emulator proves the YAML works; its numbers aren't device values. Compare HA's values with the CLI (step 4) before relying on them.
 
 ---
 
@@ -23,6 +23,12 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
 | Operating mode (raw number) | 15507 | FranklinWH extension |
 | Grid import / export energy (Wh, lifetime) | 93 / 89 | SunSpec M701 `TotWhAbs` / `TotWhInj` |
 | Solar energy (Wh, lifetime) | 15510–15511 | FranklinWH extension, uint32, high word first |
+| Grid connection state (raw) | 75 | SunSpec M701 `ConnSt`: 0 = DISCONNECTED, 1 = CONNECTED |
+| Inverter state (raw) | 74 | SunSpec M701 `InvSt`: 0 OFF … 3 RUNNING … 6 FAULT, 7 STANDBY |
+| DER mode bits (raw) | 78–79 | SunSpec M701 `DERMode`: bit 0 GRID_FOLLOWING, bit 1 GRID_FORMING (off-grid), bit 2 PV_CLIPPED |
+| Alarm bits (raw) | 76–77 | SunSpec M701 `Alrm`: bit 4 GRID_DISCONNECT and others |
+| **Grid status** (derived) | — | Template: On grid / Backup (off-grid) / Grid disconnected |
+| **Grid connected** (derived) | — | Template binary sensor |
 | Battery charged / discharged energy (Wh, lifetime) | 1053 / 1049 | SunSpec M714 `DCWhAbs` / `DCWhInj` |
 
 Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Never add 40000 or 40001: the aGate answers those with exception 2. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
@@ -56,6 +62,8 @@ Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so th
 ## 2. The YAML
 
 Add this to `configuration.yaml`, or to a file you include from it. Replace `192.0.2.10` with your aGate's IP.
+
+![configuration.yaml with the modbus block (emulator host)](images/ha-modbus-yaml/01-configuration-yaml.png){ width="420" }
 
 ```yaml
 modbus:
@@ -190,21 +198,79 @@ modbus:
         address: 15507            # value mapping under review, see note
         data_type: uint16
         scan_interval: 300
+
+      # --- Grid connection status (SunSpec M701) ------------------------
+      - name: aGate Grid Connection Raw
+        unique_id: agate_grid_connection_raw
+        device_address: 2
+        address: 75               # M701 ConnSt: 0 DISCONNECTED, 1 CONNECTED
+        data_type: uint16
+        nan_value: "0xFFFF"
+        scan_interval: 10
+
+      - name: aGate Inverter State Raw
+        unique_id: agate_inverter_state_raw
+        device_address: 2
+        address: 74               # M701 InvSt
+        data_type: uint16
+        nan_value: "0xFFFF"
+        scan_interval: 30
+
+      - name: aGate DER Mode Raw
+        unique_id: agate_der_mode_raw
+        device_address: 2
+        address: 78               # M701 DERMode bitfield32: bit 1 = GRID_FORMING
+        data_type: uint32
+        nan_value: "0xFFFFFFFF"
+        scan_interval: 10
+
+      - name: aGate Alarm Bits Raw
+        unique_id: agate_alarm_bits_raw
+        device_address: 2
+        address: 76               # M701 Alrm bitfield32: bit 4 = GRID_DISCONNECT
+        data_type: uint32
+        nan_value: "0xFFFFFFFF"
+        scan_interval: 30
+
+# Readable grid status, derived from the raw sensors above
+template:
+  - sensor:
+      - name: aGate Grid Status
+        unique_id: agate_grid_status
+        state: >
+          {% set conn = states('sensor.agate_grid_connection_raw') | int(-1) %}
+          {% set mode = states('sensor.agate_der_mode_raw') | int(0) %}
+          {% if mode | bitwise_and(2) %}Backup (off-grid)
+          {% elif conn == 1 %}On grid
+          {% elif conn == 0 %}Grid disconnected
+          {% else %}Unknown{% endif %}
+  - binary_sensor:
+      - name: aGate Grid Connected
+        unique_id: agate_grid_connected
+        device_class: connectivity
+        state: >
+          {{ states('sensor.agate_grid_connection_raw') | int(-1) == 1
+             and not (states('sensor.agate_der_mode_raw') | int(0) | bitwise_and(2)) }}
 ```
 
 **Notes:**
 - **Unit ID.** `device_address: 2` is the FranklinWH default. The aGate answers on any unit ID ([QUIRKS](FRANKLINWH_SUNSPEC_QUIRKS.md)).
-- **Scan intervals.** About 10 s for power and longer for energy and settings keeps traffic modest: 12 sensors means 12 requests per cycle. HA's default is 15 s. Polling faster than about 5 s hasn't been tested against an aGate.
+- **Scan intervals.** About 10 s for power and longer for energy and settings keeps traffic modest: 16 Modbus sensors means 16 requests per cycle. HA's default is 15 s. Polling faster than about 5 s hasn't been tested against an aGate.
 - **Reconnects.** HA's Modbus client reconnects by itself. How it behaves when the aGate drops the session hasn't been measured.
 - **TOU reserve isn't included.** 15509 reads the same value as 15508 on current firmware, so it isn't the TOU reserve (#63).
 - **Operating mode is shown as a raw number.** Which number means which mode is still being confirmed (#75). The library and a 2026-05 device scan say 1 = Emergency Backup, 2 = Self-Consumption, 3 = TOU, but treat that as provisional.
+- **Grid status: what it can and can't tell you.** "Backup (off-grid)" comes from M701 `DERMode` bit 1 (GRID_FORMING: the aPower is making its own AC). "Grid disconnected" comes from `ConnSt` = 0. Neither has been observed during a real outage on an aGate yet; all readings so far were on-grid. Modbus also can't tell a real utility outage from a deliberate off-grid switch, which the FranklinWH cloud API can ([Modbus vs Cloud](MODBUS_CLOUD_COMPARISON.md)). The "Emergency Backup" operating mode (15507) is a setting that keeps the battery in reserve; it doesn't mean the grid is down.
 - **Battery power is the DC side** (M714). With more than one aPower, PDU 1048 is the model's top-level total. That hasn't been verified on a multi-battery site.
 
 ---
 
 ## 3. Restart and check
 
-Restart Home Assistant (**Settings → System → Restart**). Then open **Settings → Devices & services → Entities** and search for `aGate`. All 12 sensors should have values within a minute.
+Check the configuration first (**Developer tools → YAML → Check configuration**), then restart Home Assistant (**Settings → System → Restart**).
+
+![Check configuration passes](images/ha-modbus-yaml/02-check-configuration.png){ width="600" }
+
+ Then open **Settings → Devices & services → Entities** and search for `aGate`. All 16 Modbus sensors and the 2 template sensors should have values within a minute.
 
 | Symptom | Likely cause |
 |---|---|
@@ -212,6 +278,14 @@ Restart Home Assistant (**Settings → System → Restart**). Then open **Settin
 | One sensor unavailable, log shows exception 2 | Wrong address (e.g. offset by 40000), or the register doesn't exist on your firmware |
 | SoC shows 500 instead of 50 | `scale: 0.1` missing |
 | Values look plausible but differ from the app | Scale factor or address differs on your firmware: redo step 1 |
+
+A clean run shows no Modbus errors in **Settings → System → Logs** (search "modbus"):
+
+![No modbus errors in the log](images/ha-modbus-yaml/08-log-modbus.png){ width="600" }
+
+Sensor history (**History**, add the aGate sensors):
+
+![Battery power and home load history](images/ha-modbus-yaml/04-sensor-history.png){ width="600" }
 
 ---
 
@@ -229,15 +303,19 @@ Compare SoC, battery power, grid power, solar and home load with what HA showed 
 
 ## 5. Energy dashboard
 
-**Settings → Dashboards → Energy:**
+**Settings → Dashboards → Energy.** In Home Assistant 2026.10, grid import and export are one **grid connection** ("Add grid connection"):
 
 | Energy dashboard field | Sensor |
 |---|---|
-| Grid consumption | `aGate Grid Import Energy` |
-| Return to grid | `aGate Grid Export Energy` |
+| Grid connection: energy imported | `aGate Grid Import Energy` |
+| Grid connection: energy exported | `aGate Grid Export Energy` |
 | Solar production | `aGate Solar Energy` |
 | Battery: energy going in | `aGate Battery Charged Energy` |
 | Battery: energy coming out | `aGate Battery Discharged Energy` |
+
+![Energy dashboard: grid connection and solar](images/ha-modbus-yaml/06-energy-configuration.png){ width="600" }
+
+The Energy dashboard needs at least one completed hour of statistics, and up to 2 hours after setup, before it shows totals.
 
 Solar energy comes from extension register 15510–15511, total PV including remote inputs. It's a 32-bit value with the high word first: a reader capture on 2026-10-19 showed `00F1 D254` = 15,848,020 Wh, as reported by the franklinwh-modbus-bridge session. All energy sensors here are in **Wh**; the Energy dashboard accepts Wh.
 
@@ -268,6 +346,10 @@ cards:
         name: Grid (+ import, − export)
       - entity: sensor.agate_self_consumption_reserve
         name: Reserve
+      - entity: sensor.agate_grid_status
+        name: Grid status
+      - entity: binary_sensor.agate_grid_connected
+        name: Grid connected
   - type: history-graph
     title: Power (last 6 h)
     hours_to_show: 6
@@ -279,6 +361,8 @@ cards:
 ```
 
 Entity IDs follow the `name:` values; check yours in the entity list if they differ.
+
+![The dashboard card (emulator values)](images/ha-modbus-yaml/05-dashboard-card.png){ width="500" }
 
 ---
 

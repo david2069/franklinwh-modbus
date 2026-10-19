@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Home Assistant: Monitoring with Modbus YAML** (`docs/HOME_ASSISTANT_MODBUS_YAML.md`): a monitor-only proof of concept using Home Assistant's built-in Modbus integration. It covers 12 sensors (SoC, battery, grid, solar, home, reserve, mode, and lifetime grid, battery and solar energy), Energy dashboard mapping, a built-in-cards dashboard, a scale-factor check, verification against the CLI, troubleshooting, and pros and cons. It hasn't been run in Home Assistant yet.
+- **Home Assistant: Monitoring with Modbus YAML** (`docs/HOME_ASSISTANT_MODBUS_YAML.md`): a monitor-only proof of concept using Home Assistant's built-in Modbus integration. It covers 16 sensors (SoC, battery, grid, solar, home, reserve, mode, lifetime grid, battery and solar energy, and M701 grid connection, inverter state, DER mode and alarm bits), plus template sensors for **grid status** (on grid / backup (off-grid) / disconnected) and **grid connected**, Energy dashboard mapping, a built-in-cards dashboard, a scale-factor check, verification against the CLI, troubleshooting, and pros and cons. Tested against the gateway emulator in HA 2026.10.1, with screenshots; not yet tested against a real aGate.
 
 ### Changed
 - **"What is Modbus TCP?" rewritten** with sourced background:
