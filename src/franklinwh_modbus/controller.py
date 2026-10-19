@@ -138,6 +138,8 @@ class FranklinWHController:
         
     def connect(self) -> bool:
         """Connect and scan for models."""
+        # Close any previous session first: the aGate serves one client (#70)
+        self._close_device()
         try:
             logger.debug(f"Connecting to {self.ip_address}:{self.port} (unit {self.unit_id})")
             self.dev = SunSpecModbusClientDeviceTCP(
@@ -187,6 +189,7 @@ class FranklinWHController:
             
         except Exception as e:
             logger.error(f"Connection failed: {e}")
+            self._close_device()
             return False
     
     def _check_orphaned_vpp(self) -> None:
@@ -377,24 +380,36 @@ class FranklinWHController:
         """Get the results of the extension write test."""
         return self._extension_write_results.copy()
     
+    def _close_device(self):
+        """Close the TCP session and drop the device.
+        
+        pysunspec2's close() is a no-op on TCP devices; only disconnect()
+        closes the socket (#70).
+        """
+        if self.dev:
+            try:
+                self.dev.disconnect()
+            except Exception as e:
+                logger.debug(f"Closing Modbus session: {e}")
+            self.dev = None
+    
     def disconnect(self):
         """Close connection."""
         if self.dev:
-            try:
-                self.dev.close()
-            except Exception:
-                pass
-            self.dev = None
+            self._close_device()
             logger.debug("Disconnected")
     
     def is_connected(self) -> bool:
-        """Check if connection is alive."""
+        """Check if connection is alive by reading the SunSpec marker.
+        
+        Reads the 2-register "SunS" marker at base_address (PDU 0 on the
+        aGate). It used to read PDU 40071, which the aGate rejects with
+        exception 2, so it always returned False (#71).
+        """
         if self.dev is None:
             return False
         try:
-            # Try a simple read to check connection
-            self.dev.read(40071, 1)
-            return True
+            return self.dev.read(self.base_address, 2) == b'SunS'
         except Exception:
             return False
     
@@ -426,7 +441,7 @@ class FranklinWHController:
             
         except Exception as e:
             logger.error(f"Reconnection failed: {e}")
-            self.dev = None
+            self._close_device()
             return False
     
     READ_FAILURE_WARN_INTERVAL_S = 60.0
