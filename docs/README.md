@@ -8,7 +8,7 @@ Curated, current documentation for `franklinwh-modbus`.
 - [ORCHESTRATION_AND_CONTROL.md](ORCHESTRATION_AND_CONTROL.md) — Control logic and command sequences
 - [SAFETY_CONTROLS.md](SAFETY_CONTROLS.md) — 10 safety rules for development
 - [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) — VPP Mode behavior with mobile app screenshots
-- [UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx](UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx) — SunSpec certification PICS
+- *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx*: SunSpec certification PICS (FranklinWH proprietary, not distributed here; obtain it from FranklinWH)
 
 ## Development
 - [DEVELOPMENT.md](DEVELOPMENT.md) — Dev safety guidelines

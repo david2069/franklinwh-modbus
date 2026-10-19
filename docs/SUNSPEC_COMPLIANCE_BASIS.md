@@ -18,10 +18,11 @@ In the absence of vendor-specific Modbus documentation from FranklinWH, this imp
 
 | Standard | Version | Role in this Project |
 |:---|:---|:---|
-| **SunSpec Information Model** | v1.1 | Defines PDU discovery (Base 40000), "SunS" identification, and Scale Factor math. |
+| **SunSpec Information Model** | v1.1 | Defines the "SunS" marker (0x53756E53) at a well-known starting PDU address (0, 40000 or 50000), the model chain, and Scale Factor math. |
 | **SunSpec DER Control (704)** | v1.0 | Defines the M704 register map, `WSetEna` master triggers, and `WSetMod` behaviors. |
 | **SunSpec Device Info (1)** | v1.1 | Defines the Common Model (Manufacturer, Version, Serial Number). |
-| **Modbus Application Protocol** | v1.1b | Defines FC03 (Read), FC06 (Write Single), and FC16 (Write Multiple). |
+| **MODBUS Application Protocol Specification** | V1.1b3 (2012-04-26) | **Source of truth for Modbus addressing and naming:** 0-based PDU addresses, holding registers, FC03 (Read), FC06 (Write Single), FC16 (Write Multiple). Published at modbus.org/specifications. |
+| **MODBUS Messaging on TCP/IP Implementation Guide** | V1.0b (2006-10-24) | Modbus TCP framing (MBAP header, unit identifier). Published at modbus.org/specifications. |
 
 ## 2. The 6-Phase Sequencing Basis (The "Why")
 
@@ -60,7 +61,7 @@ If `WMaxRtg` is 10,000 and we want to charge at 500W:
 
 When our test (following the basis above) returns a failure, we classify it as a **PICS Violation** if the manufacturer's **Protocol Implementation Conformance Statement** claims support for a register that fails our 6-phase validation.
 
-**Reference**: `docs/UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx` (FranklinWH Official Claim).
+**Reference**: *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx* (FranklinWH official claim; proprietary, not distributed in this repository).
 
 ---
 
@@ -97,8 +98,7 @@ When our test (following the basis above) returns a failure, we classify it as a
 | **Alternate Base** | 50001 | 0xC350 (50000) |
 | **Alternate Base** | 00001 | 0x0000 (0) |
 
-**Validation Strategy**:
-Our library targets the **Wire Offset 40000** exactly as mandated by the standard for reading register 40001. Any attempt to use 1-based indexing in a 0-based PDU environment is a common source of "off-by-one" errors which our `SunSpecSequencer` now explicitly avoids.
+**What the library does:** these are the starting PDU addresses where SunSpec allows the "SunS" marker to sit; the "logical address" column is the Modicon 4xxxx-style reference for the same register. **The aGate's map starts at PDU 0** (V10R01B04D00), so the library scans with `base_address=0` (`controller.py`, `sequencer.py`). Reads at PDU 40000+ return exception 2. `discovery.py` probes 0, 40000, 50000 and 30000 to find other devices' maps. Addresses in these docs are PDU addresses; see QUIRKS, Register Addressing.
 
 ---
 

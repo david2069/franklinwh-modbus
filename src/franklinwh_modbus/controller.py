@@ -2177,7 +2177,7 @@ class FranklinWHController:
             if not sock:
                 return False, "No active Modbus TCP connection"
             
-            # Write 1 to AlarmReset (base-1 addr 1094)
+            # Write 1 to AlarmReset (PDU address 1094)
             req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, 1094, 1)
             sock.sendall(req)
             resp = sock.recv(256)

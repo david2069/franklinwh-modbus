@@ -138,9 +138,9 @@ These are the primary battery control registers. **This is what we use.**
 
 ## 2. Model 715 — DER Control
 
-> **Note:** M715 registers use base-1 addressing (1087-1095) for raw Modbus TCP. Base-40000 addresses (41087+) return ILLEGAL_DATA_ADDRESS.
+> **Note:** Addresses are Modbus **PDU addresses** (0-based, as sent on the wire), e.g. M715 at 1087–1095, matching the FranklinWH PICS. 4xxxx references such as 41088+ are not addresses; reading PDU 41087+ returns exception 2 (ILLEGAL DATA ADDRESS). See QUIRKS, Register Addressing.
 
-| Address (base-1) | Field | Label | Type | RW | PICS Status | Current Value | Status | Notes |
+| PDU address | Field | Label | Type | RW | PICS Status | Current Value | Status | Notes |
 |---------|-------|-------|------|----|-------------|---------------|--------|-------|
 | 1089 | `LocRemCtl` | Control Mode | enum16 | ❌ R | supported | **1 (Local)** | ❌ **Read-only** | SunSpec says writable — aGate ignores (see LocRemCtl Paradox) |
 | 1090 | `DERHb` | DER Heartbeat | uint32 | R | supported | 0 | ❌ **Non-functional** | Always 0 — DER heartbeat protocol not implemented (TESTED) |
