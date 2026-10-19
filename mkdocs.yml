@@ -61,6 +61,7 @@ nav:
   - Getting Started:
     - Setup Guide: GETTING_STARTED.md
     - Python Integration: HOWTO_PYTHON.md
+    - API Cookbook: API_COOKBOOK.md
     - Modbus Protocol Guide: FRANKLINWH_MODBUS_GUIDE.md
     - What is Modbus TCP?: WHAT_IS_MODBUS_TCP.md
     - Architecture Overview: ARCHITECTURE.md

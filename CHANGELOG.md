@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **API Cookbook** (`docs/API_COOKBOOK.md`): worked examples for connecting, a full status snapshot, every TUI panel and key mapped to its API call, each CLI command with its Python equivalent, battery control, virtual modes, alarms, the FranklinWH extension registers (what they are, how to read and write them, quirks), and a comparison with the FranklinWH cloud API.
+
 ### Changed
 - **Docs: Modbus addressing uses modbus.org terms.** Every register address in the docs is now a Modbus **PDU address** (0-based, as sent on the wire, as in the FranklinWH PICS: ControllerHb is 1092). The "base-1" and "base-40000" labels, which wrongly called PDU addresses base-1, are gone. QUIRKS now separates what Modbus defines (PDU address, register number, holding registers, the Modicon 4xxxx reference) from what SunSpec adds (the "SunS" marker at PDU 0, 40000 or 50000). The aGate's map starts at PDU 0. Device snapshot sections and glossary columns say which notation they print. Dead links to the proprietary PICS spreadsheet, which is not distributed here, now cite it by name. (#43)
 
