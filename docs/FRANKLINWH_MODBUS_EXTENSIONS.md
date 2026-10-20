@@ -26,7 +26,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 15510–15511 | PVOutputWh | R | uint32 (high, low), Wh | PV energy, total (lifetime) | read, not returned | Measured: matches M502 `OutWh` |
 | 15512–15513 | proxOutputWh | R | uint32 (high, low), Wh | PV energy, proximal (lifetime) | read, not returned | Measured: matches M502 `OutWh` |
 | 16000 | — | R | uint16, W (~1 W) | Home load, high resolution | `…['home_load_ext']` (falls back to 15506) | Undocumented; measured 2026-03-15 |
-| 16001 | — | R | uint16, % | **Reserve for the active mode:** equals 15508 in Self-Consumption (8) and 15509 in TOU (15) | — | Undocumented; measured on V12R02B60D00, one read per mode, 2026-10-21/22 (#63). Emergency Backup not yet read |
+| 16001 | — | R | uint16, % | **Reserve for the active mode:** 100 in Emergency Backup, 15508's value in Self-Consumption (8), 15509's in TOU (15) | — | Undocumented; measured on V12R02B60D00, one read per mode, 2026-10-21/22 (#63) |
 | 16002 | — | R | uint16 | 20 in both Self-Consumption and TOU on the reference site; matches the local API's `BBBackupSoc` | — | Undocumented; **meaning unconfirmed** (#63) |
 | 15000–15043 | — | R | various | Mirrors of SunSpec values (e.g. 15020 = M713 `WHRtg`, 15036 = M713 `SoH` raw, 15025 ≈ M701 `LNV`, 15024 ≈ grid frequency) | — | Undocumented; measured. Writes accepted but discarded (probe 2026-03-08) |
 
@@ -39,12 +39,12 @@ The sources disagree, so compare modes by **name** and **don't write modes 1, 3 
 | Value | Library (`NATIVE_MODES`) | Device scan 2026-05-14 (Manifest) | Older QUIRKS table | **Measured on V12R02B60D00** (app mode → 15507) |
 |---|---|---|---|
 | 0 | — | — | Emergency | — |
-| 1 | Emergency Backup | Backup | TOU | not yet read |
+| 1 | Emergency Backup | Backup | TOU | **Emergency Backup** (2026-10-22) |
 | 2 | Self-Consumption | Self-Consumption | Self-Consumption | **Self-Consumption** (2026-10-21) |
 | 3 | TOU | TOU | Manual | **TOU** (2026-10-22) |
 | 4 | Manual | — | — | not yet read |
 
-Reads on V12R02B60D00 confirm **2 = Self-Consumption** and **3 = TOU**, as the library and the 2026-05-14 scan say; the older QUIRKS table is wrong for both. **1 = Emergency Backup** and **4 = Manual** still need a read with the app in that mode (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping can only be confirmed by reading.
+Reads on V12R02B60D00 confirm **1 = Emergency Backup, 2 = Self-Consumption and 3 = TOU**, as the library and the 2026-05-14 scan say; the older QUIRKS table is wrong. **4 = Manual** is unread (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping holds for reading only.
 
 ## Reading
 
