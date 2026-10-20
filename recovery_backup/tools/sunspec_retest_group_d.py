@@ -2,15 +2,16 @@
 """Group D: PCS Rate Limits re-test with proper SunSpec sequencing.
 
 Run with: python3 -u tools/sunspec_retest_group_d.py
-Pre-req: python3 tools/franklinwh_cli.py -i 192.168.0.110 --stop
+Pre-req: python3 tools/franklinwh_cli.py -i 192.0.2.110 --stop
 """
 import socket, struct, time, sys
-sys.path.insert(0, '/Users/davidhona/dev/modbus/src')
+import os
+sys.path.insert(0, os.path.expanduser('~/dev/modbus/src'))
 
 print("Group D: PCS Rate Limits (raw socket, 30s timeout)", flush=True)
 print("=" * 60, flush=True)
 
-IP = '192.168.0.110'
+IP = '192.0.2.110'
 PORT = 502
 UID = 2
 TO = 30

@@ -160,11 +160,11 @@ These are the primary battery control registers. **This is what we use.**
 
 | Address | Field | Label | Type | RW | PICS Status | Current Value | Status | Notes |
 |---------|-------|-------|------|----|-------------|---------------|--------|-------|
-| 15507 | `OnGridMode` | Operating Mode | uint16 | R* | supported | 2 (Self-Consumption) | ✅ **Read works** | ❌ Write blocked without SPAN |
-| 15508 | `SelfReserve` | Self-Consumption Reserve | uint16 | R* | supported | 20 (%) | ✅ **Read works** | ❌ Write blocked without SPAN |
-| 15509 | `TouReserve` | TOU Reserve | uint16 | R* | supported | 20 (%) | ✅ **Read works** | ❌ Write blocked without SPAN |
+| 15507 | `OnGridMode` | Operating Mode | uint16 | R* | supported | 2 (Self-Consumption) | ✅ **Read works** | ❌ Writes undocumented; not applied |
+| 15508 | `SelfReserve` | Self-Consumption Reserve | uint16 | R* | supported | 20 (%) | ✅ **Read works** | ❌ Writes undocumented; not applied |
+| 15509 | `TouReserve` | TOU Reserve | uint16 | R* | supported | 20 (%) | ✅ **Read works** | ❌ Writes undocumented; not applied |
 
-*R = Read-only without SPAN Modbus unlock. See `FRANKLINWH_SUNSPEC_QUIRKS.md` "Write Access Asymmetry".
+*R = Read-only. Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only. "PICS Status" is FranklinWH's PICS (proprietary, not distributed); it does not confirm writability on current firmware. See `FRANKLINWH_SUNSPEC_QUIRKS.md` "Write Access Asymmetry".
 
 ---
 
@@ -189,7 +189,7 @@ Legend:  ✅ Working   ⚠️ Partial   🔲 Untested   ❌ Broken/Blocked
 | **DER Heartbeat** | 1090 | ❌ Non-functional | Always 0 (TESTED) |
 | **OpCtl (Start/Stop)** | 1095 | 🔲 Untested | Could start/stop DER |
 | **LocRemCtl** | 1089 | ❌ Read-only | SunSpec handoff not supported; LocRemCtl Paradox (TESTED) |
-| **Extension Mode/Reserves** | 15507-15509 | ❌ Write blocked | Need SPAN Modbus unlock |
+| **Extension Mode/Reserves** | 15507-15509 | ❌ Writes not applied | Writes undocumented; not applied on V12R02B60D00 (2026-10-21) |
 
 ---
 
@@ -292,7 +292,7 @@ Goals for feature parity with the FranklinWH mobile app:
 - [ ] **Reserve Level Management** — app sets Self-Consumption and TOU reserve percentages (extension registers 15508-15509, currently read-only)
 
 !!! important
-    Achieving full App parity likely requires the **SPAN Modbus unlock** for extension register writes. Without it, we can emulate some behaviors via M704 power commands, but cannot natively change modes or reserves.
+    Full App parity would need extension register writes, which are undocumented and unconfirmed. FranklinWH has not documented any extension register as writable, and on V12R02B60D00 (2026-10-21) writes to 15507–15509 did not take effect. We can emulate some behaviors via M704 power commands, but cannot natively change modes or reserves.
 
 ---
 

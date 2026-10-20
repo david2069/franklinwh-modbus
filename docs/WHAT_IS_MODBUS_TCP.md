@@ -81,7 +81,7 @@ A **PICS** (Protocol Implementation Conformance Statement) is the vendor's decla
 
 ### FranklinWH's PICS
 
-FranklinWH's PICS is the spreadsheet *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx*. It is FranklinWH's own document and is **not distributed in this repository**. It lists points by PDU address (e.g. ControllerHb at 1092) and has a SPAN tab defining the extension registers.
+FranklinWH's PICS is the spreadsheet *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx*. It is FranklinWH's own document and is **not distributed in this repository**. It lists points by PDU address (e.g. ControllerHb at 1092) and has a tab named SPAN that lists the extension registers. That tab does not confirm that any of them is writable on current firmware; FranklinWH has not documented these registers in any public specification.
 
 **A PICS states what a device claims, not what it does.** Testing against the live aGate found differences, recorded here:
 
@@ -100,7 +100,7 @@ How they relate to SunSpec:
 | | SunSpec models (Model 1, 502, 701–715 on the aGate) | FranklinWH extension registers |
 |---|---|---|
 | Found by | Walking the "SunS" model chain | Knowing the address in advance |
-| Described by | The published model definition: names, types, units, scale factors | FranklinWH's PICS (SPAN tab) and testing |
+| Described by | The published model definition: names, types, units, scale factors | FranklinWH's proprietary PICS (SPAN tab) and testing |
 | In certification testing | Yes | No (only SunSpec-standardised models are considered) |
 | Read with | Any SunSpec client (e.g. pysunspec2) | A plain Modbus FC3 read at the PDU address |
 | Stability | Fixed by the published standard | Vendor-defined; can change with firmware |
@@ -138,7 +138,7 @@ Both this library and [franklinwh-cloud](https://david2069.github.io/franklinwh-
 | **Setup** | Installer must enable Modbus TCP | Standard FranklinWH credentials |
 | **Battery control** | ✅ Charge, discharge, standby | ✅ Charge, discharge, standby |
 | **TOU schedules** | ❌ Not available (only the mode and reserves, 15507–15509) | ✅ Full read/write |
-| **Mode and reserve writes** | ⚠️ Only if FranklinWH has enabled writes on the unit | ✅ Full support |
+| **Mode and reserve writes** | ❌ Undocumented and unconfirmed; not applied on V12R02B60D00 (2026-10-21) | ✅ Full support |
 | **Daily energy totals** | ❌ Lifetime counters only | ✅ |
 | **Risk profile** | Direct hardware access; mistakes persist | Cloud-mediated guardrails |
 

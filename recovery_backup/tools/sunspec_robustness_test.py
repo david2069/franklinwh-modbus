@@ -4,9 +4,10 @@ Robustness Re-Test v3: Fresh connection per INDIVIDUAL test.
 Eliminates WiFi BrokenPipe entirely.
 """
 import socket, struct, time, sys
-sys.path.insert(0, '/Users/davidhona/dev/modbus/src')
+import os
+sys.path.insert(0, os.path.expanduser('~/dev/modbus/src'))
 
-IP = '192.168.0.110'; PORT = 502; UID = 2; TO = 30
+IP = '192.0.2.110'; PORT = 502; UID = 2; TO = 30
 
 def do_test(addr, val, settle, use_fc16=False):
     """Single atomic test: connect, read, write, wait, read, close."""

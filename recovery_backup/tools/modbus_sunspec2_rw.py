@@ -432,12 +432,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  Read all models:        %(prog)s -i 192.168.0.110 -u 2 --scan
-  Read specific point:    %(prog)s -i 192.168.0.110 --point 701.ThrotPct
-  Write power limit:      %(prog)s -i 192.168.0.110 --write 704.WMaxLimPct=500
-  Batch write:            %(prog)s -i 192.168.0.110 --batch-write writes.json
-  Emergency stop:         %(prog)s -i 192.168.0.110 --emergency-stop
-  Monitor mode:           %(prog)s -i 192.168.0.110 --monitor
+  Read all models:        %(prog)s -i 192.0.2.110 -u 2 --scan
+  Read specific point:    %(prog)s -i 192.0.2.110 --point 701.ThrotPct
+  Write power limit:      %(prog)s -i 192.0.2.110 --write 704.WMaxLimPct=500
+  Batch write:            %(prog)s -i 192.0.2.110 --batch-write writes.json
+  Emergency stop:         %(prog)s -i 192.0.2.110 --emergency-stop
+  Monitor mode:           %(prog)s -i 192.0.2.110 --monitor
         """
     )
     

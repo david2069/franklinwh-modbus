@@ -131,7 +131,7 @@ Let me analyze and organize this into a structured reference.
 Attribute	Value
 Device	FranklinWH aGate X
 Hardware Version	V10R01B04D00
-Serial Number	10060006A02F24170091
+Serial Number	<SERIAL>
 Service Type	Single-phase 230V (AU)
 Rated Power	5 kW continuous / 5.8 kVA apparent
 Battery	aPower X 13.6 kWh (SoC 94%, SoH 96.1%)
@@ -451,7 +451,7 @@ Island Mode Stabilization (Blackstart)
 	import json
 	import time
 	
-	AGATE_IP = "192.168.0.110"
+	AGATE_IP = "192.0.2.110"
 	UNIT_ID = 2
 	THROT_PCT_ADDR = 40180  # 40000 base + 180 offset
 	THROT_SRC_ADDR = 40181
@@ -558,7 +558,7 @@ Island Mode Stabilization (Blackstart)
 
 📈 Sample Output
 
-	✅ Connected to FranklinWH aGate X at 192.168.0.110
+	✅ Connected to FranklinWH aGate X at 192.0.2.110
 	============================================================
 	
 	🕐 2024-01-15T09:23:17.342891

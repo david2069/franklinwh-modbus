@@ -41,10 +41,10 @@ python3 network_scanner.py --mdns -o json > discovered_devices.json
 
 ```bash
 # Scan specific IP range
-python3 network_scanner.py 192.168.0.0/24
+python3 network_scanner.py 192.0.2.0/24
 
 # Scan specific devices
-python3 network_scanner.py 192.168.0.0/24 --devices modbus,enphase
+python3 network_scanner.py 192.0.2.0/24 --devices modbus,enphase
 ```
 
 ## Supported mDNS Service Types
@@ -94,7 +94,7 @@ python3 network_scanner.py --mdns -v
 
 # Step 2: If needed, deep scan specific IPs with port scanning
 # (for Modbus devices or devices without mDNS)
-python3 network_scanner.py 192.168.0.110 --devices modbus -v
+python3 network_scanner.py 192.0.2.110 --devices modbus -v
 ```
 
 ## Example Output
@@ -112,12 +112,12 @@ mDNS discovery found 6 device(s)
 +--------------+------+------------------+------------------+------------------+
 | IP Address   | Port | Device Type      | Manufacturer     | Model            |
 +==============+======+==================+==================+==================+
-| 192.168.0.4  | 80   | enphase          | Enphase          | Envoy            |
-| 192.168.0.7  | 80   | enphase          | Enphase          | Envoy            |
-| 192.168.0.10 | 80   | enphase          | Enphase          | Envoy            |
-| 192.168.0.109| 8123 | home_assistant   | Nabu Casa        | Home Assistant   |
-| 192.168.0.11 | 1883 | mqtt_broker      | None             | MQTT Broker      |
-| 192.168.0.253| 80   | homey            | Athom            | Homey            |
+| 192.0.2.4  | 80   | enphase          | Enphase          | Envoy            |
+| 192.0.2.7  | 80   | enphase          | Enphase          | Envoy            |
+| 192.0.2.10 | 80   | enphase          | Enphase          | Envoy            |
+| 192.0.2.109| 8123 | home_assistant   | Nabu Casa        | Home Assistant   |
+| 192.0.2.11 | 1883 | mqtt_broker      | None             | MQTT Broker      |
+| 192.0.2.253| 80   | homey            | Athom            | Homey            |
 +--------------+------+------------------+------------------+------------------+
 
 Found 6 device(s) in 5.2 seconds
@@ -128,7 +128,7 @@ Found 6 device(s) in 5.2 seconds
 ```json
 [
   {
-    "ip": "192.168.0.109",
+    "ip": "192.0.2.109",
     "port": 8123,
     "device_type": "home_assistant",
     "manufacturer": "Nabu Casa",
@@ -138,7 +138,7 @@ Found 6 device(s) in 5.2 seconds
       "mdns_service": "_home-assistant._tcp.local.",
       "mdns_properties": {
         "version": "2024.1.0",
-        "base_url": "http://192.168.0.109:8123"
+        "base_url": "http://192.0.2.109:8123"
       },
       "hostname": "homeassistant.local.",
       "discovery_method": "mDNS"

@@ -153,7 +153,7 @@ class TestChargeComboOneShot:
         # Import and test
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500'])
         
         assert args.charge == 500.0
         assert args.power is None  # --charge sets it later
@@ -164,7 +164,7 @@ class TestChargeComboOneShot:
         """C3: --max-charge → one-shot at rated max, persist."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-charge'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-charge'])
         
         assert args.max_charge is True
         assert not args.loop
@@ -173,7 +173,7 @@ class TestChargeComboOneShot:
         """C4: --charge 500 --target-soc 80 → one-shot persist (no loop)."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--target-soc', '80'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--target-soc', '80'])
         
         assert args.charge == 500.0
         assert args.target_soc == 80.0
@@ -185,7 +185,7 @@ class TestChargeComboOneShot:
         """C5: THE DEFECT — --max-charge --target-soc 33 → one-shot persist."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-charge', '--target-soc', '33'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-charge', '--target-soc', '33'])
         
         assert args.max_charge is True
         assert args.target_soc == 33.0
@@ -200,7 +200,7 @@ class TestChargeComboContinuous:
         """C6: --charge 500 --target-soc 80 --loop → continuous monitor."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--target-soc', '80', '--loop'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--target-soc', '80', '--loop'])
         
         assert args.charge == 500.0
         assert args.target_soc == 80.0
@@ -210,7 +210,7 @@ class TestChargeComboContinuous:
         """C7: --max-charge --target-soc 33 --loop → continuous monitor."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-charge', '--target-soc', '33', '--loop'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-charge', '--target-soc', '33', '--loop'])
         
         assert args.max_charge is True
         assert args.target_soc == 33.0
@@ -220,7 +220,7 @@ class TestChargeComboContinuous:
         """C8: --charge 500 --duration 60 → continuous for 60s."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--duration', '60'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--duration', '60'])
         
         assert args.charge == 500.0
         assert args.duration == 60
@@ -231,7 +231,7 @@ class TestChargeComboContinuous:
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
         args = parser.parse_args([
-            '-i', '192.168.0.110', '--charge', '500',
+            '-i', '192.0.2.110', '--charge', '500',
             '--target-soc', '80', '--loop', '--duration', '60'
         ])
         
@@ -252,7 +252,7 @@ class TestDischargeComboOneShot:
         """D1: --discharge 500 → one-shot persist."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--discharge', '500'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--discharge', '500'])
         
         assert args.discharge == 500.0
         assert not args.loop
@@ -261,7 +261,7 @@ class TestDischargeComboOneShot:
         """D3: --max-discharge → one-shot at max."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-discharge'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-discharge'])
         
         assert args.max_discharge is True
         assert not args.loop
@@ -270,7 +270,7 @@ class TestDischargeComboOneShot:
         """D4: --discharge 500 --target-soc 20 → one-shot persist."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--discharge', '500', '--target-soc', '20'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--discharge', '500', '--target-soc', '20'])
         
         assert args.discharge == 500.0
         assert args.target_soc == 20.0
@@ -280,7 +280,7 @@ class TestDischargeComboOneShot:
         """D5: --max-discharge --target-soc 20 → one-shot persist."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-discharge', '--target-soc', '20'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-discharge', '--target-soc', '20'])
         
         assert args.max_discharge is True
         assert args.target_soc == 20.0
@@ -295,7 +295,7 @@ class TestDischargeComboContinuous:
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
         args = parser.parse_args([
-            '-i', '192.168.0.110', '--discharge', '500', '--target-soc', '20', '--loop'
+            '-i', '192.0.2.110', '--discharge', '500', '--target-soc', '20', '--loop'
         ])
         
         assert args.discharge == 500.0
@@ -307,7 +307,7 @@ class TestDischargeComboContinuous:
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
         args = parser.parse_args([
-            '-i', '192.168.0.110', '--max-discharge', '--target-soc', '20', '--loop'
+            '-i', '192.0.2.110', '--max-discharge', '--target-soc', '20', '--loop'
         ])
         
         assert args.max_discharge is True
@@ -318,7 +318,7 @@ class TestDischargeComboContinuous:
         """D8: --discharge 500 --duration 60 → continuous for 60s."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--discharge', '500', '--duration', '60'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--discharge', '500', '--duration', '60'])
         
         assert args.discharge == 500.0
         assert args.duration == 60
@@ -335,7 +335,7 @@ class TestOtherCombos:
         """S1: --standby → 0W one-shot."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--standby'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--standby'])
         
         assert args.standby is True
 
@@ -343,7 +343,7 @@ class TestOtherCombos:
         """S2: --stop → reset control."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--stop'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--stop'])
         
         assert args.stop is True
 
@@ -351,7 +351,7 @@ class TestOtherCombos:
         """S3: --power 500 → legacy one-shot."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--power', '500'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--power', '500'])
         
         assert args.power == 500.0
 
@@ -359,7 +359,7 @@ class TestOtherCombos:
         """S4: --power -500 → legacy one-shot (charge)."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--power', '-500'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--power', '-500'])
         
         assert args.power == -500.0
 
@@ -480,7 +480,7 @@ class TestCodePathRouting:
         """--target-soc without --loop should NOT trigger continuous mode."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--target-soc', '80'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--target-soc', '80'])
         
         # Simulate the routing logic from the CLI
         args.power = abs(args.charge)  # --charge normalization
@@ -501,7 +501,7 @@ class TestCodePathRouting:
         """--target-soc with --loop should trigger continuous mode."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--target-soc', '80', '--loop'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--target-soc', '80', '--loop'])
         
         args.power = abs(args.charge)
         
@@ -521,7 +521,7 @@ class TestCodePathRouting:
         """--duration should trigger continuous mode even without --loop."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--duration', '60'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--duration', '60'])
         
         args.power = abs(args.charge)
         
@@ -541,7 +541,7 @@ class TestCodePathRouting:
         """C5 (THE DEFECT): --max-charge --target-soc 33 should be one-shot."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--max-charge', '--target-soc', '33'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--max-charge', '--target-soc', '33'])
         
         # Simulate --max-charge power assignment
         args.power = 5000  # Would be set from ctrl.RATED_MAX_CHARGE_W
@@ -562,7 +562,7 @@ class TestCodePathRouting:
         """C2/D2: --charge 500 --revert 30 → one-shot (revert uses software timer)."""
         from tools.franklinwh_cli import create_parser
         parser = create_parser()
-        args = parser.parse_args(['-i', '192.168.0.110', '--charge', '500', '--revert', '30'])
+        args = parser.parse_args(['-i', '192.0.2.110', '--charge', '500', '--revert', '30'])
         
         args.power = abs(args.charge)
         

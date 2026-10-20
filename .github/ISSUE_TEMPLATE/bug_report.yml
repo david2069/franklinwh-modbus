@@ -121,9 +121,9 @@ body:
     id: extension_writable
     attributes:
       label: Extension Register Writes
-      description: Are extension registers (15507–15509) writable on your unit? Check with `--status --detail`.
+      description: Did a write to an extension register (15507–15509) read back as applied? Check with `--test-extension-write` (writes to the device). FranklinWH has not documented these registers as writable.
       options:
-        - "Yes — writes to extension registers work"
+        - "Yes — read-back showed the write applied"
         - "No — read-only (silent write failures)"
         - "Unknown"
 

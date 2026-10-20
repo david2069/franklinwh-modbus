@@ -80,8 +80,8 @@ def audit_pics(public_path, engineering_path):
     return results
 
 # File paths
-public_pics = "/Users/davidhona/Downloads/UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx"
-engineering_pics = "/Users/davidhona/Downloads/PICS_span_20230711_SPANcomments20230803.xlsx"
+public_pics = os.path.expanduser("~/Downloads/UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx")
+engineering_pics = os.path.expanduser("~/Downloads/PICS_span_20230711_SPANcomments20230803.xlsx")
 
 audit_results = audit_pics(public_pics, engineering_pics)
 print(json.dumps(audit_results, indent=2))

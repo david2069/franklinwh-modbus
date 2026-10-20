@@ -6,7 +6,7 @@ from datetime import datetime
 from franklinwh_modbus import FranklinWHController
 from franklinwh_modbus.types import BatteryCommand
 
-AGATE_IP = "192.168.0.110"
+AGATE_IP = "192.0.2.110"
 
 def raw_read(sock, addr, count=1, unit_id=1):
     """Read holding registers via raw Modbus TCP (FC3)."""

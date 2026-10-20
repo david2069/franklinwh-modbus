@@ -1,6 +1,6 @@
 # SunSpec 700 Series Conformance & Telemetry Report
 
-This report documents the findings and live Modbus TCP telemetry recorded during the execution of the safe, non-destructive **SunSpec 700 Series Conformance Tests** on the active **FranklinWH aGate X** gateway (`192.168.0.110:502`, Unit `1`, Base `40000`).
+This report documents the findings and live Modbus TCP telemetry recorded during the execution of the safe, non-destructive **SunSpec 700 Series Conformance Tests** on the active **FranklinWH aGate X** gateway (`192.0.2.110:502`, Unit `1`, Base `40000`).
 
 ---
 

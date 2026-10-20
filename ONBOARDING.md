@@ -14,7 +14,7 @@ The use of informal, "cutesy," or made-up terminology is strictly prohibited. Th
 
 ## 2. Technical Source of Truth
 Agents must prioritize the following normative references over heuristic assumptions:
-1.  **[NORMATIVE_REFERENCE_MASTER.md](file:///Users/davidhona/.gemini/antigravity/brain/caabe7a8-880e-4e0e-a695-af48b8dde79e/NORMATIVE_REFERENCE_MASTER.md)**: The authoritative source for protocol compliance and technical definitions.
+1.  **[NORMATIVE_REFERENCE_MASTER.md](~/.gemini/antigravity/brain/caabe7a8-880e-4e0e-a695-af48b8dde79e/NORMATIVE_REFERENCE_MASTER.md)**: The authoritative source for protocol compliance and technical definitions.
 2.  **[FWH-PICS-PUB]**: Official SunSpec SM-000028 certification.
 3.  **[FWH-PICS-ENG]**: Engineering supplemental PICS for SPAN/Solar extensions.
 

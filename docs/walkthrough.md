@@ -12,8 +12,8 @@ Implement **Differentiated Transactional Verification** in the `SunSpecSequencer
 *   **Mandatory Transition Validation**: Added `TransitionValidationError` and support for the `require_transition` schema flag to enforce hardware state changes during conformance testing.
 
 ### Governance & Onboarding
-*   **[NORMATIVE_REFERENCE_MASTER.md](file:///Users/davidhona/.gemini/antigravity/brain/caabe7a8-880e-4e0e-a695-af48b8dde79e/NORMATIVE_REFERENCE_MASTER.md)**: Codified **Plain Technical Business English** and formal diagnostic labeling as mandatory standards.
-*   **[ONBOARDING.md](file:///Users/davidhona/dev/modbus/ONBOARDING.md)**: Established mandatory professional and technical standards for all agents entering the workspace.
+*   **[NORMATIVE_REFERENCE_MASTER.md](~/.gemini/antigravity/brain/caabe7a8-880e-4e0e-a695-af48b8dde79e/NORMATIVE_REFERENCE_MASTER.md)**: Codified **Plain Technical Business English** and formal diagnostic labeling as mandatory standards.
+*   **[ONBOARDING.md](/ONBOARDING.md)**: Established mandatory professional and technical standards for all agents entering the workspace.
 
 ## Verification Results
 

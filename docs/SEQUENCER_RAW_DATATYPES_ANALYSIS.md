@@ -9,7 +9,7 @@
 ## 1. Background
 
 The FranklinWH aGate Modbus TCP interface exposes standard SunSpec models (40001+) and proprietary manufacturer extension ranges (15000+ and 16000+).
-The [SunSpecSequencer](file:///Users/davidhona/dev/modbus/src/franklinwh_modbus/sequencer.py#L22) in the `franklinwh-modbus` library executes deterministic sequences of reads and writes. However, it handles SunSpec Model.Point references and raw register addresses differently.
+The [SunSpecSequencer](/src/franklinwh_modbus/sequencer.py#L22) in the `franklinwh-modbus` library executes deterministic sequences of reads and writes. However, it handles SunSpec Model.Point references and raw register addresses differently.
 
 ---
 

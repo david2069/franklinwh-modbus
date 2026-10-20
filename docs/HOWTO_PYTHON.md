@@ -134,7 +134,7 @@ A virtual environment (`venv`) creates an **isolated Python installation** for y
     source venv/bin/activate
 
     # Your prompt will show (venv) when active:
-    # (venv) davidhona@Mac modbus %
+    # (venv) user@host modbus %
     ```
 
     Deactivate when done:

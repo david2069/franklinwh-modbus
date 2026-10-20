@@ -38,11 +38,11 @@ A Python library for controlling FranklinWH battery storage systems via Modbus T
 
 **Read operations always work** — battery status, grid power, solar production (proximal and remote), system alarms, and all SunSpec model data are readable by any Modbus TCP client without provisioning. The CLI `--status`, `--healthcheck`, and TUI monitor all work out of the box.
 
-**Write access to extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve) requires "SPAN Modbus" unlock in FranklinWH installer settings.**
+**Extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve):** Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
-**Already qualified:** Owners with **SPAN Panels** or **Lumin Panels** connected to the aGate via Modbus TCP — these systems already have full write access enabled.
+The library's setters (`set_native_mode()`, `set_self_consumption_reserve()`, `set_tou_reserve()`) attempt the write, read the register back, and return `(ok, message)` with the read-back result. They do not promise any effect.
 
-**Not yet provisioned?** Contact FranklinWH Support to request Modbus write access for your aGate. Without provisioning, extension registers are read-only (writes fail silently). **Note:** Standard SunSpec M704 power commands (charge/discharge) work regardless of SPAN unlock status.
+**Note:** Standard SunSpec M704 power commands (charge/discharge) are separate from the extension registers.
 
 ### Avoiding Control Conflicts
 
@@ -181,9 +181,9 @@ franklinwh-modbus/
 
 | Register | Address | Access | Description |
 |----------|---------|--------|-------------|
-| OnGridMode | 15507 | R (RW with SPAN) | 1=Backup, 2=Self-Consumption, 3=TOU |
-| Self Reserve SOC | 15508 | R (RW with SPAN) | Self-consumption reserve percentage (0-100) |
-| TOU Reserve SOC | 15509 | R (RW with SPAN) | ⚠️ Known defect: always mirrors 15508 |
+| OnGridMode | 15507 | R (writes undocumented) | 1=Backup, 2=Self-Consumption, 3=TOU |
+| Self Reserve SOC | 15508 | R (writes undocumented) | Self-consumption reserve percentage (0-100) |
+| TOU Reserve SOC | 15509 | R (writes undocumented) | ⚠️ Known defect: always mirrors 15508 |
 
 See [FRANKLINWH_SUNSPEC_QUIRKS.md](./docs/FRANKLINWH_SUNSPEC_QUIRKS.md) for all documented hardware quirks.
 

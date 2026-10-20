@@ -67,7 +67,7 @@ import sys
 sys.path.insert(0, '/path/to/modbus')
 from franklinwh_control_standalone import FranklinWHController
 
-ctrl = FranklinWHController('192.168.0.110')
+ctrl = FranklinWHController('192.0.2.110')
 ctrl.connect()
 ```
 
@@ -77,7 +77,7 @@ import sys
 sys.path.insert(0, '/path/to/modbus/src')
 from franklinwh import FranklinWHController
 
-ctrl = FranklinWHController('192.168.0.110')
+ctrl = FranklinWHController('192.0.2.110')
 ctrl.connect()
 ```
 
@@ -92,7 +92,7 @@ ctrl.connect()
 from franklinwh import FranklinWHController, HAS_MONITOR
 
 # Core functionality always works
-ctrl = FranklinWHController('192.168.0.110')
+ctrl = FranklinWHController('192.0.2.110')
 
 # Optional TUI features
 if HAS_MONITOR:
@@ -120,7 +120,7 @@ print(f'✓ Import successful (HAS_MONITOR={HAS_MONITOR})')
 
 ### Step 2: Test Connection
 ```bash
-python3 franklinwh_cli.py -i 192.168.0.110 --status
+python3 franklinwh_cli.py -i 192.0.2.110 --status
 ```
 
 ### Step 3: Run Test Suite

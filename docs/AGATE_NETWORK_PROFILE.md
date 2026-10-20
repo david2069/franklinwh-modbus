@@ -1,11 +1,11 @@
 # FranklinWH aGate Network Profile
 
-**Device:** FranklinWH aGate X (Serial: 10060006A02F24)
+**Device:** FranklinWH aGate X (Serial: <SERIAL>)
 **Firmware:** V10R01B04D
 **SoC:** NXP i.MX6ULL (ARM Cortex-A7)
 **mDNS Hostname:** `imx6ull14x14evk` (default NXP EVK hostname)
-**WiFi MAC:** `4C:24:CE:67:3A:7C`
-**LAN IP:** `192.168.0.110`
+**WiFi MAC:** `<AGATE_MAC>`
+**LAN IP:** `192.0.2.110`
 
 ## Open Ports
 
@@ -57,6 +57,6 @@ If the aGate becomes unreachable via Modbus TCP:
 
 1. **Check the FranklinWH app → Network Settings** — if it shows "4G" as the primary connection, WiFi/Ethernet have dropped
 2. **Check WiFi IP** — if `0.0.0.0`, the DHCP lease was lost. Reconfigure WiFi via the app
-3. **Recommend:** Set a DHCP reservation in your router for MAC `4C:24:CE:67:3A:7C` → `192.168.0.110`
+3. **Recommend:** Set a DHCP reservation in your router for MAC `<AGATE_MAC>` → `192.0.2.110`
 
 See [WiFi DHCP Failure — 2026-03-21](troubleshooting/2026-03-21_wifi_dhcp_failure.md) for a documented example.

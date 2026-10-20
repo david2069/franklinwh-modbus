@@ -73,9 +73,11 @@ What the **aGate X / aPower S** system implements via Modbus TCP:
 | DC battery current | M714 (DCA) | Always returns 0 — calculate from P/V |
 | Solar voltage / current | M502 (OutV / InV) | Not populated |
 
-### ⚠️ Requires SPAN Unlock
+### ⚠️ Extension Writes: Undocumented and Unconfirmed
 
-| Function | Register | Without SPAN |
+FranklinWH has never documented these registers as writable. Whether it must authorise a Modbus client to write them is unknown. On V12R02B60D00 (2026-10-21) writes did not take effect.
+
+| Function | Register | Access |
 |----------|----------|-------------|
 | Work mode switching | Ext 15507 (OnGridMode) | Read-only |
 | Self-consumption reserve | Ext 15508 | Read-only |

@@ -46,15 +46,15 @@
 
 ### Check Status with Energy Context
 ```bash
-cd /home/david/dev/modbus
-python3 franklinwh_cli.py -i 192.168.0.110 --status
+cd ~/dev/modbus
+python3 franklinwh_cli.py -i 192.0.2.110 --status
 ```
 
 ### Test Self-Consumption Mode
 ```bash
 # Set reserve and target
-cd /home/david/dev/modbus
-python3 franklinwh_cli.py -i 192.168.0.110 \
+cd ~/dev/modbus
+python3 franklinwh_cli.py -i 192.0.2.110 \
   --mode self_consumption \
   --reserve 20 \
   --target-soc 95 \
@@ -64,7 +64,7 @@ python3 franklinwh_cli.py -i 192.168.0.110 \
 
 ### Dry Run (No Commands Sent)
 ```bash
-python3 franklinwh_cli.py -i 192.168.0.110 --max-charge --dry-run
+python3 franklinwh_cli.py -i 192.0.2.110 --max-charge --dry-run
 ```
 
 ---
@@ -175,7 +175,7 @@ python3 franklinwh_cli.py -i 192.168.0.110 --max-charge --dry-run
 
 ## Environment
 
-- **Device:** FranklinWH aGate X at 192.168.0.110:502 (unit 2)
+- **Device:** FranklinWH aGate X at 192.0.2.110:502 (unit 2)
 - **Library Package:** `src/franklinwh/`
 - **CLI:** `franklinwh_cli.py`
 - **Python:** 3.12+

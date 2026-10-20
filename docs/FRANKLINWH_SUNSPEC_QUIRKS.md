@@ -206,7 +206,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | **FranklinWH Extensions** | 15507-15509 | ✅ | ❌ Read-Only* | Operating mode, SoC reserves |
 | **M702 Rate Settings** | 40259-40262 | ✅ | ❌ (tested 2026-03-13) | Charge/discharge rate limits |
 
-*Extension write access requires **SPAN Modbus** unlock — enabled by FranklinWH Support for SPAN panel owners.
+*Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
 ### What This Means in Practice
 
@@ -234,7 +234,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | Battery state (M713.Sta) | Reflects CHARGING/DISCHARGING/IDLE | Always 0 (OFF) | Derived from M714.DCW ±50W deadband | Report; workaround is robust |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
-| Extension register writes | N/A (vendor-specific) | Read-only without SPAN Modbus unlock | Cloud API bypass (Tier 2) for mode changes | SPAN unlock required; vendor provisioning |
+| Extension register writes | N/A (vendor-specific) | Read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) | Cloud API bypass (Tier 2) for mode changes | Unknown; FranklinWH has not documented any write mechanism |
 | Remote Control activation | WSetEna=1 starts remote DER control | ✅ Works — activates Remote Control (exclusive) | None needed — works as intended | N/A — working correctly |
 | Command persistence | WSetRvrtTms reverts after timeout | WSetRvrtTms countdown active; WSetEna persists after timer expiry (partial implementation?) | Software timer + `reset_control_state()` remains recommended | Investigate: does countdown actually revert power? |
 | Throttle % (ThrotPct) | Reports inverter power curtailment % | ✅ Readable (40180), always 0% in testing | None — read-only info point | N/A — may activate under thermal/grid stress |
@@ -292,22 +292,15 @@ This creates a **selective-write hybrid** that is non-standard:
 
 4. **Library vs consumer boundary:** The library exposes `send_command()` and `reset_control_state()`. Crash recovery, watchdog timers, and session lifecycle are **consumer responsibilities** (e.g. FEM's `ModbusControlService`).
 
-5. **SPAN Modbus Unlock Changes Everything:** If write access to extensions is enabled, the library could fully control the aGate — changing modes, setting reserves, etc. This is a fundamentally different operating mode that the library should detect and adapt to.
+5. **Extension writes are undocumented:** FranklinWH has never documented any extension register as writable, and whether it must authorise a Modbus client to write them is unknown. On V12R02B60D00 (2026-10-21) writes to 15507–15509 did not take effect. The library treats them as read-only and reports each write's read-back result.
 
 ### Detection of Write Capability
 
 ```python
-# The library tests write capability during connect()
-# by attempting a write to extension registers
-def _probe_extension_writable(self):
-    """Test if extension registers accept writes."""
-    try:
-        # Read current value, write it back, verify
-        current = read_register(15508)  # SelfReserve
-        write_register(15508, current)  # Write same value
-        return True  # SPAN Modbus unlock is active
-    except:
-        return False  # Standard read-only
+# connect() never writes. test_extension_writability() is opt-in:
+# it writes a test value, reads it back, and restores the original.
+results = ctrl.test_extension_writability()   # WRITES TO THE DEVICE
+results['ongrid_mode']['writable']            # True only if the read-back matched
 ```
 
 ### Related

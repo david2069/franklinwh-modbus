@@ -3,7 +3,7 @@ import time
 import sys
 from franklinwh_modbus import FranklinWHController
 
-AGATE_IP = "192.168.0.110"
+AGATE_IP = "192.0.2.110"
 UNIT_ID = 2  # The probe used Unit ID 2 per documentation
 START_ADDR = 15000
 COUNT = 40
