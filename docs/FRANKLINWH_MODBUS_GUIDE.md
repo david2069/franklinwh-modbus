@@ -207,7 +207,7 @@ resp = sock.recv(256)
 
 ### 5.9 M715 Address Space
 
-M715 registers are read and written at their **PDU addresses** (1087–1095, as in the FranklinWH PICS). Offsetting by 40000 (PDU 41087+) returns exception 2 (`ILLEGAL_DATA_ADDRESS`). The aGate's SunSpec map starts at PDU 0; see QUIRKS, Register Addressing.
+M715 registers are read and written at their **PDU addresses** (1087–1095, as in the FranklinWH PICS). Offsetting by 40000 (PDU 41087+) returned exception 2 (`ILLEGAL_DATA_ADDRESS`) on V10R01B04D00; V12R02B60D00 mirrors the map at 40000. Use the PDU address. The aGate's SunSpec map starts at PDU 0; see QUIRKS, Register Addressing.
 
 ---
 

@@ -71,7 +71,7 @@ See the [API Cookbook](API_COOKBOOK.md#every-field-by-method) for every key.
 
 - **Battery:** SoH, capacity (`wh_rating`, `wh_available`), DC current and temperature, and a per-battery breakdown.
 - **Grid:** voltage, frequency, VA, VAR, power factor and temperatures. The cloud has some of these via `get_stats(include_electrical=True)`: cmdType 211, an extra call.
-- **Reserves:** extension 15508 and 15509. 15509 repeats 15508 on current firmware (#63).
+- **Reserves:** extension 15508 (SC) and 15509 (TOU). 15509 holds the TOU reserve on V12R02B60D00, but only repeated 15508 on V10R01B04D00 (#63).
 - **Read quality and control state:** remote-control state, and the `partial` and `error` read-quality flags.
 
 ## Choosing a source
