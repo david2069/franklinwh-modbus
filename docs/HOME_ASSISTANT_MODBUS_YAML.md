@@ -274,7 +274,7 @@ Paste the `sensors` entries **under the same `sensors:` list** as the core YAML,
     Most come from the device scan (2026-05-14, V10R01B04D00). Two of them, battery voltage (1073) and battery temperature (1083), are in model 714's **per-port block**, which the scan doesn't print. They're **computed** from the SunSpec model 714 definition (model at 1042; port 1 starts at 1062). The emulator test confirmed the addresses against the emulator's own SunSpec map. With more than one aPower, each port's block follows the previous one, 25 registers on.
 
 !!! warning "Battery voltage and temperature may read 0"
-    On firmware V10R01B04D00 these two may read **0**. The FranklinWH Gateway Emulator's default profile, which its maintainers base on a real scan of this firmware, has model 714's whole port block at 0. Our [QUIRKS](FRANKLINWH_SUNSPEC_QUIRKS.md) page lists `DCV` and `Tmp` as working. That conflict is unresolved, so check yours with step 4. If they read 0, Battery Current shows as unavailable, and you can leave the three out.
+    **On firmware V12R02B60D00 they read 0.** A read-only scan of the reference aGate on 2026-10-20 found model 714's whole port block (1062–1086) at 0. The gateway emulator's V10R01B04D00 profile has it zeroed too. Battery Current then shows as unavailable. Leave the three out unless your firmware reports real values (check with step 4).
 
 ### Extra Modbus sensors
 
