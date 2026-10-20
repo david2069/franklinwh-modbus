@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - where the FranklinWH extension registers sit in that context: outside the SunSpec chain, not vendor models, and not covered by certification.
 
   It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
+- **Removed the remaining "SPAN unlock" claims** from the docs, the bug template, the sequencer example, the compliance report and tool messages. These said extension register writes need a "SPAN Modbus" (or "SPAN/Lumin") installer unlock or provisioning. FranklinWH has not documented the extension registers and has never documented any of them as writable; whether it must authorise a Modbus client to write them is unknown. On `V12R02B60D00` (owner observation, 2026-10-21) writes to 15507–15509 did not take effect. Access columns for 15507–15509 now read "R (writes undocumented)", and the raw reader labels them `R`. Earlier `RW` labels are marked as speculation. SPAN is a third-party company; no relationship is implied.
 
 ### Added
 - **Modbus Client Libraries** (`docs/MODBUS_CLIENT_LIBRARIES.md`), every claim sourced. It covers:

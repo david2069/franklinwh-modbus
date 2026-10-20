@@ -4,7 +4,7 @@
     "writes": { "15507": 3 },
     "verify": true,
     "verify_timeout_ms": 2000,
-    "note": "Attempts to switch native aGate to TOU mode. If read-back returns old value, SPAN Modbus is LOCKED."
+    "note": "Attempts to switch native aGate to TOU mode. Extension writes are undocumented and unconfirmed. If read-back returns the old value, the write was not applied."
   },
   {
     "step": "Probe: Reserve Adjustment (Extension 15508)",

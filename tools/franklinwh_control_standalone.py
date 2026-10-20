@@ -18,7 +18,7 @@ Includes:
 - Continuous tick-based execution
 - Graceful shutdown with idle-on-exit
 - Health check with zombie state detection
-- SPAN extension detection (conditional read/write)
+- FranklinWH extension register detection (read; writes undocumented)
 - Cloud API placeholder for future integration
 
 Usage:
@@ -365,8 +365,10 @@ class HealthStatus:
 class FranklinWHController:
     """FranklinWH aGate controller using sunspec2 model-based access."""
     
-    # FranklinWH SPAN extension registers (15500+)
-    # NOTE: Write access requires installer-enabled "SPAN Modbus" option
+    # FranklinWH extension registers (15500+)
+    # NOTE: Writes are undocumented and unconfirmed. FranklinWH has never
+    # documented any of these as writable; on V12R02B60D00 (2026-10-21)
+    # writes to 15507-15509 did not take effect.
     EXT_BASE = 15500
     EXT_PV_TOTAL = 15502
     EXT_HOME_LOAD = 15506
@@ -687,7 +689,7 @@ class FranklinWHController:
         - Model availability
         - Zombie state (WSetEna=1 with expired revert timer)
         - Battery safety bounds
-        - SPAN extension availability
+        - FranklinWH extension register availability
         - OnGridMode (safety for remote control)
         
         Returns:
@@ -797,7 +799,7 @@ class FranklinWHController:
                 f"(V: {v_lo}-{v_hi}, Hz: {hz_lo}-{hz_hi})"
             )
         
-        # 6. SPAN extension detection
+        # 6. FranklinWH extension register detection
         span_status = self._detect_span_capability()
         checks['span'] = span_status
         
@@ -855,7 +857,7 @@ class FranklinWHController:
     
     def _detect_span_capability(self) -> dict:
         """
-        Detect SPAN extension availability.
+        Detect FranklinWH extension register availability.
         Attempts read, then test write to determine capability.
         """
         result = {
@@ -1241,7 +1243,8 @@ class VirtualModeController:
     """
     Software-based battery mode controller for FranklinWH aGate.
     
-    Since hardware modes (15507-15509) are Modbus read-only without SPAN unlock,
+    Since hardware modes (15507-15509) are read-only over Modbus (writes are
+    undocumented and did not take effect on V12R02B60D00, 2026-10-21),
     we implement equivalent logic using direct WSet control via Model 704.
     
     Usage:
@@ -2470,7 +2473,7 @@ def print_health_report(health: HealthStatus):
     print(f"  Frequency:            {f:.2f} Hz {'✓' if grid_safe else '⚠'}")
     
     # SPAN / OnGridMode
-    print(f"\nSPAN Extensions:")
+    print(f"\nFranklinWH Extensions:")
     span = details.get('span', {})
     if span.get('readable'):
         ongrid = details.get('ongrid_mode', -1)
@@ -2481,7 +2484,7 @@ def print_health_report(health: HealthStatus):
         print(f"  Remote Control:       {'✓ Safe' if remote_safe else '⚠ Caution'}")
     else:
         print(f"  Status:               Not detected (SunSpec mode only)")
-        print(f"  Note:                 SPAN extensions require installer unlock")
+        print(f"  Note:                 Extension writes are undocumented and unconfirmed")
     
     # Cloud API
     print(f"\nCloud API:")
@@ -3330,11 +3333,11 @@ def main():
             
             print(f"\n  Summary: {writable_count}/3 registers writable")
             if writable_count == 0:
-                print("  Note: Write access requires 'SPAN Modbus' unlock in installer settings")
+                print("  Note: extension writes are undocumented; FranklinWH has not documented them as writable")
             elif writable_count < 3:
                 print("  Note: Partial write access - some features may be limited")
             else:
-                print("  Full write access - all extension features available")
+                print("  All three writes read back as applied on this unit")
             
             print("=" * 70)
             sys.exit(0)

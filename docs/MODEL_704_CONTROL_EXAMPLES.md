@@ -9,8 +9,8 @@ This document provides a comprehensive handbook of **Model 704 (Active Power & P
 > [!IMPORTANT]
 > **FranklinWH Extensions & Write Permissions**
 > - **Active Power Remote Control (`WSet` Group)** is fully functional and writable on all standard FranklinWH aGate installations.
-> - **Active Power Curtailment (`WMaxLimPct` Group)** and proprietary extensions are **read-only** by default. They will not function unless FranklinWH Support explicitly unlocks them or you are using provisioned SPAN/Lumin smart panels.
-> - When writing registers, writes to read-only or locked registers will return a Modbus **Success (ACK)** packet but will be **silently ignored/discarded** internally by the gateway's firmware. The only way to verify successful writes is through readback verification.
+> - **Active Power Curtailment (`WMaxLimPct` Group)** writes were silently discarded in testing. FranklinWH extension register writes are undocumented and unconfirmed: FranklinWH has never documented any of them as writable, and on V12R02B60D00 (2026-10-21) writes to 15507–15509 did not take effect. Treat both as read-only.
+> - When writing registers, writes to read-only registers will return a Modbus **Success (ACK)** packet but will be **silently ignored/discarded** internally by the gateway's firmware. The only way to verify successful writes is through readback verification.
 
 ---
 
@@ -59,7 +59,7 @@ To guarantee predictable physical transitions and prevent the battery from becom
 Use these registers to restrict the maximum power exported from the battery/inverter to the grid.
 
 > [!WARNING]
-> These curtailment registers are physically read-only unless unlocked via SPAN smart panels or support configuration.
+> These curtailment registers silently discarded writes in testing. FranklinWH has not documented any setting that changes this.
 
 #### Use Case A: Temporary 5kW Export Limit (50% of a 10kW Inverter)
 Utility requires a temporary 5kW export limit, reverting to 100% rated capacity after 1 hour (3600 seconds).

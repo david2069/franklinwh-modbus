@@ -9,9 +9,9 @@
 - **IP Address**: 192.0.2.110:502
 - **Slave Unit ID**: 1
 
-## Write plane Status (SPAN Modbus Lock)
+## Write plane Status (Extension Registers)
 > [!IMPORTANT]
-> **🔒 WRITE PLANE LOCKED**: Proprietary extension registers are **read-only** (SPAN Modbus lock active). This is normal for standard FranklinWH installations that do not have SPAN/Lumin panels provisioned. Active power control (M704) remains fully writable.
+> **🔒 EXTENSION WRITES NOT APPLIED**: Proprietary extension registers are **read-only** on this unit. FranklinWH has not documented them or any mechanism that enables writes. Active power control (M704) remains fully writable.
 
 ## Compliance Audit Results
 | Model | Register Point | Expected Status | Live Verified | Observed Value / Details |
@@ -59,8 +59,8 @@
 | Extension Register | Purpose | Live Status | Details |
 |:---|:---|:---|:---|
 | `15506` (Home Load) | Coarse active home load in Watts (snaps to ~100W steps) | ❓ Unread | No telemetry returned |
-| `15507` (Operating Mode) | Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU, 4=Manual. Requires installer SPAN Modbus unlock to write. | ✅ Readable | Value: 2 |
-| `15508` (Self-Consumption Reserve) | Self-consumption floor reserve percentage. Requires installer SPAN Modbus unlock to write. | ✅ Readable | Value: 6 |
+| `15507` (Operating Mode) | Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU, 4=Manual. Writes undocumented. | ✅ Readable | Value: 2 |
+| `15508` (Self-Consumption Reserve) | Self-consumption floor reserve percentage. Writes undocumented. | ✅ Readable | Value: 6 |
 | `15509` (TOU Reserve) | Time-of-Use floor reserve percentage. Firmware defect: register always mirrors 15508 and cannot be configured independently via Modbus. | ✅ Readable | Value: 6 |
 | `16000` (High-Resolution Home Load) | Undocumented high-precision home load mirror in Watts (~1W resolution vs ~100W). Used preferentially by the library. | ✅ Readable | Value: 454 |
 

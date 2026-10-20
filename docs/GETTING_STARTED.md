@@ -139,7 +139,7 @@ franklinwh -i YOUR_AGATE_IP --stop
 ```
 
 !!! important
-    **Read operations always work.** Write operations (charge, discharge, mode changes) require either a SPAN/Lumin panel on the aGate or provisioning by FranklinWH Support.
+    **Read operations always work.** Charge, discharge and standby use SunSpec M704. Mode and reserve changes write FranklinWH extension registers, which are undocumented and unconfirmed: on V12R02B60D00 (2026-10-21) they did not take effect.
 
 ### Connection Options
 
@@ -218,7 +218,7 @@ The `franklinwh` CLI also has a built-in SPAN panel scanner:
 franklinwh -i YOUR_AGATE_IP --check-span
 ```
 
-This scans the aGate's /24 subnet for SPAN panels and reports whether extension register write access is available.
+This scans the aGate's /24 subnet for SPAN panels. A panel's presence says nothing about extension register writes; only `--test-extension-write` (which writes to the device) checks that by read-back.
 
 ---
 
@@ -353,6 +353,8 @@ Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)    Guess/Not
 15507    0002   2        2        2               RW  0000000000000010 Operating Mode (OnGridMode) (Self)
 ```
 
+This sample predates the tool's label change: 15507–15509 now show `R`. `RW` was **speculation (undocumented, unverified)**.
+
 ### 5.7. JSON Output (`--json`)
 
 Output results as machine-readable JSON:
@@ -419,7 +421,9 @@ The aGate exposes non-standard registers at addresses 15500+ for FranklinWH-spec
 | 15510–15511 | `PVOutputWh` | PV Energy Total | uint32 |
 | 15512–15513 | `proximalOutputWh` | PV Energy Proximal | uint32 |
 
-#### Read/Write (requires SPAN/Lumin provisioning)
+#### Mode and reserves (read-only; writes undocumented)
+
+FranklinWH has never documented these as writable. On V12R02B60D00 (2026-10-21) writes did not take effect.
 
 | Address | Short Name | Description | Values |
 |---------|-----------|-------------|--------|
@@ -578,7 +582,7 @@ await client.set_tou_schedule(touMode="SELF")
 | **Offline** | ✅ Works without internet | ❌ Requires cloud |
 | **Protocol** | Modbus TCP / SunSpec | HTTPS REST (JSON) |
 | **Read** | SunSpec registers + extensions | Full system stats, BMS, TOU, weather |
-| **Write** | SunSpec M704 + extensions (if provisioned) | Mode, SoC, PCS, TOU, smart circuits |
+| **Write** | SunSpec M704 (extension writes undocumented) | Mode, SoC, PCS, TOU, smart circuits |
 | **Rate limits** | None | Undocumented (be conservative) |
 | **Package** | `pip install franklinwh-modbus` | `pip install franklinwh-cloud` |
 

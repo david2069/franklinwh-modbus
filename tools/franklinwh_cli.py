@@ -1097,11 +1097,11 @@ def main():
             
             print(f"\n  Summary: {writable_count}/3 registers writable")
             if writable_count == 0:
-                print("  Note: extension writes are accepted but not applied on some firmware")
+                print("  Note: extension writes are undocumented; FranklinWH has not documented them as writable")
             elif writable_count < 3:
                 print("  Note: Partial write access - some features may be limited")
             else:
-                print("  Full write access - all extension features available")
+                print("  All three writes read back as applied on this unit")
             
             print("")
             sys.exit(0)

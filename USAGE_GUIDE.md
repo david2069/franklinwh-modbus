@@ -39,22 +39,21 @@ The library accesses the aGate via two mechanisms:
 
 All standard SunSpec registers are readable by any Modbus TCP client. This includes battery status, grid power, solar production (proximal and remote AC/DC), system alarms, nameplate data, and control status. The CLI `--status`, `--healthcheck`, `--check-alarms`, and TUI monitor all use these read-only registers.
 
-**FranklinWH Extension Registers (write access requires provisioning):**
+**FranklinWH Extension Registers (read-only; writes undocumented):**
 
-| Register | Address | Default Access | With Provisioning |
-|----------|---------|---------------|-------------------|
-| OnGridMode | 15507 | Read-only | Read/Write |
-| SelfReserve | 15508 | Read-only | Read/Write |
-| TOUReserve | 15509 | Read-only | Read/Write |
+| Register | Address | Access |
+|----------|---------|--------|
+| OnGridMode | 15507 | R (writes undocumented) |
+| SelfReserve | 15508 | R (writes undocumented) |
+| TOUReserve | 15509 | R (writes undocumented) |
 
-These extension registers control the aGate operating mode and reserve levels. Write access must be **provisioned by FranklinWH Support**.
+These extension registers hold the aGate operating mode and reserve levels.
 
-> [!IMPORTANT]
-> **FranklinWH Modbus extensions are not writeable by default** and will not function unless FranklinWH Support unlocks them or a future firmware release allows them. Even though these setters are implemented in software/the library, they will be **non-functional for the vast majority of users** (excluding those with SPAN or Lumin smart panels who have obtained installer unlock).
+Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
-**Already provisioned:** Owners with **SPAN Panels** or **Lumin Panels** connected via Modbus TCP — write access is already enabled.
+The library's setters (`set_native_mode()`, `set_self_consumption_reserve()`, `set_tou_reserve()`) attempt the write, read the register back, and return `(ok, message)` with the read-back result. They do not promise any effect.
 
-**Not provisioned?** Contact FranklinWH Support. Without provisioning, `send_command()` and mode changes will fail silently. Read-only features (`--status`, `--healthcheck`, TUI monitor) still work.
+Standard SunSpec M704 power commands (`send_command()`: charge, discharge, standby) are separate from the extension registers. Read-only features (`--status`, `--healthcheck`, TUI monitor) work.
 
 ### Mobile App Conflicts
 
@@ -222,10 +221,10 @@ python franklinwh_cli.py -i YOUR_AGATE_IP --max-discharge --duration 3600
 # Standby (0W)
 python franklinwh_cli.py -i YOUR_AGATE_IP --standby
 
-# Set native Self-Consumption reserve SOC percentage (requires SPAN/Lumin unlock)
+# Attempt to set the native Self-Consumption reserve (extension write: undocumented; did not take effect on V12R02B60D00)
 python franklinwh_cli.py -i YOUR_AGATE_IP --self-reserve 35
 
-# Set native TOU reserve SOC percentage (requires SPAN/Lumin unlock)
+# Attempt to set the native TOU reserve (extension write: undocumented; did not take effect on V12R02B60D00)
 python franklinwh_cli.py -i YOUR_AGATE_IP --tou-reserve 40
 
 # Release control to cloud

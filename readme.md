@@ -54,14 +54,14 @@ A Python library for controlling FranklinWH battery storage systems via Modbus T
 
 **Read operations always work** — battery status, grid power, solar production (proximal and remote), system alarms, and all SunSpec model data are readable by any Modbus TCP client without provisioning. The CLI `--status`, `--healthcheck`, and TUI monitor all work out of the box.
 
-**Writes to the extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve) are accepted at the protocol level but are not applied** on the firmware tested here (aGate X, `V10R01B04D00`). The register echoes the write and then reads back its previous value, which is why every write in this library is verified by read-back.
+**Writes to the extension registers (15507–15509: OnGridMode, SelfReserve, TOUReserve) are accepted at the protocol level but are not applied** on the firmware tested here (aGate X, `V10R01B04D00`; and `V12R02B60D00`, owner observation 2026-10-21: the mode did not switch and the reserves did not change). The register echoes the write and then reads back its previous value, which is why every write in this library is verified by read-back.
 
 > [!IMPORTANT]
-> **Why this happens is not known.** FranklinWH has not documented or confirmed any mechanism that enables these writes — past, present or future. Earlier versions of this README attributed it to a "SPAN Modbus" installer unlock; that was inference on our part, never confirmed, and has been removed. If you know differently, please [open an issue](https://github.com/david2069/franklinwh-modbus/issues).
+> **Why this happens is not known.** FranklinWH has not documented the extension registers, has never documented any of them as writable, and has not documented or confirmed any mechanism that enables these writes — past, present or future. Whether FranklinWH must authorise a Modbus client to write them is an open question. Earlier versions of this README attributed it to a "SPAN Modbus" installer unlock; that was inference on our part, never confirmed, and has been removed. If you know differently, please [open an issue](https://github.com/david2069/franklinwh-modbus/issues).
 
 **Standard SunSpec M704 power commands (charge/discharge) are unaffected** and work regardless — that is the supported way to dispatch the battery from this library.
 
-To check your own unit, `--check-span` reports whether extension writes are applied on your system. Its result is the only reliable answer; nothing about your panel hardware predicts it.
+To check your own unit, `--test-extension-write` writes test values to 15507–15509, reads them back and restores them (⚠️ it writes to the device). The read-back is the only reliable answer; nothing about your panel hardware predicts it. `--check-span` only scans the network for SPAN panels.
 
 ### Avoiding Control Conflicts
 
@@ -211,9 +211,9 @@ franklinwh-modbus/
 
 | Register | Address | Access | Description |
 |----------|---------|--------|-------------|
-| OnGridMode | 15507 | R (RW with SPAN) | 1=Emergency Backup, 2=Self-Consumption, 3=TOU, 4=Manual |
-| Self Reserve SOC | 15508 | R (RW with SPAN) | Self-consumption reserve percentage (0-100) |
-| TOU Reserve SOC | 15509 | R (RW with SPAN) | ⚠️ Known defect: always mirrors 15508 |
+| OnGridMode | 15507 | R (writes undocumented) | 1=Emergency Backup, 2=Self-Consumption, 3=TOU, 4=Manual |
+| Self Reserve SOC | 15508 | R (writes undocumented) | Self-consumption reserve percentage (0-100) |
+| TOU Reserve SOC | 15509 | R (writes undocumented) | ⚠️ Known defect: always mirrors 15508 |
 
 See [FRANKLINWH_SUNSPEC_QUIRKS.md](./docs/FRANKLINWH_SUNSPEC_QUIRKS.md) for all documented hardware quirks.
 

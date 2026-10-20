@@ -39,7 +39,7 @@ python3 -m pytest tests/hardware/ -v --ip YOUR_AGATE_IP
 - Use the [Bug Report](https://github.com/david2069/franklinwh-modbus/issues/new?template=bug_report.md) template
 - Include your aGate firmware version (`--status` output shows this)
 - Include the exact command and full error output
-- Note whether you have **SPAN Modbus** unlock enabled
+- If the bug involves extension register writes (15507–15509), include the read-back result the setter returned
 
 ### Suggesting Features
 
