@@ -97,9 +97,9 @@ python3 network_scanner.py 192.168.0.XXX --devices modbus -v
 ## Your Network Map (from Avahi)
 
 Based on your screenshot, you have:
-- **Home Assistant** at `192.168.0.109` (confirmed by scanner)
-- **Enphase Envoy** at one of: `192.168.0.4, 0.7, 0.10, 0.35, 0.224, 0.253`
-- **Homey** at `192.168.0.253` (confirmed by scanner)
+- **Home Assistant** at `192.0.2.109` (confirmed by scanner)
+- **Enphase Envoy** at one of: `192.0.2.4, 0.7, 0.10, 0.35, 0.224, 0.253`
+- **Homey** at `192.0.2.253` (confirmed by scanner)
 - **Sonos** speakers in Living Room
 - **Various** ESPHome, Matter devices
 

@@ -21,4 +21,4 @@ Update the project documentation (or create a new `CLI_COMMAND_REFERENCE.md`) to
 - Ensure examples from the `--help` footer are also included in the guide.
 
 ## Related
-- Original approval context: [in_flight_work.md](file:///Users/davidhona/dev/modbus/in_flight_work.md)
+- Original approval context: [in_flight_work.md](/in_flight_work.md)

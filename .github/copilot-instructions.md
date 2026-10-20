@@ -27,6 +27,6 @@
 
 ## Key Paths
 
-- Source: `/Users/davidhona/dev/modbus/`
-- aGate: `192.168.0.110` (port 502)
+- Source: `~/dev/modbus/`
+- aGate: `192.0.2.110` (port 502)
 - Tests: `PYTHONPATH=src:. python3 -m pytest tests/ --tb=short`

@@ -2,8 +2,6 @@
 
 The FranklinWH CLI includes a fully interactive Terminal User Interface (TUI) dashboard. It provides low-level visualization and control over the aGate in a single, continuously updating screen.
 
-![TUI Monitor Dashboard](images/tui_monitor.png)
-
 ## Why use the TUI Monitor?
 
 When debugging Modbus integrations, writing local automation scripts (like Home Assistant rules), or simply monitoring your home's energy flow, latency matters. 

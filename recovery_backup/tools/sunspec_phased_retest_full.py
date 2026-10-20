@@ -29,11 +29,12 @@ import time
 import json
 from datetime import datetime
 
-sys.path.insert(0, '/Users/davidhona/dev/modbus/src')
+import os
+sys.path.insert(0, os.path.expanduser('~/dev/modbus/src'))
 from franklinwh_modbus import FranklinWHController
 from franklinwh_modbus.types import BatteryCommand, ControlMode
 
-AGATE_IP = sys.argv[1] if len(sys.argv) > 1 else '192.168.0.110'
+AGATE_IP = sys.argv[1] if len(sys.argv) > 1 else '192.0.2.110'
 UNIT_ID = int(sys.argv[2]) if len(sys.argv) > 2 else 1
 
 # Timing constants (ms → seconds)

@@ -90,7 +90,7 @@ Rows 28-30: Footer
 
 ### Run Tests
 ```bash
-cd /home/david/dev/modbus
+cd ~/dev/modbus
 python3 tests/test_monitor_layout.py
 ```
 
@@ -109,7 +109,7 @@ python3 tests/test_monitor_layout.py
 
 ### Start Monitor
 ```bash
-python3 franklinwh_cli.py -i 192.168.0.110 --monitor
+python3 franklinwh_cli.py -i 192.0.2.110 --monitor
 ```
 
 ### Keyboard Shortcuts

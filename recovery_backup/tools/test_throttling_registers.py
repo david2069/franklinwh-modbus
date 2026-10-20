@@ -151,7 +151,7 @@ def print_results(result: dict, iteration: int = 1):
 def main():
     if len(sys.argv) < 2:
         print("Usage: python test_throttling_registers.py <agate_ip> [unit_id] [timeout_sec]")
-        print("Example: python test_throttling_registers.py 192.168.0.110 2 15")
+        print("Example: python test_throttling_registers.py 192.0.2.110 2 15")
         print("  Default unit_id: 2")
         print("  Default timeout: 10 seconds")
         sys.exit(1)

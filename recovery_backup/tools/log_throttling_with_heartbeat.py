@@ -192,7 +192,7 @@ def main():
     
     if len(sys.argv) < 2:
         print("Usage: python log_throttling_with_heartbeat.py <agate_ip> [unit_id] [duration_min]")
-        print("Example: python log_throttling_with_heartbeat.py 192.168.0.110 2 60")
+        print("Example: python log_throttling_with_heartbeat.py 192.0.2.110 2 60")
         print("  Default unit_id: 2")
         print("  Default duration: 60 minutes")
         print("\nUses WSetPct(0) heartbeat every 10s to keep VPP mode active")

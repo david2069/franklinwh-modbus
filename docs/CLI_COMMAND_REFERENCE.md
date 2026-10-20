@@ -64,15 +64,15 @@ The `franklinwh_cli.py` tool is the primary interface for controlling and monito
 ### Force Charge for 1 Hour with Safety Timeout
 ```bash
 # Charges at 3000W, reverts to cloud control automatically after 3600s
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --charge 3000 --revert 3600 --loop
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --charge 3000 --revert 3600 --loop
 ```
 
 ### Run Virtual Peak Shaving
 ```bash
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --vmode peak_shave --threshold 1500
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --vmode peak_shave --threshold 1500
 ```
 
 ### Execute a Hardware Test Sequence
 ```bash
-python3 tools/franklinwh_cli.py -i 192.168.0.110 --sequence-file examples/test_write_reversion.json
+python3 tools/franklinwh_cli.py -i 192.0.2.110 --sequence-file examples/test_write_reversion.json
 ```

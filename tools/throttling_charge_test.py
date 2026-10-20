@@ -181,7 +181,7 @@ def main():
     
     if len(sys.argv) < 2:
         print("Usage: python throttling_charge_test.py <agate_ip> [unit_id] [target_soc]")
-        print("Example: python throttling_charge_test.py 192.168.0.110 2 95")
+        print("Example: python throttling_charge_test.py 192.0.2.110 2 95")
         print("  Default unit_id: 2")
         print("  Default target_soc: 95 (stop when SoC reaches this)")
         sys.exit(1)

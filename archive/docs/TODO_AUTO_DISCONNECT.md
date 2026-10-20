@@ -21,10 +21,10 @@ Users who want to:
 
 ```bash
 # Auto-disconnect after 30 minutes of inactivity
-python3 franklinwh_cli.py -i 192.168.0.110 --monitor --auto-disconnect 30
+python3 franklinwh_cli.py -i 192.0.2.110 --monitor --auto-disconnect 30
 
 # Or indefinite mode (requires explicit --indefinite flag)
-python3 franklinwh_cli.py -i 192.168.0.110 --monitor --indefinite
+python3 franklinwh_cli.py -i 192.0.2.110 --monitor --indefinite
 ```
 
 ### Behavior

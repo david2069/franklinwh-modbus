@@ -34,7 +34,7 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 ## 2. Raw Scan Output: Diagnostic Space (15000+)
 
 **Command**:  
-`python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 --raw 15000:514 -dvalues --nz --match`
+`python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 --raw 15000:514 -dvalues --nz --match`
 
 ```text
 Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/Notes
@@ -69,7 +69,7 @@ Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/N
 ## 3. Raw Scan Output: SPAN Extensions (15500+)
 
 **Command**:  
-`python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 --raw 15500:15 -dvalues --nz --match`
+`python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 --raw 15500:15 -dvalues --nz --match`
 
 ```text
 Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/Notes
@@ -89,7 +89,7 @@ Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/N
 ## 4. Unknown Range (16000+)
 
 **Command**:  
-`python3 tools/modbus_sunspec2_reader.py -i 192.168.0.110 -u 1 -t 20 --raw 16000:500 -dvalues --nz --match`
+`python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 --raw 16000:500 -dvalues --nz --match`
 
 ```text
 Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/Notes

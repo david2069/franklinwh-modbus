@@ -371,7 +371,7 @@ class ThrottlingLogger:
 def main():
     if len(sys.argv) < 2:
         print("Usage: python log_throttling_1hour.py <agate_ip> [unit_id]")
-        print("Example: python log_throttling_1hour.py 192.168.0.110 2")
+        print("Example: python log_throttling_1hour.py 192.0.2.110 2")
         print("\nThis will log throttling data every 30 seconds for 1 hour.")
         print("Output files: throttling_log_YYYYMMDD_HHMMSS.json")
         print("              throttling_report_YYYYMMDD_HHMMSS.md")

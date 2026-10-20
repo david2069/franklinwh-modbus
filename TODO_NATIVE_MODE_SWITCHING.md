@@ -25,4 +25,4 @@ Repurpose the existing CLI `--mode` flag to control the native FranklinWH Operat
 
 ## Related
 - GitHub Issue: [#9](https://github.com/david2069/franklinwh-modbus/issues/9)
-- Original approval context: [in_flight_work.md](file:///Users/davidhona/dev/modbus/in_flight_work.md)
+- Original approval context: [in_flight_work.md](/in_flight_work.md)

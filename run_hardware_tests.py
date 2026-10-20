@@ -48,7 +48,7 @@ def get_current_status():
     print("CURRENT AGATE STATUS")
     print("="*60)
     
-    ctrl = FranklinWHController(ip_address='192.168.0.110', port=502, unit_id=2)
+    ctrl = FranklinWHController(ip_address='192.0.2.110', port=502, unit_id=2)
     if not ctrl.connect():
         print("❌ Could not connect to aGate!")
         return None
@@ -219,7 +219,7 @@ Examples:
         print("="*60)
         
         try:
-            ctrl = FranklinWHController(ip_address='192.168.0.110', port=502, unit_id=2)
+            ctrl = FranklinWHController(ip_address='192.0.2.110', port=502, unit_id=2)
             if not ctrl.connect():
                 print("❌ Could not connect to aGate!")
                 return 1
