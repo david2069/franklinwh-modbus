@@ -22,7 +22,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 15506 | LoadActiveP | R | uint16, W (~100 W steps) | Home load | `…['home_load_ext_quantized']` | Documented; measured 2026-03-15 |
 | 15507 | OnGridMode | R/W ⚠️ | uint16 enum | Operating mode | `read_native_mode()['mode_raw']`, `['mode_name']`; written by `set_native_mode()` | **Values under review (#75)**; see below |
 | 15508 | SelfReserve | R/W ⚠️ | uint16, % | Self-consumption SoC reserve | `read_native_mode()['self_reserve_pct']`; `set_self_consumption_reserve()` | Measured 2026-10-18, V10R01B04D00 |
-| 15509 | TouReserve | R/W ⚠️ | uint16, % | **Reads the same value as 15508**, not the TOU reserve | `read_native_mode()['tou_reserve_pct']`; `set_tou_reserve()` | Documented defect; measured 2026-10-18, V10R01B04D00 (#63) |
+| 15509 | TouReserve | R/W ⚠️ | uint16, % | TOU SoC reserve. **On V12R02B60D00 it holds the TOU reserve** (15 vs SC 8, matching the app). On V10R01B04D00 it repeated 15508 | `read_native_mode()['tou_reserve_pct']`; `set_tou_reserve()` | Measured 2026-10-20/21, V12R02B60D00; the defect measured 2026-10-18, V10R01B04D00 (#63) |
 | 15510–15511 | PVOutputWh | R | uint32 (high, low), Wh | PV energy, total (lifetime) | read, not returned | Measured: matches M502 `OutWh` |
 | 15512–15513 | proxOutputWh | R | uint32 (high, low), Wh | PV energy, proximal (lifetime) | read, not returned | Measured: matches M502 `OutWh` |
 | 16000 | — | R | uint16, W (~1 W) | Home load, high resolution | `…['home_load_ext']` (falls back to 15506) | Undocumented; measured 2026-03-15 |
@@ -30,7 +30,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 16002 | — | R | uint16 | 20 on the reference site; matches the local API's `BBBackupSoc` | — | Undocumented; **unconfirmed** (#63) |
 | 15000–15043 | — | R | various | Mirrors of SunSpec values (e.g. 15020 = M713 `WHRtg`, 15036 = M713 `SoH` raw, 15025 ≈ M701 `LNV`, 15024 ≈ grid frequency) | — | Undocumented; measured. Writes accepted but discarded (probe 2026-03-08) |
 
-`…` = `read_solar_status()['extension']`. The raw scans behind the measured rows are in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md).
+`…` = `read_solar_status()['extension']`. The raw scans behind the measured rows are in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md) (V10R01B04D00) and the [V12R02B60D00 snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md).
 
 ### 15507 operating mode values
 
@@ -64,7 +64,7 @@ For registers the library doesn't return, use a raw FC3 read; see [API Cookbook 
 - Only 15507–15509 take writes, through `set_native_mode()`, `set_self_consumption_reserve()` and `set_tou_reserve()`. Each writes, reads back, and returns `(ok, message)`. Use `dry_run=True` to preview.
 - **Writes only take effect when FranklinWH has enabled them on the unit** (QUIRKS calls this the "SPAN Modbus" unlock in the installer app). Otherwise they are silently ignored, which is why the setters read back.
 - `connect()` never writes. `test_extension_writability()` **does**: it writes test values to the mode and reserves, then restores them.
-- Writing the TOU reserve (15509) can't be confirmed by reading it back, because 15509 reads the same value as 15508.
+- On V10R01B04D00, a TOU reserve write (15509) can't be confirmed by reading it back, because 15509 reads the same value as 15508. On V12R02B60D00 it reads back normally.
 
 ## Not available over Modbus
 

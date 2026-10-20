@@ -141,7 +141,7 @@ elif der_mode_raw & (1 << 0):
 The FranklinWH extension registers (15000–15043, 15500–15513, 16000–16002), with access, units, library accessors and evidence, are listed in one place: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**.
 
 Quirks covered there:
-- 15509 (TOU reserve) reads the same value as 15508; confirmed on V10R01B04D00, 2026-10-18 (#63).
+- 15509 (TOU reserve) reads the same value as 15508 on **V10R01B04D00** (confirmed 2026-10-18). This is **fixed on V12R02B60D00**, where 15509 holds the TOU reserve (2026-10-20/21; [snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md); #63).
 - The 15507 operating-mode values are under review (#75).
 - 16000 gives the home load at ~1 W resolution (15506 is in ~100 W steps).
 
