@@ -27,6 +27,24 @@ Not yet checked on V12R02B60D00: what 15508 and 16001 hold in TOU mode (every re
 
 Sweeps of 15044–15099, 15514–15599 and 16003–16099 in 10-register chunks all read without exceptions and found nothing populated.
 
+## Firmware components (relayed)
+
+The aGate's other component versions, as read over the FranklinWH **Direct Connect** local API (:9000) at 2026-10-20T20:09Z by the franklinwh-direct-connect-bridge session. That's a claim from another repo, not read over Modbus. The "old" values are a single earlier snapshot (2026-10-07).
+
+| Component | Before | After |
+|---|---|---|
+| IBG (gateway) | V12R02B30D06_260304 | **V12R02B60D00_260924** |
+| Local/APP | V12R00B07D04_260205 | V12R00B16D00_260825 |
+| IoT/AWS | V12R00B06D04_260304 | V12R00B15D00_260918 |
+| SL | V12R02B07D81 | V12R02B12D00 |
+| DC-DC | V12R02B07D01 | V12R02B10D00 |
+| INV | V12R02B09D03 | V12R02B15D00 |
+| BMS | V11R50B03D00 | V11R50B07D00 |
+| protocolVer | V1.11.03 | V1.12.02 |
+| FPGA, BL, TH, METER, SyHdVersion | unchanged | V12R01B00D00, V11R06B00D00, V11R02B01D00, V12R00B11D00, 102 |
+
+**What SunSpec M1 `Vr` reports:** before the update, `Vr` read **V10R01B04D00**, which matched none of the components above (the IBG was V12R02B30D06). After the update, `Vr` reads **V12R02B60D00**, which equals the new IBG version without its date suffix. So `Vr` didn't track the gateway firmware before, and does now. Whether it will keep doing so is unknown. Record the IBG version from the app as well when you quote `Vr`.
+
 ## SunSpec model map (unchanged)
 
 | Model | Header PDU | Length | | Model | Header PDU | Length |
