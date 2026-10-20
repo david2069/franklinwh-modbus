@@ -6,7 +6,7 @@ A read-only capture of the reference aGate X after a FranklinWH firmware update,
 |---|---|
 | Firmware (SunSpec M1 `Vr`) | **V12R02B60D00**. It was V10R01B04D00 on 2026-05-14 and on 2026-10-18 |
 | Model (M1 `Md`) | aGate X |
-| Captured | 2026-10-20T20:10:45Z: a SunSpec export from the aGate's Modbus client (franklinwh-modbus-bridge 0.2.31). Reserve values were confirmed by an owner read and the FranklinWH app on 2026-10-21 |
+| Captured | (1) 2026-10-20T20:10:45Z: a SunSpec export from the aGate's Modbus client (franklinwh-modbus-bridge 0.2.31). (2) **2026-10-20T20:17:37Z: a franklinwh-modbus re-scan**: a raw FC3 walk of the whole chain, the M714 port block, the extension ranges and sweeps, with the bridge stopped so it was the only client. Reserve values were confirmed by an owner read and the FranklinWH app on 2026-10-21 |
 | Method | Read-only (FC3). Serial number redacted |
 | Addresses | Modbus **PDU addresses** (0-based); see [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map) |
 
@@ -18,24 +18,30 @@ A read-only capture of the reference aGate X after a FranklinWH firmware update,
 | SunSpec model map | 17 models (below) | **Unchanged:** same models, same addresses, same lengths |
 | Scale factors | as in the baseline | **Unchanged** for every scale factor compared |
 | M1 `Mn` | "FranklinWH Technologies Co., Ltd" | "FranklinWH" |
+| **Map at PDU 40000** | Exception 2 (2026-03-15) | **Mirrored:** "SunS" at 40000, and 40070–40071 equal 70–71. PDU 50000 still returns exception 2. Clients that probe 40000 first (pysunspec2's default) bind to the mirror, and so does this library (#84). Writes to the mirror are unverified. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map) |
+| M714 port block (1062–1086) | Not captured; QUIRKS listed `DCV`/`Tmp` as working | **All zero** except an "ID_String" placeholder in `IDStr`. Port `DCV` (1073) and `Tmp` (1083) read 0 |
+| 15500 PVUse / 15501 apBoxPVUse | 15500–15501 "not actively used" | 1 / 0 |
+| 15040, 15043 | Not captured (scan stopped at 15039) | 826 / 1 (meaning unknown) |
 
-Not yet checked on V12R02B60D00: what 15508 and 16001 hold in TOU mode (every reading so far was in Self-Consumption); the 15507 mode values (#75); model 714's per-port block (1062–1086), which this export doesn't include; and PDU 40071 → exception 2 (#71).
+Not yet checked on V12R02B60D00: what 15508 and 16001 hold in TOU mode (every reading so far was in Self-Consumption), and the 15507 mode values (#75). The re-scan answered the rest: the M714 port block reads zero, and PDU 40071 returns data on V12 (so #71's probe happens to work there).
+
+Sweeps of 15044–15099, 15514–15599 and 16003–16099 in 10-register chunks all read without exceptions and found nothing populated.
 
 ## SunSpec model map (unchanged)
 
 | Model | Header PDU | Length | | Model | Header PDU | Length |
 |---|---|---|---|---|---|---|
-| 1 Common | 2 | 66 | | 709 Trip LF | 679 | — |
-| 701 AC Measurement | 70 | 153 | | 710 Trip HF | 816 | — |
-| 702 Capacity | 225 | 50 | | 711 Freq Droop | 953 | — |
-| 703 Enter Service | 277 | 17 | | 712 Watt-Var | 987 | — |
+| 1 Common | 2 | 66 | | 709 Trip LF | 679 | 135 |
+| 701 AC Measurement | 70 | 153 | | 710 Trip HF | 816 | 135 |
+| 702 Capacity | 225 | 50 | | 711 Freq Droop | 953 | 32 |
+| 703 Enter Service | 277 | 17 | | 712 Watt-Var | 987 | 44 |
 | 704 AC Controls | 296 | 65 | | 713 Storage Capacity | 1033 | 7 |
-| 705 Volt-Var | 363 | — | | 714 DC Measurement | 1042 | 43 |
-| 706 Volt-Watt | 432 | — | | 715 DER Control | 1087 | 7 |
-| 707 Trip LV | 465 | — | | 502 Solar Module | 1096 | 28 |
-| 708 Trip HV | 572 | — | | | | |
+| 705 Volt-Var | 363 | 67 | | 714 DC Measurement | 1042 | 43 |
+| 706 Volt-Watt | 432 | 31 | | 715 DER Control | 1087 | 7 |
+| 707 Trip LV | 465 | 105 | | 502 Solar Module | 1096 | 28 |
+| 708 Trip HV | 572 | 105 | | End marker 0xFFFF | 1126 | |
 
-"—": the export returned no values for models 705–712, whose points read as not implemented. Their headers are where the 2026-05-14 baseline found them.
+Lengths for 705–712 are from the re-scan. The bridge export returned their points as not implemented.
 
 ## Selected values at capture
 

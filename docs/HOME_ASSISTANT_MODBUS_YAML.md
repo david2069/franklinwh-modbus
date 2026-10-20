@@ -31,7 +31,7 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
 | **Grid connected** (derived) | — | Template binary sensor |
 | Battery charged / discharged energy (Wh, lifetime) | 1053 / 1049 | SunSpec M714 `DCWhAbs` / `DCWhInj` |
 
-Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Never add 40000 or 40001: the aGate answers those with exception 2. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
+Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Don't add 40000 or 40001. Older firmware (V10R01B04D00) answers those with exception 2, and the extension registers have no 40000 mirror that anyone has verified. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
 
 ---
 
@@ -275,7 +275,7 @@ Check the configuration first (**Developer tools → YAML → Check configuratio
 | Symptom | Likely cause |
 |---|---|
 | All sensors **unavailable** | Another Modbus client is connected, Modbus TCP isn't enabled, or the IP is wrong |
-| One sensor unavailable, log shows exception 2 | Wrong address (e.g. offset by 40000), or the register doesn't exist on your firmware |
+| One sensor unavailable, log shows exception 2 | Wrong address (e.g. offset by 40000 on older firmware), or the register doesn't exist on your firmware |
 | SoC shows 500 instead of 50 | `scale: 0.1` missing |
 | Values look plausible but differ from the app | Scale factor or address differs on your firmware: redo step 1 |
 

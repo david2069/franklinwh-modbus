@@ -252,7 +252,7 @@ Names come from the SunSpec model definitions (M701 `Alrm`, M714 per-port `DCAlr
 Alongside the SunSpec models, FranklinWH exposes **proprietary holding registers** for things SunSpec doesn't cover: the operating mode, the reserves, the solar breakdown and the home load.
 
 - **They sit outside the SunSpec model chain.** sunspec2 can't see them, so the library reads them with plain FC3 requests at their **PDU address**.
-- **Read them directly at the address listed.** Never offset by 40000 or 40001; that returns exception 2.
+- **Read them directly at the address listed.** Don't offset by 40000 or 40001: a 40000 offset hasn't been tested for extension registers, and on V10R01B04D00 it returned exception 2.
 - **They are vendor-specific and partly undocumented.** Behaviour can change with firmware. Treat every value as "measured on firmware X on date Y", not as a specification.
 
 ### 8.2 Map

@@ -47,9 +47,9 @@ else:
 
 **Standard SunSpec Model 714 Fields:**
 - `DCW` - DC Power (W) ✅ **Working** — positive=charging (into battery), negative=discharging (out of battery)
-- `DCV` - DC Voltage (V) ✅ **Working** 
+- `DCV` - DC Voltage (V): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (port block 1062–1086 all zero, 2026-10-20) 
 - `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
-- `Tmp` - Battery Temperature (°C) ✅ **Working**
+- `Tmp` - Battery Temperature (°C): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (2026-10-20)
 - `DCWhInj` - DC Energy Injected (Wh) ✅ **Working** — lifetime discharged
 - `DCWhAbs` - DC Energy Absorbed (Wh) ✅ **Working** — lifetime charged
 
@@ -366,13 +366,28 @@ SunSpec defines where its register map starts, not how Modbus addresses work. A 
 Standard SunSpec models (M1–M715), holding registers:
   ├── sunspec2 library:      scans from PDU 0, then reads models  → ✅ WORKS
   ├── pymodbus / raw TCP:    PDU address 0 … 1125, e.g. 1092      → ✅ WORKS
-  └── map probed at 40000:   PDU 40000+ (e.g. 41092)              → ❌ exception 2 (ILLEGAL DATA ADDRESS)
+  └── map probed at 40000:   PDU 40000+ (e.g. 41092)              → V10: ❌ exception 2 | V12: ✅ mirror (see below)
 
 FranklinWH extension registers (outside the SunSpec chain):
   ├── sunspec2 library:      can't address them (not in the chain) → ❌
   ├── pymodbus / raw TCP:    PDU address 15500, 15507 …           → ✅ WORKS
-  └── offset by 40000:       PDU 55500+                           → ❌ exception 2
+  └── offset by 40000:       PDU 55500+                           → V10: ❌ exception 2 | V12: not tested
 ```
+
+#### Firmware difference: the 40000 mirror (2026-10-20)
+
+On **V12R02B60D00** the aGate **also serves its whole SunSpec map at PDU 40000**. A read-only check on 2026-10-20 found:
+- the "SunS" marker at both PDU 0 and PDU 40000;
+- PDU 40070–40071 equal to PDU 70–71 (701 ID and L);
+- PDU 41092–41093 readable;
+- **PDU 50000 still returns exception 2.**
+
+On **V10R01B04D00** (tested 2026-03-15), PDU 40000+ returned exception 2. Either the firmware added the mirror or the March test missed it; we can't tell which.
+
+What this means:
+- **Keep using PDU 0 addresses.** They work on both firmwares.
+- **pysunspec2's `scan()` tries 40000 first,** so on V12 it finds the map at 40000 and records `dev.base_addr = 40000`. **Any client that probes 40000 first binds to the mirror,** including this library today: its `base_address` is ignored with pysunspec2 1.3.6 (#84). Model reads still work, because the mirror matched PDU 0. **Writes to the mirror are unverified.** `is_connected()` probes `dev.base_addr` (#71), so it works either way.
+- **Extension registers have not been tested at a 40000 offset on V12.** Use their listed PDU addresses.
 
 A tool configured to subtract 40001 (or add 40000) will miss: send the PDU address as listed.
 
@@ -409,7 +424,7 @@ We use `unit_id=2` (FranklinWH default), but any UID works.
 
 1. **Standard SunSpec reads and writes:** use sunspec2 model access, never hand-built addresses.
 2. **Extension registers (15000+, 15500+, 16000+):** send the listed **PDU address** with function code 3 (read) or 6/16 (write).
-3. **Never offset by 40000 or 40001.** The aGate's map starts at PDU 0, and PDU 40000+ returns exception 2.
+3. **Use PDU 0 addresses; don't rely on a 40000 offset.** The aGate's map starts at PDU 0. PDU 40000+ returned exception 2 on V10R01B04D00 and is a mirror of the SunSpec map on V12R02B60D00 (above). Neither has been tested for extension registers.
 4. **UID doesn't matter,** but use `unit_id=2` for consistency with FranklinWH docs.
 
 ---

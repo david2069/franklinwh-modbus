@@ -98,7 +98,7 @@ When our test (following the basis above) returns a failure, we classify it as a
 | **Alternate Base** | 50001 | 0xC350 (50000) |
 | **Alternate Base** | 00001 | 0x0000 (0) |
 
-**What the library does:** these are the starting PDU addresses where SunSpec allows the "SunS" marker to sit; the "logical address" column is the Modicon 4xxxx-style reference for the same register. **The aGate's map starts at PDU 0** (V10R01B04D00), so the library scans with `base_address=0` (`controller.py`, `sequencer.py`). Reads at PDU 40000+ return exception 2. `discovery.py` probes 0, 40000, 50000 and 30000 to find other devices' maps. Addresses in these docs are PDU addresses; see QUIRKS, Register Addressing.
+**What the library does:** these are the starting PDU addresses where SunSpec allows the "SunS" marker to sit; the "logical address" column is the Modicon 4xxxx-style reference for the same register. **The aGate's map starts at PDU 0** (V10R01B04D00), so the library scans with `base_address=0` (`controller.py`, `sequencer.py`). PDU 40000+ returned exception 2 on V10R01B04D00 and mirrors the map on V12R02B60D00. `discovery.py` probes 0, 40000, 50000 and 30000 to find other devices' maps. Addresses in these docs are PDU addresses; see QUIRKS, Register Addressing.
 
 ---
 

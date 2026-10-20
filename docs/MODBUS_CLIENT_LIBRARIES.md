@@ -52,7 +52,7 @@ Two kinds of library:
 - **You own the meaning:** types, scale factors, signs and enum values all come from documentation or testing, not from the device. Example: the 15507 mode values are disputed (#75).
 - **Hand-built frames skip protocol checks.** This library's raw requests use transaction id 0 and don't match replies to requests (13 call sites build the frame with `struct.pack('>HHHBBHH', 0, 0, 6, …)`). Each reply is a single `sock.recv(256)`, which assumes the whole reply arrives in one read.
 - **Connection handling becomes your problem.** The raw paths call `client.connect()`, which in pysunspec2 closes and reopens the TCP session first: a reconnect on every poll (#53). Disconnects left sockets open (#70).
-- **Addressing mistakes fail quietly or confusingly.** Offsetting by 40000 returns exception 2 on the aGate ([Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map)). A wrong address can return a plausible but wrong value.
+- **Addressing mistakes fail quietly or confusingly.** Offsetting by 40000 returned exception 2 on V10R01B04D00 but silently works on V12R02B60D00 for the SunSpec map, so the same code behaves differently by firmware ([Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map)). A wrong address can return a plausible but wrong value.
 
 A transport library (pymodbus, tmodbus, or modbus-connection's unit API) removes the framing and transaction-matching risks. It does not remove the meaning problem.
 

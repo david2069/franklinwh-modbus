@@ -5,7 +5,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 ## How they work
 
 - **Outside the SunSpec model chain.** sunspec2 can't see them. Read them with a plain FC3 request at the **PDU address** below; write with FC6.
-- **Use the address as listed.** These are Modbus PDU addresses, 0-based, as sent on the wire. Never offset by 40000 or 40001, which returns exception 2. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
+- **Use the address as listed.** These are Modbus PDU addresses, 0-based, as sent on the wire. Don't offset by 40000 or 40001: untested for these registers, and an exception 2 on V10R01B04D00 for the SunSpec map. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
 - **Vendor-specific and partly undocumented.** Behaviour can change with firmware. Each row says what it rests on: **Documented** (FranklinWH PICS, SPAN tab), **Measured** (read on the device, with date and firmware), or **Inferred**.
 - **One Modbus client per aGate.** Stop other clients before reading.
 

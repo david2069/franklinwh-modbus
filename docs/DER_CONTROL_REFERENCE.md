@@ -138,7 +138,7 @@ These are the primary battery control registers. **This is what we use.**
 
 ## 2. Model 715 — DER Control
 
-> **Note:** Addresses are Modbus **PDU addresses** (0-based, as sent on the wire), e.g. M715 at 1087–1095, matching the FranklinWH PICS. 4xxxx references such as 41088+ are not addresses; reading PDU 41087+ returns exception 2 (ILLEGAL DATA ADDRESS). See QUIRKS, Register Addressing.
+> **Note:** Addresses are Modbus **PDU addresses** (0-based, as sent on the wire), e.g. M715 at 1087–1095, matching the FranklinWH PICS. 4xxxx references such as 41088+ are not addresses. Reading PDU 41087+ returned exception 2 on V10R01B04D00; on V12R02B60D00 the map is mirrored at 40000. Use the PDU address. See QUIRKS, Register Addressing.
 
 | PDU address | Field | Label | Type | RW | PICS Status | Current Value | Status | Notes |
 |---------|-------|-------|------|----|-------------|---------------|--------|-------|

@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Docs: aGate firmware V12R02B60D00.**
   - A new dated snapshot (`docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md`): the SunSpec map is unchanged from 2026-05-14, as are the scale factors.
+  - **Read-only re-scan (2026-10-20T20:17Z):**
+    - On V12R02B60D00 the **SunSpec map is also served at PDU 40000** (it returned exception 2 on V10). Pysunspec2's scan, and this library (#84), bind to that mirror; writes to it are unverified.
+    - M714's per-port block reads all zero on V12, so battery DC voltage and temperature aren't available from it.
+    - 15500 = 1; 15040 and 15043 are newly seen.
+  - The docs that said "40000+ returns exception 2" now give the result per firmware.
   - **15509 now holds the TOU reserve.** The V10R01B04D00 defect, where it repeated 15508, is fixed on V12 (#63). The extension page, QUIRKS, the HA guide (add a TOU reserve sensor on V12+) and the cloud comparison now say this per firmware.
 
 ### Added

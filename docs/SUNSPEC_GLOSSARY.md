@@ -10,7 +10,7 @@ This document serves as the definitive reference for all SunSpec Info Points and
 
 ---
 
-> **Addresses:** "PDU address" is the 0-based Modbus address sent on the wire, as listed in the FranklinWH PICS. The "PDU + 40000" column is where a device whose SunSpec map starts at 40000 would place the point. The aGate's map starts at PDU 0, and reads at PDU 40000+ return exception 2. It is not the Modicon 4xxxx reference, which would be PDU + 40001. See QUIRKS, Register Addressing.
+> **Addresses:** "PDU address" is the 0-based Modbus address sent on the wire, as listed in the FranklinWH PICS. The "PDU + 40000" column is where a device whose SunSpec map starts at 40000 would place the point. The aGate's map starts at PDU 0. PDU 40000+ returned exception 2 on V10R01B04D00, and mirrors the map on V12R02B60D00. It is not the Modicon 4xxxx reference, which would be PDU + 40001. See QUIRKS, Register Addressing.
 
 ## 1. FranklinWH Extension Registers (15500+)
 **Purpose**: Proprietary registers for operating modes, solar granularity, and internal reserves.
