@@ -47,7 +47,7 @@ The `franklinwh_cli.py` tool is the primary interface for controlling and monito
 | | `--healthcheck` | Comprehensive hardware diagnostic scan. | Troubleshooting "Zombie States" or Modbus connection issues. |
 | | `--check-alarms` | Decode hardware error and alarm bitfields. | Diagnosing battery internal faults or grid error codes. |
 | | `--clear-alarms` | Clear/reset persistent alarms. | Writing to AlarmReset to clear transient alarm codes. |
-| | `--test-extension-write`| Test extension register writability. | Attempting write tests on 15507-15509 to verify locks. |
+| | `--test-extension-write`| Test extension register writability. | Writing test values to 15507-15509 and reading them back (⚠️ writes to the device). |
 | | `--check-span` | Scan network for SPAN panel integrations. | Locating and checking compatible smart panels on the LAN. |
 | **UI & Output** | `-v`, `--verbose` | Enable verbose debug logging. | Troubleshooting detailed Modbus transaction sequences. |
 | | `-q`, `--quiet` | Suppress non-error output. | Useful for scripting or when launching the monitor. |
@@ -55,7 +55,7 @@ The `franklinwh_cli.py` tool is the primary interface for controlling and monito
 | | `--theme` | Change dashboard color palette. | Using 'Paper' theme for high-contrast visibility. |
 
 > [!IMPORTANT]
-> **Writability Disclaimer:** Proprietary FranklinWH Modbus extensions (such as `--mode`, `--self-reserve`, and `--tou-reserve`) are **not writeable by default** and will not function unless FranklinWH Support unlocks them (typically done for owners of SPAN or Lumin smart panels). For the vast majority of standard users, these options will remain read-only/non-functional. The CLI/TUI will perform active read-back verification to warn you if your Gateway ignores these writes.
+> **Writability Disclaimer:** `--mode`, `--self-reserve` and `--tou-reserve` write FranklinWH extension registers. Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only. The CLI/TUI reads each write back and reports the result.
 
 ---
 

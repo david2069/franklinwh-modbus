@@ -123,7 +123,7 @@
     "15509": {
       "name": "TOU Reserve",
       "status": "broken",
-      "description": "Time-of-Use floor reserve percentage. Firmware defect: register always mirrors 15508 and cannot be configured independently via Modbus. If locked, write transactions are silently accepted at protocol level but discarded internally without error."
+      "description": "Time-of-Use floor reserve percentage. Firmware defect: register always mirrors 15508 and cannot be configured independently via Modbus. Write transactions are silently accepted at protocol level but discarded internally without error."
     },
     "16000": {
       "name": "High-Resolution Home Load",

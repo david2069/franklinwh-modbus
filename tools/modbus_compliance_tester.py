@@ -3,7 +3,7 @@
 FranklinWH Modbus Compliance Tester
 
 Automated test tool to verify Modbus model capability, discover register
-discrepancies, check extension register writability (SPAN Modbus unlock status),
+discrepancies, check extension register writes by read-back (undocumented by FranklinWH),
 and generate a comprehensive Markdown compatibility report scorecard.
 """
 
@@ -78,11 +78,11 @@ def run_compliance_check(ip: str, port: int, unit: int, base_address: int, timeo
     span_writable_count = sum([ongrid_mode_writable, self_reserve_writable, tou_reserve_writable])
     print(f"✓ Extension writability results: {span_writable_count}/3 registers writable.")
     if span_writable_count == 3:
-        print("  ✅ SPAN Modbus Unlock is CONFIRMED (Write Access enabled).")
+        print("  ✅ All three test writes read back as applied.")
     elif span_writable_count > 0:
         print("  ⚠️  Partial Write Access detected.")
     else:
-        print("  🔒 Extension registers are READ-ONLY (SPAN Modbus locked by default).")
+        print("  🔒 Extension writes were not applied (read-only; writes undocumented).")
 
     # Audit SunSpec points
     print("\n6. Auditing SunSpec model implementation points...")
@@ -173,11 +173,11 @@ def run_compliance_check(ip: str, port: int, unit: int, base_address: int, timeo
     report.append(f"- **Slave Unit ID**: {unit}")
 
     # Writability status alert box
-    report.append(f"\n## Write plane Status (SPAN Modbus Lock)")
+    report.append(f"\n## Write plane Status (Extension Registers)")
     if span_writable_count == 3:
-        report.append(f"> [!NOTE]\n> **✅ FULL WRITE PLANE UNLOCKED**: The extension registers (15507-15509) are writable on this Gateway. Operating Mode and SoC floor reserves can be natively controlled via the CLI/TUI.")
+        report.append(f"> [!NOTE]\n> **✅ EXTENSION WRITES READ BACK AS APPLIED**: Test writes to 15507-15509 read back as applied on this Gateway during this run. FranklinWH has not documented these registers as writable.")
     else:
-        report.append(f"> [!IMPORTANT]\n> **🔒 WRITE PLANE LOCKED (SPAN Modbus Lock Active)**: Proprietary extension registers (15507-15509) are **read-only** under the current configuration. This is standard for normal installations without SPAN/Lumin smart panels.\n> \n> **⚠️ CRITICAL MODBUS BEHAVIOR**: When the write plane is locked, **write transactions to these registers are silently accepted at the protocol level (returning standard Modbus success/FC06 echoes), but are discarded internally by the Gateway and no error is returned**. Consequently, active read-back verification is *mandatory* to confirm if a write actually took effect. Active power control (Model 704) remains fully writable.")
+        report.append(f"> [!IMPORTANT]\n> **🔒 EXTENSION WRITES NOT APPLIED**: Proprietary extension registers (15507-15509) are **read-only** on this unit. FranklinWH has not documented them or any mechanism that enables writes.\n> \n> **⚠️ CRITICAL MODBUS BEHAVIOR**: When writes are not applied, **write transactions to these registers are silently accepted at the protocol level (returning standard Modbus success/FC06 echoes), but are discarded internally by the Gateway and no error is returned**. Consequently, active read-back verification is *mandatory* to confirm if a write actually took effect. Active power control (Model 704) remains fully writable.")
 
     report.append(f"\n## Compliance Audit Results")
     report.append(f"| Model | Register Point | Expected Status | Live Verified | Observed Value / Details |")

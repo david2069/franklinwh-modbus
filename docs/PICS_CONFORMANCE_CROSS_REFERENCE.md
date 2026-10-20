@@ -1,6 +1,6 @@
 # PICS Conformance Cross-Reference
 
-**Source:** `PICS_span_20230711_SPANcomments20230803.xlsx` (SPAN Modbus PICS, July 2023)  
+**Source:** `PICS_span_20230711_SPANcomments20230803.xlsx` (FranklinWH's PICS, July 2023, file name as received; proprietary and not distributed in this repository)  
 **Last tested:** 2026-03-13 (6-phase SunSpec protocol re-test)
 
 > This document cross-references the manufacturer's **Protocol Implementation Conformance Statement (PICS)** against actual hardware behavior verified through testing.
@@ -390,7 +390,8 @@ Issue 2 — WMax (251) write silently discarded
   write capability means the only power ceiling is WMaxRtg (227)
   = 10000W (read-only hardware rating). No software curtailment
   ceiling is achievable via PICS-declared registers.
-  REQUEST: Confirm if SPAN Modbus unlock is required.
+  REQUEST: Confirm whether WMax is writable, and whether any
+           device setting or authorisation is required.
   Filed: 2026-03-13 | Firmware: V10R01B04D00 | Status: OPEN
 
 Issue 3 — CtrlModes declares FIXED_VAR available but Modbus

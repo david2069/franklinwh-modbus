@@ -2,7 +2,7 @@
 
 > **Raw scan evidence.** For the register list, meanings and how to use them, see **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**. This page keeps the raw scans that list is based on. The "Correlation" table below is **speculative**: matching a value to a SunSpec point is a guess, not a definition. Several guesses have since been overtaken (e.g. 16002 now looks like `BBBackupSoc`, #63; 15508/15509 are reserve %, not `712.NPt`).
 
-This document records the discovered proprietary Modbus registers outside the SunSpec 40001+ range. These include the so-called "SPAN Extensions" (15500+) and internal diagnostic registers (15000+).
+This document records the discovered proprietary Modbus registers outside the SunSpec 40001+ range. These include the 15500+ block (listed on the SPAN tab of FranklinWH's proprietary PICS) and internal diagnostic registers (15000+). FranklinWH has not documented these registers publicly and has never documented any of them as writable.
 
 ---
 
@@ -66,7 +66,9 @@ Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/N
 
 ---
 
-## 3. Raw Scan Output: SPAN Extensions (15500+)
+## 3. Raw Scan Output: 15500+ Extensions
+
+> The `Acc` column in this capture is the reader tool's static label at the time of the scan, not a measurement. `RW` there is **speculation (undocumented, unverified)**: FranklinWH has never documented 15507–15509 as writable, and on V12R02B60D00 (2026-10-21) writes to them did not take effect. The tool now labels them `R`.
 
 **Command**:  
 `python3 tools/modbus_sunspec2_reader.py -i 192.0.2.110 -u 1 -t 20 --raw 15500:15 -dvalues --nz --match`
@@ -75,7 +77,7 @@ Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/N
 Addr     Hex    UInt16   Int16    Value           Acc Bits (Binary)      Guess/Notes
 --------------------------------------------------------------------------------------------------------------
 15506    0258   600      600      600             R   0000001001011000   Home Load (LoadActiveP) W
-15507    0003   3        3        3               RW  0000000000000011   Operating Mode (OnGridMode). 1: Backup, 2: Self-Consumption, 3: TOU. Verified 1-indexed mapping. NOTE: Hardware may echo success but silently discard writes if "SPAN Modbus" is locked.
+15507    0003   3        3        3               RW  0000000000000011   Operating Mode (OnGridMode). 1: Backup, 2: Self-Consumption, 3: TOU. Verified 1-indexed mapping. NOTE: Hardware may echo success but silently discard writes.
 15508    000A   10       10       10              RW  0000000000001010   Self-Consumption SOC Reserve (SelfReserve) %
 15509    000A   10       10       10              RW  0000000000001010   TOU SOC Reserve (TouReserve) %
 15510    00C5   197      197      12959408        R   0000000011000101   PV Energy Total (PVOutputWh) [Matches: 502.OutWh (raw)]

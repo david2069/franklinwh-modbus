@@ -699,7 +699,9 @@ def print_device_info(
         print(f"{'Addr':<8} {'Hex':<6} {'UInt16':<8} {'Int16':<8} {'Value':<15} {'Acc':<3} {'Bits (Binary)':<18} {'Guess/Notes'}")
         print("-" * 110)
         
-        # Define known Franklin/SPAN registers for decoding with permissions
+        # Define known FranklinWH extension registers for decoding.
+        # Access is a static label, not a measurement. FranklinWH has never
+        # documented any extension register as writable, so all are "R".
         # ID: (Name, Units/Type, Access)
         known_map = {
             # (ShortName, DescriptiveName, Units/Type, Access)
@@ -710,9 +712,9 @@ def print_device_info(
             15504: ("Remote1PV", "PV Remote 1 Power", "W", "R"),
             15505: ("Remote2PV", "PV Remote 2 Power", "W", "R"),
             15506: ("LoadActiveP", "Home Load", "W", "R"),
-            15507: ("OnGridMode", "Operating Mode", "enum:1=Backup,2=Self,3=TOU", "RW"),
-            15508: ("SelfReserve", "Self-Consumption SOC Reserve", "%", "RW"),
-            15509: ("TouReserve", "TOU SOC Reserve", "%", "RW"),
+            15507: ("OnGridMode", "Operating Mode", "enum:1=Backup,2=Self,3=TOU", "R"),
+            15508: ("SelfReserve", "Self-Consumption SOC Reserve", "%", "R"),
+            15509: ("TouReserve", "TOU SOC Reserve", "%", "R"),
             15510: ("PVOutputWh", "PV Energy Total", "uint32", "R"),
             15512: ("proximalOutputWh", "PV Energy Proximal", "uint32", "R"),
             # 15514?
