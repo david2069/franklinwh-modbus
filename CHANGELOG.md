@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Docs: aGate firmware V12R02B60D00.**
+  - A new dated snapshot (`docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md`): the SunSpec map is unchanged from 2026-05-14, as are the scale factors.
+  - **Read-only re-scan (2026-10-20T20:17Z):**
+    - On V12R02B60D00 the **SunSpec map is also served at PDU 40000** (it returned exception 2 on V10). Pysunspec2's scan, and this library (#84), bind to that mirror; writes to it are unverified.
+    - M714's per-port block reads all zero on V12, so battery DC voltage and temperature aren't available from it.
+    - 15500 = 1; 15040 and 15043 are newly seen.
+  - The docs that said "40000+ returns exception 2" now give the result per firmware.
+  - **15509 now holds the TOU reserve.** The V10R01B04D00 defect, where it repeated 15508, is fixed on V12 (#63). The extension page, QUIRKS, the HA guide (add a TOU reserve sensor on V12+) and the cloud comparison now say this per firmware.
 - **HA Modbus YAML guide: "everything the TUI shows" (§2b).** It adds 18 optional sensors: battery SoH, energy available and rating, voltage and temperature; AC voltage, current, frequency, PF, VA and VAR; ambient and cabinet temperature; solar proximal and remote 1/2; model and firmware. It adds **description templates** for inverter state, battery state (Charging / Discharging / Idle), grid mode (Grid Forming / Grid Following), operating mode (provisional, #75), battery current, active alarm names and PV clipped. Also a TUI panel → entity map and a TUI-style card. The battery voltage and temperature addresses are computed from SunSpec model 714 and were confirmed against the gateway emulator. They may read 0 on V10R01B04D00, which is unresolved and noted in the guide. Tested 2026-10-20 against the emulator (34 sensors, 9 templates, on-grid and off-grid), with screenshots. Active Alarms shows "No alarms" instead of a value HA reads as unknown.
 
 ### Added
@@ -22,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - where the FranklinWH extension registers sit in that context: outside the SunSpec chain, not vendor models, and not covered by certification.
 
   It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
+- **Removed the remaining "SPAN unlock" claims** from the docs, the bug template, the sequencer example, the compliance report and tool messages. These said extension register writes need a "SPAN Modbus" (or "SPAN/Lumin") installer unlock or provisioning. FranklinWH has not documented the extension registers and has never documented any of them as writable; whether it must authorise a Modbus client to write them is unknown. On `V12R02B60D00` (owner observation, 2026-10-21) writes to 15507–15509 did not take effect. Access columns for 15507–15509 now read "R (writes undocumented)", and the raw reader labels them `R`. Earlier `RW` labels are marked as speculation. SPAN is a third-party company; no relationship is implied.
 
 ### Added
 - **Modbus Client Libraries** (`docs/MODBUS_CLIENT_LIBRARIES.md`), every claim sourced. It covers:

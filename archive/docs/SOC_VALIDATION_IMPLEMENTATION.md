@@ -143,27 +143,27 @@ min_operational = reserve + SAFETY_MARGIN_PCT  # = 25%
 
 1. **Test Reserve Reading:**
    ```bash
-   python franklinwh_cli.py --ip 192.168.0.110 --status
+   python franklinwh_cli.py --ip 192.0.2.110 --status
    # Verify Reserve Settings section shows correct values
    ```
 
 2. **Test Discharge Below Reserve:**
    ```bash
    # If Self Reserve = 20%, try discharge to 22%
-   python franklinwh_cli.py --ip 192.168.0.110 --discharge 3000 --target-soc-auto 22
+   python franklinwh_cli.py --ip 192.0.2.110 --discharge 3000 --target-soc-auto 22
    # Expected: E002 error, operation blocked
    ```
 
 3. **Test Charge Below Reserve:**
    ```bash
    # If Self Reserve = 20%, try charge to 15%
-   python franklinwh_cli.py --ip 192.168.0.110 --charge 3000 --target-soc-auto 15
+   python franklinwh_cli.py --ip 192.0.2.110 --charge 3000 --target-soc-auto 15
    # Expected: W001 warning, operation proceeds
    ```
 
 4. **Test Virtual Mode Validation:**
    ```bash
-   python franklinwh_cli.py --ip 192.168.0.110 --mode peak_shave --target-soc 22
+   python franklinwh_cli.py --ip 192.0.2.110 --mode peak_shave --target-soc 22
    # If reserve + margin > 22, should fail with E002
    ```
 

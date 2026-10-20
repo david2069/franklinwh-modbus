@@ -8,7 +8,7 @@ from pymodbus import __version__
 
 print(f"pymodbus version: {__version__}")
 
-client = ModbusTcpClient("192.168.0.110", port=502)
+client = ModbusTcpClient("192.0.2.110", port=502)
 
 # Check method signature
 import inspect

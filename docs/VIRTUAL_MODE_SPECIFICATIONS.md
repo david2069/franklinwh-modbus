@@ -16,8 +16,8 @@ Everything in this document is shaped by what the aGate actually exposes via Mod
 | **Read grid/solar/inverter** | ✅ | Power, voltage, frequency, status (M701, M502) |
 | **Read aGate native mode** | ✅ | Ext.15507 (Emergency/Self-Consumption/TOU/Manual) — read-only |
 | **Write battery power** | ✅ | M704 WSetPct, WSet, WSetEna — the ONLY writable control |
-| **Change operating mode** | ❌ | Ext.15507 is read-only without SPAN Modbus unlock |
-| **Control reserve SoC** | ❌ | Ext.15508-15509 are read-only without SPAN unlock |
+| **Change operating mode** | ❌ | Ext.15507 is read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) |
+| **Control reserve SoC** | ❌ | Ext.15508-15509 are read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) |
 | **Control solar PV** | ❌ | No writable registers for PV curtailment or production |
 | **Control smart circuits** | ❌ | Not exposed via Modbus TCP at all |
 | **See generator/V2L** | ❌ | Not exposed via Modbus TCP |
@@ -73,14 +73,14 @@ The FranklinWH system has **two independent control layers** running in parallel
 
 | Layer | Source | Registers | Can We Change? |
 |-------|--------|-----------|----------------|
-| **aGate Native** | FranklinWH Cloud/App | Ext.15507 (OnGridMode) | ❌ Read-only without SPAN Modbus unlock |
+| **aGate Native** | FranklinWH Cloud/App | Ext.15507 (OnGridMode) | ❌ Read-only (writes undocumented) |
 | **Virtual (Ours)** | `modes.py` via M704 | WSetEna, WSetPct, WSet | ✅ Always writable |
 
 Our virtual modes **override** the aGate's native battery behavior by sending M704 power commands every 5 seconds. The native mode keeps running in the background — when we release control (`--stop`), the aGate resumes its native mode immediately.
 
 !!! important
     We can only control **battery charge/discharge power** via M704. We CANNOT:
-    - Change the aGate's operating mode (Ext.15507) without SPAN unlock
+    - Change the aGate's operating mode (Ext.15507): writes are undocumented and did not take effect on V12R02B60D00
     - Control Smart Circuit load shedding
     - Directly control solar PV production or curtailment
     - Control grid import/export limits (only indirect via battery)
@@ -89,7 +89,7 @@ Our virtual modes **override** the aGate's native battery behavior by sending M7
 
 ## aGate Native Modes (Ext.15507 — Read Only)
 
-These are what the FranklinWH app sets. We can READ them but not WRITE them (without SPAN Modbus unlock).
+These are what the FranklinWH app sets. We can READ them but not WRITE them. FranklinWH has never documented 15507 as writable.
 
 ### Mode 0: Emergency Backup
 

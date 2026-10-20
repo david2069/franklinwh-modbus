@@ -59,7 +59,7 @@ From **Model 701: DERMeasureAC** (SunSpec2 standard), these registers show when/
 
 ### 10-Minute Test Completed (2026-02-24 22:48-22:58)
 
-**Script:** `log_throttling_robust.py 192.168.0.110 2 10 30`
+**Script:** `log_throttling_robust.py 192.0.2.110 2 10 30`
 
 | Metric | Value |
 |--------|-------|
@@ -283,7 +283,7 @@ def _update_display(self, data: SystemData):
 - Use for: Quick tests, minimal overhead
 
 ```bash
-python log_throttling_simple.py 192.168.0.110 2 60
+python log_throttling_simple.py 192.0.2.110 2 60
 ```
 
 ### Option B: WSetPct Heartbeat Logger ⭐ RECOMMENDED
@@ -294,7 +294,7 @@ python log_throttling_simple.py 192.168.0.110 2 60
 - Use for: Extended monitoring, stable connection
 
 ```bash
-python log_throttling_with_heartbeat.py 192.168.0.110 2 60
+python log_throttling_with_heartbeat.py 192.0.2.110 2 60
 ```
 
 **Why Heartbeat:**
@@ -309,7 +309,7 @@ python log_throttling_with_heartbeat.py 192.168.0.110 2 60
 - Monitors until target SoC reached
 
 ```bash
-python throttling_charge_test.py 192.168.0.110 2 95
+python throttling_charge_test.py 192.0.2.110 2 95
 ```
 
 ---
@@ -328,7 +328,7 @@ python throttling_charge_test.py 192.168.0.110 2 95
 **Expected:** ThrotPct increases as SoC approaches 100%
 
 ```bash
-python log_throttling_with_heartbeat.py 192.168.0.110 2 120
+python log_throttling_with_heartbeat.py 192.0.2.110 2 120
 ```
 
 **Success Criteria:**

@@ -47,9 +47,9 @@ else:
 
 **Standard SunSpec Model 714 Fields:**
 - `DCW` - DC Power (W) ✅ **Working** — positive=charging (into battery), negative=discharging (out of battery)
-- `DCV` - DC Voltage (V) ✅ **Working** 
+- `DCV` - DC Voltage (V): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (port block 1062–1086 all zero, 2026-10-20) 
 - `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
-- `Tmp` - Battery Temperature (°C) ✅ **Working**
+- `Tmp` - Battery Temperature (°C): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (2026-10-20)
 - `DCWhInj` - DC Energy Injected (Wh) ✅ **Working** — lifetime discharged
 - `DCWhAbs` - DC Energy Absorbed (Wh) ✅ **Working** — lifetime charged
 
@@ -141,7 +141,7 @@ elif der_mode_raw & (1 << 0):
 The FranklinWH extension registers (15000–15043, 15500–15513, 16000–16002), with access, units, library accessors and evidence, are listed in one place: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**.
 
 Quirks covered there:
-- 15509 (TOU reserve) reads the same value as 15508; confirmed on V10R01B04D00, 2026-10-18 (#63).
+- 15509 (TOU reserve) reads the same value as 15508 on **V10R01B04D00** (confirmed 2026-10-18). This is **fixed on V12R02B60D00**, where 15509 holds the TOU reserve (2026-10-20/21; [snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md); #63).
 - The 15507 operating-mode values are under review (#75).
 - 16000 gives the home load at ~1 W resolution (15506 is in ~100 W steps).
 
@@ -206,7 +206,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | **FranklinWH Extensions** | 15507-15509 | ✅ | ❌ Read-Only* | Operating mode, SoC reserves |
 | **M702 Rate Settings** | 40259-40262 | ✅ | ❌ (tested 2026-03-13) | Charge/discharge rate limits |
 
-*Extension write access requires **SPAN Modbus** unlock — enabled by FranklinWH Support for SPAN panel owners.
+*Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
 ### What This Means in Practice
 
@@ -234,7 +234,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | Battery state (M713.Sta) | Reflects CHARGING/DISCHARGING/IDLE | Always 0 (OFF) | Derived from M714.DCW ±50W deadband | Report; workaround is robust |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
-| Extension register writes | N/A (vendor-specific) | Read-only without SPAN Modbus unlock | Cloud API bypass (Tier 2) for mode changes | SPAN unlock required; vendor provisioning |
+| Extension register writes | N/A (vendor-specific) | Read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) | Cloud API bypass (Tier 2) for mode changes | Unknown; FranklinWH has not documented any write mechanism |
 | Remote Control activation | WSetEna=1 starts remote DER control | ✅ Works — activates Remote Control (exclusive) | None needed — works as intended | N/A — working correctly |
 | Command persistence | WSetRvrtTms reverts after timeout | WSetRvrtTms countdown active; WSetEna persists after timer expiry (partial implementation?) | Software timer + `reset_control_state()` remains recommended | Investigate: does countdown actually revert power? |
 | Throttle % (ThrotPct) | Reports inverter power curtailment % | ✅ Readable (40180), always 0% in testing | None — read-only info point | N/A — may activate under thermal/grid stress |
@@ -292,22 +292,15 @@ This creates a **selective-write hybrid** that is non-standard:
 
 4. **Library vs consumer boundary:** The library exposes `send_command()` and `reset_control_state()`. Crash recovery, watchdog timers, and session lifecycle are **consumer responsibilities** (e.g. FEM's `ModbusControlService`).
 
-5. **SPAN Modbus Unlock Changes Everything:** If write access to extensions is enabled, the library could fully control the aGate — changing modes, setting reserves, etc. This is a fundamentally different operating mode that the library should detect and adapt to.
+5. **Extension writes are undocumented:** FranklinWH has never documented any extension register as writable, and whether it must authorise a Modbus client to write them is unknown. On V12R02B60D00 (2026-10-21) writes to 15507–15509 did not take effect. The library treats them as read-only and reports each write's read-back result.
 
 ### Detection of Write Capability
 
 ```python
-# The library tests write capability during connect()
-# by attempting a write to extension registers
-def _probe_extension_writable(self):
-    """Test if extension registers accept writes."""
-    try:
-        # Read current value, write it back, verify
-        current = read_register(15508)  # SelfReserve
-        write_register(15508, current)  # Write same value
-        return True  # SPAN Modbus unlock is active
-    except:
-        return False  # Standard read-only
+# connect() never writes. test_extension_writability() is opt-in:
+# it writes a test value, reads it back, and restores the original.
+results = ctrl.test_extension_writability()   # WRITES TO THE DEVICE
+results['ongrid_mode']['writable']            # True only if the read-back matched
 ```
 
 ### Related
@@ -366,13 +359,28 @@ SunSpec defines where its register map starts, not how Modbus addresses work. A 
 Standard SunSpec models (M1–M715), holding registers:
   ├── sunspec2 library:      scans from PDU 0, then reads models  → ✅ WORKS
   ├── pymodbus / raw TCP:    PDU address 0 … 1125, e.g. 1092      → ✅ WORKS
-  └── map probed at 40000:   PDU 40000+ (e.g. 41092)              → ❌ exception 2 (ILLEGAL DATA ADDRESS)
+  └── map probed at 40000:   PDU 40000+ (e.g. 41092)              → V10: ❌ exception 2 | V12: ✅ mirror (see below)
 
 FranklinWH extension registers (outside the SunSpec chain):
   ├── sunspec2 library:      can't address them (not in the chain) → ❌
   ├── pymodbus / raw TCP:    PDU address 15500, 15507 …           → ✅ WORKS
-  └── offset by 40000:       PDU 55500+                           → ❌ exception 2
+  └── offset by 40000:       PDU 55500+                           → V10: ❌ exception 2 | V12: not tested
 ```
+
+#### Firmware difference: the 40000 mirror (2026-10-20)
+
+On **V12R02B60D00** the aGate **also serves its whole SunSpec map at PDU 40000**. A read-only check on 2026-10-20 found:
+- the "SunS" marker at both PDU 0 and PDU 40000;
+- PDU 40070–40071 equal to PDU 70–71 (701 ID and L);
+- PDU 41092–41093 readable;
+- **PDU 50000 still returns exception 2.**
+
+On **V10R01B04D00** (tested 2026-03-15), PDU 40000+ returned exception 2. Either the firmware added the mirror or the March test missed it; we can't tell which.
+
+What this means:
+- **Keep using PDU 0 addresses.** They work on both firmwares.
+- **pysunspec2's `scan()` tries 40000 first,** so on V12 it finds the map at 40000 and records `dev.base_addr = 40000`. **Any client that probes 40000 first binds to the mirror,** including this library today: its `base_address` is ignored with pysunspec2 1.3.6 (#84). Model reads still work, because the mirror matched PDU 0. **Writes to the mirror are unverified.** `is_connected()` probes `dev.base_addr` (#71), so it works either way.
+- **Extension registers have not been tested at a 40000 offset on V12.** Use their listed PDU addresses.
 
 A tool configured to subtract 40001 (or add 40000) will miss: send the PDU address as listed.
 
@@ -409,7 +417,7 @@ We use `unit_id=2` (FranklinWH default), but any UID works.
 
 1. **Standard SunSpec reads and writes:** use sunspec2 model access, never hand-built addresses.
 2. **Extension registers (15000+, 15500+, 16000+):** send the listed **PDU address** with function code 3 (read) or 6/16 (write).
-3. **Never offset by 40000 or 40001.** The aGate's map starts at PDU 0, and PDU 40000+ returns exception 2.
+3. **Use PDU 0 addresses; don't rely on a 40000 offset.** The aGate's map starts at PDU 0. PDU 40000+ returned exception 2 on V10R01B04D00 and is a mirror of the SunSpec map on V12R02B60D00 (above). Neither has been tested for extension registers.
 4. **UID doesn't matter,** but use `unit_id=2` for consistency with FranklinWH docs.
 
 ---

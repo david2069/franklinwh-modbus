@@ -33,8 +33,8 @@ disconnects.
 | `closed` | Nothing is listening on the port (or the host is unreachable). |
 
 `summary` gives one line for a person — *"FranklinWH Technologies Co., Ltd aGate X
-at 192.168.0.110:502"*, or *"Unknown device listening on TCP port 502 at
-192.168.0.20"*.
+at 192.0.2.110:502"*, or *"Unknown device listening on TCP port 502 at
+192.0.2.20"*.
 
 Parameters: `port=502`, `unit_id=1`, `timeout=2.0` (per read), `attempts=1`
 (retry the whole sequence — for a device that is slow or briefly busy),

@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import time
 
-AGATE_IP = "192.168.0.110"
+AGATE_IP = "192.0.2.110"
 UNIT_ID = 2
 THROT_PCT_ADDR = 40180  # 40000 base + 180 offset
 THROT_SRC_ADDR = 40181

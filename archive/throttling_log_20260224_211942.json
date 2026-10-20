@@ -2,7 +2,7 @@
   "metadata": {
     "start_time": "2026-02-24T21:19:42.294861",
     "end_time": "2026-02-24T22:19:42.396045",
-    "host": "192.168.0.110",
+    "host": "192.0.2.110",
     "unit_id": 2,
     "duration_minutes": 60,
     "interval_seconds": 30,

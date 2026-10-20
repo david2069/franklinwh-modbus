@@ -39,7 +39,7 @@ ctrl.connect()  # Scans SunSpec models, probes extension writability
 └─────────────────────────────────────────────────────┘
 ```
 
-> Extension registers (15507-15509) require **SPAN Modbus** unlock via FranklinWH installer app. Without it, they are read-only.
+> Extension registers (15507-15509) are read-only. Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
 ---
 
@@ -156,68 +156,35 @@ The library automatically inverts: `m704.WSetPct.value = -pct_raw`
 
 Writing to `WSet` (absolute watts) alongside `WSetPct` causes **mode flickering** on the aGate. The library uses **only WSetPct**. `WSet` is zeroed during `reset_control_state()`.
 
-### 5.6 Extension Registers & SPAN Modbus Unlock
+### 5.6 Extension Registers: Writes Undocumented
 
 | Address | Name | Access | Notes |
 |---------|------|--------|-------|
-| 15507 | OnGridMode | R (RW with SPAN) | 1=Backup, 2=Self-Consumption, 3=TOU |
-| 15508 | SelfReserve | R (RW with SPAN) | Reserve SOC % |
-| 15509 | TouReserve | R (RW with SPAN) | ⚠️ **Always mirrors 15508** (firmware defect) |
+| 15507 | OnGridMode | R (writes undocumented) | 1=Backup, 2=Self-Consumption, 3=TOU |
+| 15508 | SelfReserve | R (writes undocumented) | Reserve SOC % |
+| 15509 | TouReserve | R (writes undocumented) | ⚠️ **Always mirrors 15508** (firmware defect) |
 
-Write access to these registers requires the **SPAN Modbus** unlock — enabled by FranklinWH support for owners of SPAN Smart Panels. The aGate's Ethernet port passes through the SPAN Panel, which controls Modbus access.
+Writes to the FranklinWH extension registers are undocumented and unconfirmed. FranklinWH has not documented these registers and has never documented any of them as writable. Whether FranklinWH must authorise a Modbus client to write them, and how, is unknown. On `V12R02B60D00` (owner observation, 2026-10-21), writes to 15507–15509 did not take effect: the mode did not switch and the reserves did not change. Treat them as read-only.
 
-> [!IMPORTANT]
-> **FranklinWH Modbus extensions are not writeable by default** and will not function unless FranklinWH Support unlocks them or a future firmware release allows them. Even though these setters are implemented in software/the library, they will be **non-functional for the vast majority of users** (excluding those with SPAN or Lumin smart panels who have obtained installer unlock).
+The library's setters (`set_native_mode()`, `set_self_consumption_reserve()`, `set_tou_reserve()`) attempt the write, read the register back, and return `(ok, message)` with the read-back result. They do not promise any effect.
 
-#### Detecting SPAN Configuration
+Earlier versions of this guide said that writes need a "SPAN Modbus" unlock that FranklinWH enables for SPAN Smart Panel owners, and that a SPAN panel on the network or a cloud `spanFlag` setting predicts writability. That was **speculation (undocumented, unverified)** and has been removed. SPAN is a third-party smart-panel company; nothing here implies any relationship between SPAN and FranklinWH or this library.
 
-**1. Network Scanner** — detect SPAN Panel on the local network:
-```bash
-# Scan subnet for SPAN devices
-python3 tools/network_scanner.py YOUR_SUBNET/24 --devices span -v
+#### Checking your unit
 
-# Check specific IP
-python3 tools/network_scanner.py YOUR_SPAN_IP --devices span -v
-
-# mDNS discovery (no IP needed)
-python3 tools/network_scanner.py --mdns --devices span
-```
-If a SPAN Panel is found alongside the aGate on the same network, extension registers are **likely writable**.
-
-**2. FranklinWH Cloud API** — check `spanFlag` directly:
-```bash
-curl "https://energy.franklinwh.com/hes-gateway/terminal/span/getSpanSetting?gatewayId=YOUR_GATEWAY_ID"
-```
-```json
-{"code": 200, "result": {"spanFlag": 0}, "success": true}
-```
-- `spanFlag: 0` → SPAN **not configured** (extensions read-only)
-- `spanFlag: 1` → SPAN **configured** (extensions likely writable)
-
-!!! caution
-    **UNTESTED.** We do not have a SPAN Panel (let alone one provisioned by FranklinWH) to verify this Cloud API endpoint or its effect on Modbus extension register writability. The above is based on API discovery only — actual behavior with `spanFlag: 1` is unconfirmed.
-
-**3. Library auto-detection** — the controller probes on `connect()`:
-```python
-ctrl.connect()
-# Logs: "Extension registers: READ-ONLY (requires installer unlock for SPAN Modbus)"
-# or:   "Extension registers: WRITABLE (SPAN Modbus enabled)"
-```
-
-!!! note
-    **Community testing needed:** We need a user with both SPAN Panel + aGate configured to verify that `spanFlag: 1` enables write access to 15507-15509 via Modbus TCP.
+`--test-extension-write` (or `ctrl.test_extension_writability()`) writes test values to 15507–15509, reads them back and restores them. ⚠️ It writes to the device. The read-back is the only reliable answer.
 
 #### Mode Control Tiers (Web App)
 
-The admin console already defines three control tiers based on SPAN availability:
+The admin console defines three control tiers. Tier 1 assumes extension writes work, which is **speculation (undocumented, unverified)**:
 
 | Tier | Method | Capability |
 |------|--------|------------|
-| ⚡ Tier 1: SPAN Panel | Direct Modbus register writes | Full mode/reserve control (Phase 4) |
+| ⚡ Tier 1: Extension writes | Direct Modbus register writes (undocumented; not applied on V12R02B60D00) | Full mode/reserve control (Phase 4) |
 | ☁️ Tier 2: Cloud Bypass | Mode changes via Cloud API | Mode control, data stays Modbus |
 | 📖 Tier 3: Read-Only | View only | No control |
 
-> **TODO:** SPAN detection + Mode Control Tier selection should move from MQTT Admin to a **Setup Wizard** — it's a one-time configuration decision, not an MQTT setting.
+> **TODO:** Mode Control Tier selection should move from MQTT Admin to a **Setup Wizard** — it's a one-time configuration decision, not an MQTT setting.
 
 ### 5.7 PFWInjEna (Power Factor)
 
@@ -240,7 +207,7 @@ resp = sock.recv(256)
 
 ### 5.9 M715 Address Space
 
-M715 registers are read and written at their **PDU addresses** (1087–1095, as in the FranklinWH PICS). Offsetting by 40000 (PDU 41087+) returns exception 2 (`ILLEGAL_DATA_ADDRESS`). The aGate's SunSpec map starts at PDU 0; see QUIRKS, Register Addressing.
+M715 registers are read and written at their **PDU addresses** (1087–1095, as in the FranklinWH PICS). Offsetting by 40000 (PDU 41087+) returned exception 2 (`ILLEGAL_DATA_ADDRESS`) on V10R01B04D00; V12R02B60D00 mirrors the map at 40000. Use the PDU address. The aGate's SunSpec map starts at PDU 0; see QUIRKS, Register Addressing.
 
 ---
 

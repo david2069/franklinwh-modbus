@@ -103,7 +103,7 @@ graph TD
     *   `1`: Backup
     *   `2`: Self-Consumption
     *   `3`: TOU
-*   **Note**: Requires installer "SPAN Modbus" unlock.
+*   **Note**: Writes to 15507 are undocumented and unconfirmed. FranklinWH has never documented it as writable; on V12R02B60D00 (2026-10-21) mode writes did not take effect.
 
 ### 3.5 Home Load Monitoring
 *   **Interaction**: Register `16000` (HomeLoadHighRes) vs `M701.W`.

@@ -31,7 +31,7 @@ A minimal, **monitor-only** way to see your aGate's core metrics in Home Assista
 | **Grid connected** (derived) | — | Template binary sensor |
 | Battery charged / discharged energy (Wh, lifetime) | 1053 / 1049 | SunSpec M714 `DCWhAbs` / `DCWhInj` |
 
-Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Never add 40000 or 40001: the aGate answers those with exception 2. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
+Addresses are Modbus **PDU addresses**. Home Assistant also counts from 0, so they go into `address:` exactly as listed. Don't add 40000 or 40001. Older firmware (V10R01B04D00) answers those with exception 2, and the extension registers have no 40000 mirror that anyone has verified. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map).
 
 ---
 
@@ -257,7 +257,7 @@ template:
 - **Unit ID.** `device_address: 2` is the FranklinWH default. The aGate answers on any unit ID ([QUIRKS](FRANKLINWH_SUNSPEC_QUIRKS.md)).
 - **Scan intervals.** About 10 s for power and longer for energy and settings keeps traffic modest: 16 Modbus sensors means 16 requests per cycle. HA's default is 15 s. Polling faster than about 5 s hasn't been tested against an aGate.
 - **Reconnects.** HA's Modbus client reconnects by itself. How it behaves when the aGate drops the session hasn't been measured.
-- **TOU reserve isn't included.** 15509 reads the same value as 15508 on current firmware, so it isn't the TOU reserve (#63).
+- **TOU reserve.** On firmware **V12R02B60D00 and later**, 15509 holds the TOU reserve. Add it like the self-consumption reserve (address 15509, `uint16`, `%`). On V10R01B04D00 it just repeats 15508, so don't add it there (#63). Check your firmware with the `aGate Firmware` sensor from §2b.
 - **Operating mode is shown as a raw number.** Which number means which mode is still being confirmed (#75). The library and a 2026-05 device scan say 1 = Emergency Backup, 2 = Self-Consumption, 3 = TOU, but treat that as provisional.
 - **Grid status: what it can and can't tell you.** "Backup (off-grid)" comes from M701 `DERMode` bit 1 (GRID_FORMING: the aPower is making its own AC). "Grid disconnected" comes from `ConnSt` = 0. Neither has been observed during a real outage on an aGate yet; all readings so far were on-grid. Modbus also can't tell a real utility outage from a deliberate off-grid switch, which the FranklinWH cloud API can ([Modbus vs Cloud](MODBUS_CLOUD_COMPARISON.md)). The "Emergency Backup" operating mode (15507) is a setting that keeps the battery in reserve; it doesn't mean the grid is down.
 - **Battery power is the DC side** (M714). With more than one aPower, PDU 1048 is the model's top-level total. That hasn't been verified on a multi-battery site.
@@ -595,7 +595,7 @@ Check the configuration first (**Developer tools → YAML → Check configuratio
 | Symptom | Likely cause |
 |---|---|
 | All sensors **unavailable** | Another Modbus client is connected, Modbus TCP isn't enabled, or the IP is wrong |
-| One sensor unavailable, log shows exception 2 | Wrong address (e.g. offset by 40000), or the register doesn't exist on your firmware |
+| One sensor unavailable, log shows exception 2 | Wrong address (e.g. offset by 40000 on older firmware), or the register doesn't exist on your firmware |
 | SoC shows 500 instead of 50 | `scale: 0.1` missing |
 | Values look plausible but differ from the app | Scale factor or address differs on your firmware: redo step 1 |
 
