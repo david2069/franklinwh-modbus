@@ -9,6 +9,7 @@ import logging
 import time
 import struct
 import threading
+import warnings
 from typing import Dict, Any, Optional, Tuple, List, Union
 
 from .types import BatteryCommand, HealthStatus, ONGRID_MODES
@@ -26,6 +27,29 @@ except ImportError:
 
 # Cloud API availability flag
 CLOUD_API_AVAILABLE = False
+
+
+def _sunspec_symbols(model_id: int, point: str, group: Optional[str] = None) -> Dict[int, str]:
+    """Symbol names for a point, from the SunSpec model definitions in pysunspec2.
+
+    Returns {value: name}; for a bitfield the value is the bit number. Empty if
+    the definitions are unavailable or the point has no symbols.
+    """
+    try:
+        from sunspec2.device import get_model_def
+        g = get_model_def(model_id)['group']
+        if group:
+            g = next(sg for sg in g.get('groups', []) if sg['name'] == group)
+        pdef = next(p for p in g['points'] if p['name'] == point)
+        return {sym['value']: sym['name'] for sym in pdef.get('symbols', [])}
+    except Exception as e:
+        logger.debug(f"No SunSpec symbols for {model_id}.{point}: {e}")
+        return {}
+
+
+def _bit_names(value: int, names: Dict[int, str]) -> List[str]:
+    """Names of the set bits in value; bits without a name come out as BIT_n."""
+    return [names.get(bit, f'BIT_{bit}') for bit in range(32) if value & (1 << bit)]
 
 
 class FranklinWHController:
@@ -52,6 +76,11 @@ class FranklinWHController:
         3: 'TOU',
         4: 'Manual'
     }
+
+    # SunSpec 713 Sta (model_713.json): storage status
+    M713_STA_OK = 0
+    M713_STA_WARNING = 1
+    M713_STA_ERROR = 2
     
     def __init__(
         self,
@@ -90,6 +119,8 @@ class FranklinWHController:
         self.last_error_ts: Optional[float] = None
         self.consecutive_failures: int = 0
         self._last_failure_warning_ts: float = 0.0
+        # Models that failed inside an otherwise successful read: name -> last warning ts
+        self._partial_failures: Dict[str, float] = {}
         self._extension_writable: Optional[bool] = None
         
         # Software command timeout (hardware WSetRvrtTms doesn't work)
@@ -416,6 +447,27 @@ class FranklinWHController:
         else:
             logger.debug(f"Failed to read {what}: {error}")
     
+    def _record_partial_failure(self, model: str, error: Exception):
+        """Record one model failing inside a read that otherwise succeeded.
+
+        Warns on the first failure of that model and then at most once a minute.
+        Does not count towards consecutive_failures: the link is up.
+        """
+        now = time.time()
+        self.last_error = f"Model {model}: {error}"
+        self.last_error_ts = now
+        last = self._partial_failures.get(model)
+        if last is None or now - last >= self.READ_FAILURE_WARN_INTERVAL_S:
+            logger.warning(f"Could not read Model {model}: {error} (result is partial)")
+            self._partial_failures[model] = now
+        else:
+            logger.debug(f"Could not read Model {model}: {error}")
+    
+    def _record_partial_success(self, model: str):
+        """Log once when a model that was failing reads again."""
+        if self._partial_failures.pop(model, None) is not None:
+            logger.warning(f"Model {model} read recovered")
+    
     def _record_io_success(self):
         """Record a successful Modbus operation, logging recovery after failures."""
         if self.consecutive_failures:
@@ -507,6 +559,8 @@ class FranklinWHController:
             status_raw: M713.Sta raw value (always 0 on FranklinWH — do not use)
             battery_state: Derived from M714 DCW power direction (CHARGING/DISCHARGING/IDLE)
             battery_power_w, battery_current_a, battery_temp_c (from M714)
+            partial: list of models that failed to read (e.g. ['714']); present
+                only when some data is missing. Their keys are left out.
         """
         def _do_read():
             m713 = self.get_model(713)
@@ -601,8 +655,13 @@ class FranklinWHController:
                         }
                         for idx, block in enumerate(blocks)
                     ]
+                    self._record_partial_success('714')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 714: {e}")
+                    for key in ('battery_power_w', 'battery_state', 'battery_current_a',
+                                'battery_temp_c', 'individual_batteries'):
+                        result.pop(key, None)
+                    result['partial'] = ['714']
+                    self._record_partial_failure('714', e)
             
             return result
         
@@ -660,7 +719,8 @@ class FranklinWHController:
             else:
                 grid_mode = 'Grid Following (default)'
             
-            # Determine AC type based on voltage
+            # Determine AC type from the voltage band (not M701.ACType, which is
+            # unverified on the aGate; #42)
             if 200 <= voltage <= 260:
                 ac_type = 'Single-Phase (230V Nominal)'
             elif 100 <= voltage < 200:
@@ -725,8 +785,13 @@ class FranklinWHController:
             return {}
     
     def read_solar_status(self) -> dict:
-        """Read solar status from Model 502 (AC output), Model 714 (battery DC), and extensions."""
+        """Read solar status from Model 502 (AC output), Model 714 (battery DC), and extensions.
+
+        A model that fails to read is listed in 'partial' (e.g. ['502']) and its
+        keys are left out, rather than reported as 0.
+        """
         def _do_read():
+            partial = []
             # Model 502 - Solar AC Output (for AC-coupled systems like aGate X)
             m502 = self.get_model(502)
             solar_ac_power = 0
@@ -737,8 +802,10 @@ class FranklinWHController:
                     # Model 502 uses OutPw (Output Power), not W
                     if hasattr(m502, 'OutPw') and m502.OutPw.value is not None:
                         solar_ac_power = m502.OutPw.value * (10 ** sf_w)
+                    self._record_partial_success('502')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 502: {e}")
+                    partial.append('502')
+                    self._record_partial_failure('502', e)
             
             # Model 714 - Battery DC Power (not solar!)
             m714 = self.get_model(714)
@@ -753,16 +820,19 @@ class FranklinWHController:
                         for block in blocks
                         if hasattr(block, 'DCW') and block.DCW.value is not None
                     )
+                    self._record_partial_success('714')
                 except Exception as e:
-                    logger.debug(f"Could not read Model 714: {e}")
+                    partial.append('714')
+                    self._record_partial_failure('714', e)
             
-            solar_status = {
+            solar_status = {}
+            if '502' not in partial:
                 # Model 502 - Actual solar AC output
-                'ac_power_w': solar_ac_power,
+                solar_status['ac_power_w'] = solar_ac_power
+            if '714' not in partial:
                 # Model 714 - Battery DC (for backward compat, but this is BATTERY not solar!)
-                'dc_power_w': battery_dc_power,
-                'battery_dc_power_w': battery_dc_power,
-            }
+                solar_status['dc_power_w'] = battery_dc_power
+                solar_status['battery_dc_power_w'] = battery_dc_power
             
             # FranklinWH extensions (15500+) - may have total solar including remote
             try:
@@ -772,12 +842,14 @@ class FranklinWHController:
                     # If extension has total solar, use it
                     if ext_solar.get('total_solar', 0) > 0:
                         solar_status['total_solar_w'] = ext_solar['total_solar']
-                        # Also update ac_power_w if Model 502 was 0
-                        if solar_ac_power == 0:
+                        # Also update ac_power_w if Model 502 was 0 or failed
+                        if solar_status.get('ac_power_w', 0) == 0:
                             solar_status['ac_power_w'] = ext_solar['total_solar']
             except Exception as e:
                 logger.debug(f"Could not read extension solar: {e}")
             
+            if partial:
+                solar_status['partial'] = partial
             return solar_status
         
         try:
@@ -1485,6 +1557,13 @@ class FranklinWHController:
                 expiry. Observed for 186s post-expiry with no reversion.
                 This software timeout (duration_s) is the ONLY safety
                 mechanism. Set this for ALL unattended VPP operations.
+                
+                THREADING (#54): the timeout runs reset_control_state() on
+                its own threading.Timer thread, without any lock the caller
+                holds, so it can interleave with the caller's reads or a new
+                command on the same connection. If the controller is shared
+                across threads or polled concurrently, leave duration_s unset
+                and release from your own watchdog under your own lock.
             dry_run: If True, report what would happen without writing
         """
         def _do_send():
@@ -1935,44 +2014,133 @@ class FranklinWHController:
             logger.error(f"Reset failed: {e}")
             return False
     
-    def read_alarms(self) -> Dict[str, Any]:
+    def read_alarms(self, refresh: bool = True) -> Dict[str, Any]:
         """
-        Read all alarm registers from the aGate.
+        Read all alarm and status points from the aGate.
         
-        Returns dict with alarm bitfields and decoded descriptions.
+        Reports only; deciding what to do about an alarm is up to the caller.
+        
+        Args:
+            refresh: read models 701, 713, 714 and 502 from the device first.
+                Pass False if they were read moments ago (e.g. in the same poll).
+        
+        Returns dict with the raw values (system_alrm = M701.Alrm,
+        dc_port_alrm = M714.PrtAlrms, battery_sta = M713.Sta,
+        solar_evt = M502.Evt, vendor_info = M701.MnAlrmInfo) and 'decoded',
+        which names every active alarm (see _decode_alarms).
+        
+        If the read fails, 'error' holds the reason and the values are not
+        meaningful: no alarms reported is not the same as no alarms.
         """
         alarms = {
             'system_alrm': 0,
             'dc_port_alrm': 0,
             'battery_sta': 0,
+            'solar_evt': 0,
+            'vendor_info': '',
             'decoded': {},
         }
         
         try:
-            m701 = self.get_model(701)
+            models = {mid: self.get_model(mid) for mid in (701, 713, 714, 502)}
+            if refresh:
+                for model in models.values():
+                    if model is not None:
+                        model.read()
+            m701, m713, m714, m502 = (models[mid] for mid in (701, 713, 714, 502))
+            
             if m701 and hasattr(m701, 'Alrm'):
                 alarms['system_alrm'] = m701.Alrm.value if m701.Alrm.value else 0
+                if hasattr(m701, 'MnAlrmInfo') and m701.MnAlrmInfo.value:
+                    alarms['vendor_info'] = str(m701.MnAlrmInfo.value).strip()
             
-            m714 = self.get_model(714)
             if m714 and hasattr(m714, 'PrtAlrms'):
                 alarms['dc_port_alrm'] = m714.PrtAlrms.value if m714.PrtAlrms.value else 0
             
-            m713 = self.get_model(713)
             if m713 and hasattr(m713, 'Sta'):
                 alarms['battery_sta'] = m713.Sta.value if m713.Sta.value else 0
+            
+            if m502 and hasattr(m502, 'Evt'):
+                alarms['solar_evt'] = m502.Evt.value if m502.Evt.value else 0
+            
+            alarms['decoded'] = self._decode_alarms(alarms, m714)
                 
         except Exception as e:
-            logger.debug(f"Could not read alarms: {e}")
+            alarms['error'] = str(e)
+            self._record_read_failure('alarms', e)
         
         return alarms
     
+    def _decode_alarms(self, alarms: Dict[str, Any], m714) -> Dict[str, Any]:
+        """Name every active alarm using the SunSpec model definitions.
+
+        M714.PrtAlrms flags which DC ports have an alarm (bit 0 = first port);
+        the alarm itself is in that port's DCAlrm. Ports are numbered from 1,
+        matching read_battery_status()['individual_batteries']. A port whose DCSta is
+        WARNING or ERROR is reported even if PrtAlrms doesn't flag it.
+        """
+        dc_port = []
+        ports = getattr(m714, 'Prt', None) or []
+        port_names = _sunspec_symbols(714, 'DCAlrm', group='Prt')
+        sta_names = _sunspec_symbols(714, 'DCSta', group='Prt')
+        for idx in range(max(32, len(ports))):
+            port = ports[idx] if idx < len(ports) else None
+            port_alrm = port.DCAlrm.value if port is not None and hasattr(port, 'DCAlrm') else None
+            flagged = idx < 32 and alarms['dc_port_alrm'] & (1 << idx)
+            if port_alrm:
+                dc_port += [f"Port {idx + 1}: {n}" for n in _bit_names(port_alrm, port_names)]
+            elif flagged:
+                dc_port.append(f"Port {idx + 1}")
+            port_sta = port.DCSta.value if port is not None and hasattr(port, 'DCSta') else None
+            if sta_names.get(port_sta) in ('WARNING', 'ERROR'):
+                dc_port.append(f"Port {idx + 1}: status {sta_names[port_sta]}")
+        
+        sta = alarms['battery_sta']
+        return {
+            'system': _bit_names(alarms['system_alrm'], _sunspec_symbols(701, 'Alrm')),
+            'dc_port': dc_port,
+            'solar': _bit_names(alarms['solar_evt'], _sunspec_symbols(502, 'Evt')),
+            'battery_status': _sunspec_symbols(713, 'Sta').get(sta, f'UNDEFINED ({sta})'),
+            'vendor_info': alarms['vendor_info'],
+        }
+    
+    def active_alarms(self, alarms: Optional[Dict[str, Any]] = None) -> List[str]:
+        """
+        Every active alarm by name, from read_alarms() (read now if not given).
+        
+        Reports only: which alarms should stop operation is for the caller to decide.
+        A failed read is reported as an entry ("Alarm read failed: …"), never as
+        an empty list, so it cannot pass for "no alarms".
+        """
+        if alarms is None:
+            alarms = self.read_alarms()
+        if alarms.get('error'):
+            return [f"Alarm read failed: {alarms['error']}"]
+        decoded = alarms.get('decoded', {})
+        active = list(decoded.get('system', [])) + list(decoded.get('dc_port', []))
+        active += [f"Solar: {name}" for name in decoded.get('solar', [])]
+        battery = decoded.get('battery_status')
+        if battery and battery != 'OK':
+            active.append(f"Battery: {battery}")
+        return active
+    
     def check_blocking_alarms(self) -> Tuple[bool, List[str]]:
         """
-        Check if any alarms are blocking operation.
+        Deprecated: the library reports alarms; deciding which ones block is up
+        to the client. Use read_alarms() or active_alarms() and apply your own rule.
         
-        Returns (can_operate, blocking_reasons).
+        Returns (can_operate, blocking_reasons) using a fixed rule that will be
+        removed in a future release. Known issue (#46): CRITICAL_BITS were chosen
+        from a bit table one bit off from SunSpec model 701; kept unchanged
+        until removal. A failed alarm read blocks.
         """
+        warnings.warn(
+            "check_blocking_alarms() is deprecated: use read_alarms() or "
+            "active_alarms() and decide in the client",
+            DeprecationWarning, stacklevel=2)
         alarms = self.read_alarms()
+        if alarms.get('error'):
+            return False, [f"ALARM_READ_FAILED: {alarms['error']}"]
         blocking = []
         
         # Critical system alarm bits
@@ -1984,9 +2152,13 @@ class FranklinWHController:
         if alarms['dc_port_alrm'] & 0x3F:
             blocking.append(f"DC port alarm: 0x{alarms['dc_port_alrm']:08X}")
         
-        # Battery fault status
-        if alarms['battery_sta'] == 6:  # FAULT
+        # Battery status: SunSpec 713 Sta is 0 OK, 1 WARNING, 2 ERROR
+        if alarms['battery_sta'] == self.M713_STA_ERROR:
             blocking.append('BATTERY_FAULT')
+        elif alarms['battery_sta'] == self.M713_STA_WARNING:
+            logger.warning("Battery reports WARNING (M713.Sta = 1)")
+        elif alarms['battery_sta'] not in (self.M713_STA_OK, self.M713_STA_WARNING, self.M713_STA_ERROR):
+            logger.warning(f"Battery status not defined by SunSpec (M713.Sta = {alarms['battery_sta']})")
         
         return len(blocking) == 0, blocking
     
@@ -2005,7 +2177,7 @@ class FranklinWHController:
             if not sock:
                 return False, "No active Modbus TCP connection"
             
-            # Write 1 to AlarmReset (base-1 addr 1094)
+            # Write 1 to AlarmReset (PDU address 1094)
             req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, 1094, 1)
             sock.sendall(req)
             resp = sock.recv(256)
@@ -2118,12 +2290,12 @@ class FranklinWHController:
                         'min_operational': reserve + self.SAFETY_MARGIN_PCT,
                     }
             
-            # Check alarms
-            can_operate, blocking = self.check_blocking_alarms()
+            # Report alarms (deciding what they mean is up to the caller)
+            alarms = self.read_alarms()
             result['alarms'] = {
-                'can_operate': can_operate,
-                'blocking': blocking,
-                'system_alrm': self.read_alarms().get('system_alrm', 0),
+                'active': self.active_alarms(alarms),
+                'system_alrm': alarms.get('system_alrm', 0),
+                'decoded': alarms.get('decoded', {}),
             }
             
             # Check for control conflicts
@@ -2333,15 +2505,10 @@ class FranklinWHController:
         if nameplate:
             checks['nameplate'] = nameplate
         
-        # 8. Alarm check
-        can_operate, blocking = self.check_blocking_alarms()
-        checks['blocking_alarms'] = blocking if blocking else []
-        checks['can_operate'] = can_operate
-        
-        if not can_operate:
-            healthy = False
-            message = f"BLOCKING ALARMS: {', '.join(blocking)}"
-            recommendations.append("Clear alarms before operating battery")
+        # 8. Alarms: reported, not judged (the caller decides what they mean)
+        checks['alarms'] = self.active_alarms()
+        if checks['alarms']:
+            recommendations.append(f"Active alarms: {', '.join(checks['alarms'])}")
         
         # 9. Control conflict check
         if checks['wset_ena'] == 1:

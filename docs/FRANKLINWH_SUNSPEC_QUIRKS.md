@@ -136,60 +136,34 @@ elif der_mode_raw & (1 << 0):
 
 ---
 
-## Extension Registers (15500-15513) — Documented
+## Extension Registers
 
-FranklinWH provides proprietary extension registers beyond standard SunSpec:
+The FranklinWH extension registers (15000–15043, 15500–15513, 16000–16002), with access, units, library accessors and evidence, are listed in one place: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**.
 
-| Address | Register | Status | Notes |
-|---------|----------|--------|-------|
-| 15500-15501 | PV Installed flags | ✅ Working | Not actively used |
-| 15502-15505 | Solar breakdown | ✅ Working | PV Total, Proximal, Remote 1/2 (W) |
-| 15506 | Home Load | ✅ Working | Active load in W |
-| 15507 | Operating Mode | ✅ Working | 0=Emergency, 1=TOU, 2=Self-Consumption, 3=Manual |
-| 15508 | Self-Consumption Reserve | ✅ Working | Reserve SOC % |
-| 15509 | TOU Reserve | ⚠️ **Known defect** | Always mirrors 15508 — see below |
-| 15510-15513 | PV Energy | ✅ Working | Total/Proximal Wh (uint32 high:low pairs) |
-
-> **Note:** Write access to 15507-15509 requires **SPAN Modbus** unlock in FranklinWH installer app.
-
-### SOC Reserve Registers — Known Defect
-
-Registers 15508 (Self-Consumption Reserve) and 15509 (TOU Reserve) **always return the same value**, even when set differently in the FranklinWH app. This is a known firmware defect documented in the SPAN tab of the official SunSpec PICS file.
+Quirks covered there:
+- 15509 (TOU reserve) reads the same value as 15508; confirmed on V10R01B04D00, 2026-10-18 (#63).
+- The 15507 operating-mode values are under review (#75).
+- 16000 gives the home load at ~1 W resolution (15506 is in ~100 W steps).
 
 ### Official SunSpec PICS Reference
 
-FranklinWH's SunSpec Alliance certification document is at:
-`docs/UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx`
+FranklinWH's SunSpec Alliance certification document is the PICS spreadsheet *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx*. It is FranklinWH's proprietary document and is **not distributed in this repository** (removed before the public release, 2026-03-17); obtain it from FranklinWH.
 
 This XLSX documents:
-- "Unimplemented" info points (using base address 1)
+- "Unimplemented" info points, listed by PDU address (owner-confirmed: e.g. ControllerHb 1092)
 - Extension register definitions (SPAN tab)
 - The SOC reserve defect
 
 !!! warning
     **We do not fully trust this document.** Our live testing has found discrepancies between what the PICS document claims and actual aGate behavior. Always verify against the live device. Use the PICS as a starting point, not ground truth.
 
-See: `docs/VERIFICATION_BASELINE.md` for full register map and cross-verification.
+Register-by-register PICS findings: [PICS Conformance](PICS_CONFORMANCE_CROSS_REFERENCE.md).
 
 ---
 
-## Extension Registers (15000-15039) — Undocumented
+## Extension Registers (15000–15043) — Undocumented
 
-Discovered by accident (typo of 15500). Proprietary registers — likely aPower battery telemetry mirrors. See `docs/VERIFICATION_BASELINE.md` Section 4 for full dump.
-
-Notable high-confidence matches:
-- `15020` = 13600 → exact match to `713.WHRtg` (battery energy rating)
-- `15036` = 961 → exact match to `713.SoH` raw (96.1%)
-- `15024` = ~50010 → grid frequency mirror (~50.0Hz)
-- `15025` = ~2420 → grid voltage mirror (~242.0V)
-
-**Write-probe (2026-03-08):** All 40 registers accept writes at protocol level but ALL are silently discarded. No sticky registers found. See `tests/results/2026-03-08_extension_write_probe.md`.
-
-**Unit ID scan:** All unit IDs (1-247 sampled) return the same aGate X device (DA=1). No hidden sub-devices.
-
-> **Caution:** These are undocumented and may change with firmware updates.
-
-> **Future TODO:** Overnight brute-force scan of address ranges 15040-15499 and 16000-20000+ for additional populated register ranges. The 15000 range was found by accident — there may be more. Scan ~5000 addresses at 100ms each ≈ 8 minutes.
+Mirrors of SunSpec values (e.g. 15020 = M713 `WHRtg`). Writes are accepted at protocol level but silently discarded (write probe, 2026-03-08). The aGate answers on every unit ID with the same device. See [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md) and the raw scans in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md).
 
 ---
 
@@ -281,7 +255,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 
 ### The LocRemCtl Paradox (Model 715) — TESTED 2026-03-08
 
-Model 715 `LocRemCtl` (addr 1089 base-1) reports `1` = **Local Control** and is **read-only**.
+Model 715 `LocRemCtl` (PDU address 1089) reports `1` = **Local Control** and is **read-only**.
 
 **Per SunSpec 2 spec:**
 - `LocRemCtl = 1` (Local) → DER should **reject ALL** Modbus client writes
@@ -365,124 +339,84 @@ resp = sock.recv(256)
 
 ---
 
-## Register Addressing — Base-0 vs Base-1 vs Base-40000 (TESTED 2026-03-15)
+## Register Addressing — PDU Addresses (Modbus) and the SunSpec Map
 
-### The Problem
+### Source of truth: Modbus terms
 
-FranklinWH aGate has **one SunSpec register map** but it responds at multiple base addresses. Different code paths must use different bases depending on whether they go through sunspec2 or raw Modbus TCP.
+Addressing is a **Modbus** matter, not a SunSpec one: there is no "SunSpec address base". These docs use the Modbus Organization's terms, from the *MODBUS Application Protocol Specification V1.1b3* (2012-04-26) and the *MODBUS Messaging on TCP/IP Implementation Guide V1.0b* (2006-10-24). Both are published at https://www.modbus.org/specifications (download requires accepting the Modbus EULA; titles and dates as listed there, PDF text not re-checked for this page).
 
-### The Three Address Spaces
+| Term | Meaning | Example (ControllerHb) |
+|------|---------|------------------------|
+| **PDU address** | 0-based number sent in the request PDU, 0–65535. This is what goes on the wire. | **1092** |
+| **Register number** | The same register counted from 1 in the data model (register *N* is PDU address *N*−1). | 1093 |
+| **Holding register** | The data table read with function code 3 and written with 6 (single) or 16 (multiple). All aGate points used here are holding registers. | — |
+| **4xxxx reference** | Legacy Modicon convention, not an address: the leading 4 means "holding register", so 40001 = holding register 1 = PDU address 0. | 41093 |
 
-| Layer | Base | Used By | Example: ControllerHb | Result |
-|-------|:----:|---------|:----------------------:|:------:|
-| **SunSpec PDU** | 0 | pymodbus `read_holding_registers(addr=0)` | Read addr 1092 | ✅ Works |
-| **SunSpec base-1** | 1 | Raw TCP `struct.pack(...)`, FranklinWH XLSX | Read addr 1092 | ✅ Works |
-| **Modbus 4xxxx** | 40000 | Traditional Modbus tools, some pymodbus configs | Read addr 41092 | ❌ ILLEGAL_DATA_ADDRESS |
+**In these docs, every register address is a PDU address unless it says otherwise.** That includes the FranklinWH PICS addresses (owner-confirmed: the official PICS aligns with PDU addresses; e.g. ControllerHb 1092, matching `SUNSPEC_DEVICE_SNAPSHOT.md`) and the extension registers (15000–15043, 15500–15513, 16000–16002).
 
-**Why base-1 matters:** The SunSpec standard conventionally uses "1-based" register numbering in documentation (register 40001 = PDU address 0). FranklinWH's XLSX specification lists all addresses as base-1. When using raw TCP sockets, addresses are **PDU addresses** (0-based), which happen to equal the base-1 SunSpec addresses minus 1 for standard models — but for extension registers (15500+), the raw TCP address **IS** the base-1 address.
+### What SunSpec adds: the "SunS" map
 
-### What Works Where
+SunSpec defines where its register map starts, not how Modbus addresses work. A SunSpec device map begins with the 32-bit marker **"SunS" (0x53756E53)** at one of the well-known starting PDU addresses, **0, 40000 or 50000**, followed by Model 1 (Common). Models are chained blocks of `ID`, `L` (length) and `L` registers of points, and the chain ends with ID 0xFFFF.
+
+**On the aGate (firmware V10R01B04D00): the map starts at PDU address 0.** Model 1's ID is at PDU 2. sunspec2 finds it by scanning with `base_address=0`.
+
+### What works on the aGate (tested 2026-03-15)
 
 ```
-Standard SunSpec models (M1–M715):
-  ├── sunspec2 library:     base_address=0 (auto-scan)  → ✅ WORKS
-  ├── pymodbus base 0:      address=0 through 1125      → ✅ WORKS
-  ├── Raw TCP socket:       address=0 through 1125      → ✅ WORKS
-  └── pymodbus base 40000:  address=40000+               → ❌ EXCEPTION 2
+Standard SunSpec models (M1–M715), holding registers:
+  ├── sunspec2 library:      scans from PDU 0, then reads models  → ✅ WORKS
+  ├── pymodbus / raw TCP:    PDU address 0 … 1125, e.g. 1092      → ✅ WORKS
+  └── map probed at 40000:   PDU 40000+ (e.g. 41092)              → ❌ exception 2 (ILLEGAL DATA ADDRESS)
 
-Extension registers (15500+):
-  ├── sunspec2 library:     N/A — can't address these    → ❌ REMAPS
-  ├── Raw TCP socket:       address=15500, 15507 etc.    → ✅ WORKS (base-1)
-  └── pymodbus base 40000:  address=55500+               → ❌ EXCEPTION 2
+FranklinWH extension registers (outside the SunSpec chain):
+  ├── sunspec2 library:      can't address them (not in the chain) → ❌
+  ├── pymodbus / raw TCP:    PDU address 15500, 15507 …           → ✅ WORKS
+  └── offset by 40000:       PDU 55500+                           → ❌ exception 2
 ```
 
-### Which Code MUST Use Raw TCP (Base-1)
+A tool configured to subtract 40001 (or add 40000) will miss: send the PDU address as listed.
 
-| Function | File | Registers | Why Raw TCP? |
-|----------|------|-----------|--------------|
-| `_read_extension_solar()` | controller.py:657 | 15500–15513 | sunspec2 can't address extensions |
-| `read_native_mode()` | controller.py:773 | 15507–15509 | sunspec2 can't address extensions |
-| `_test_extension_writability()` | controller.py:181 | 15507–15509 | Non-SunSpec proprietary registers |
-| `_check_orphaned_vpp()` | controller.py:130 | M704.WSetEna (318) | Uses sunspec2 model read ✅ |
+### Which code uses raw PDU addresses
 
-### Which Code Uses sunspec2 (Base-0 Auto)
+The extension registers sit outside the SunSpec chain, so sunspec2 can't reach them. These functions send their PDU addresses in hand-built requests:
 
-| Function | Models | Addressing |
-|----------|--------|-----------|
-| `connect()` / `scan()` | All M1–M715 | sunspec2 auto-discovers at base 0 |
-| `send_command()` | M704 | sunspec2 model write (handles addressing) |
-| `read_battery_status()` | M713, M714 | sunspec2 model read |
-| `read_grid_status()` | M701 | sunspec2 model read |
-| All Remote Control | M704, M715 | sunspec2 model read/write |
+| Function | Registers (PDU) |
+|----------|-----------------|
+| `_read_extension_solar()` | 15500–15513, 16000 |
+| `read_native_mode()` | 15507–15509 |
+| `test_extension_writability()` | 15507–15509 (**writes**) |
+| `clear_alarms()` | 1094 (M715 `AlarmReset`) |
 
-### Why sunspec2 Uses Base 0
+Everything else (`connect()`, `send_command()`, the `read_*_status()` methods, Remote Control) goes through sunspec2 model access, which handles addressing after the scan:
 
 ```python
-# In controller.py __init__:
-base_address: int = 0  # sunspec2 uses 0 for auto/scan
+# controller.py __init__
+base_address: int = 0  # sunspec2 scans for "SunS" starting at PDU 0
 
-# sunspec2 SunSpecModbusClientDeviceTCP.scan() does:
-# 1. Reads address 0 → finds "SunS" header
-# 2. Walks model chain from offset 2
-# 3. Stores model addresses internally
-# 4. All subsequent model reads use internal offsets
+# SunSpecModbusClientDeviceTCP.scan():
+# 1. reads PDU 0 → finds "SunS"
+# 2. walks the model chain from PDU 2 (Model 1 ID)
+# 3. stores each model's address; later reads use them
 ```
 
-When `base_address=0`, sunspec2 **auto-discovers** by reading the SunSpec header at PDU address 0. It then manages all model addressing internally. You never need to know the absolute address — just `self.models[704][0].WSetEna.value`.
+### UID aliasing (observed 2026-03-15)
 
-### UID Aliasing (Discovered 2026-03-15)
+The aGate ignores the Modbus unit identifier: every UID tried (1, 2, 3, 126, 247) returned the same 17 models from a scan at PDU 0. Scans at 50000 found nothing. Scans at 40000 were recorded as "varies" in the 2026-03-15 notes, while direct reads at PDU 40000+ return exception 2 (above). That entry is unexplained and not re-tested; treat it as unverified.
 
-The aGate ignores the Modbus UID field entirely — **all UIDs respond identically**:
+We use `unit_id=2` (FranklinWH default), but any UID works.
 
-| UID | Base 0 | Base 40000 | Base 50000 |
-|:---:|:------:|:----------:|:----------:|
-| 1 | ✅ Same 17 models | ⚠️ Varies | ❌ |
-| 2 | ✅ Same 17 models | ⚠️ Varies | ❌ |
-| 3 | ✅ Same 17 models | ⚠️ Varies | ❌ |
-| 126 | ✅ Same 17 models | ⚠️ Varies | ❌ |
-| 247 | ✅ Same 17 models | ⚠️ Varies | ❌ |
+### Rules for new code
 
-We use `unit_id=2` (FranklinWH default) but any UID works. No per-UID register partitioning exists.
-
-### Rules for New Code
-
-1. **Standard SunSpec reads/writes → use sunspec2 model access** (never raw addresses)
-2. **Extension registers (15000+/15500+) → raw TCP with base-1 addresses**
-3. **Never use base 40000** — the device returns ILLEGAL_DATA_ADDRESS
-4. **UID doesn't matter** — but use `unit_id=2` for consistency with FranklinWH docs
+1. **Standard SunSpec reads and writes:** use sunspec2 model access, never hand-built addresses.
+2. **Extension registers (15000+, 15500+, 16000+):** send the listed **PDU address** with function code 3 (read) or 6/16 (write).
+3. **Never offset by 40000 or 40001.** The aGate's map starts at PDU 0, and PDU 40000+ returns exception 2.
+4. **UID doesn't matter,** but use `unit_id=2` for consistency with FranklinWH docs.
 
 ---
 
 ## Register 16000 — High-Resolution Home Load (Discovered 2026-03-15)
 
-**Discovered:** 2026-03-15 (accidental typo) · **Severity:** Beneficial · **Status:** IN USE
-
-An undocumented register block at 16000–16002 mirrors extension registers 15506–15509 but with **higher precision on the home load reading:**
-
-| Register | Value | Mirrors | Precision |
-|:--------:|:-----:|:-------:|:---------:|
-| **16000** | Home Load (W) | 15506 | **~1W** (vs ~100W quantized) |
-| 16001 | Self Reserve (%) | 15508 | Same |
-| 16002 | TOU Reserve (%) | 15509 | Same |
-
-### Correlation Evidence
-
-```
-    Time |  16000 (hires)  15506 (quantized)
------------+----------------------------------
-12:51:14 |    1004 W         1000 W
-12:51:21 |     929 W          900 W
-12:51:29 |     812 W          800 W
-12:51:34 |     835 W          800 W
-```
-
-Register 16000 varies continuously while 15506 snaps to ~100W steps. The wider scan (15900–16100) found **no other non-zero registers** — this is an isolated 3-register block.
-
-### Usage
-
-The library now reads register 16000 as the primary home load source, falling back to 15506 if the high-res read fails. See `_read_extension_solar()` in `controller.py`.
-
-**Risk:** This register is undocumented and could change with firmware updates. The fallback to 15506 mitigates this.
+16000 gives the home load at ~1 W resolution, while 15506 is in ~100 W steps. Measured 2026-03-15: 1004/1000, 929/900, 812/800 and 835/800 W (16000/15506). The library uses 16000 and falls back to 15506. It's undocumented, so firmware could change it. 16001 and 16002 are covered in [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md).
 
 ---
 
@@ -590,7 +524,7 @@ ctrl.send_command(BatteryCommand(-5000), duration_s=300)  # 5min auto-release
 - **Write Sequencing:** All SunSpec DER control groups require proper phased sequencing (Phase 0-5). See `SUNSPEC_DER_SEQUENCING_REFERENCE.md`
 - **Timing:** Minimum 100-500ms inter-phase settling. aGate round-trip ~98ms average. Do not rapid-fire writes.
 - **Timeout:** WiFi networks to the aGate can be slow; always use configurable timeout (default 10s)
-- **Addressing:** M715 registers accessible only at base-1 addresses. M704 works at both base-1 and base-40000.
+- **Addressing:** read and write every register at its PDU address (see [Register Addressing](#register-addressing-pdu-addresses-modbus-and-the-sunspec-map)). An undated earlier note said M704 also answered at a 40000 offset, while M715 did not. That conflicts with the 2026-03-15 test (PDU 40000+ → exception 2) and is unverified.
 
 ---
 

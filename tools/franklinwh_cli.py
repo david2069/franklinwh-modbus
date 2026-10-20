@@ -463,7 +463,7 @@ def print_status(ctrl: FranklinWHController):
     print("  " + "─" * 54)
     print(f"    Architecture:     AC-Coupled (aGate X)")
     print(f"    Solar Inputs:     2x 63A AC circuits (+ remote via aPbox/aHub)")
-    print(f"    AC Type:          {grid.get('ac_type', 'Unknown')}  (M701.ACType)")
+    print(f"    AC Type:          {grid.get('ac_type', 'Unknown')}  (derived from M701.LNV)")
     print(f"    Voltage:          {grid.get('voltage_v', 0):.1f}V  (M701.LNV)")
     print(f"    Frequency:        {grid.get('frequency_hz', 0):.2f}Hz  (M701.Hz)")
     
@@ -545,8 +545,11 @@ def print_status(ctrl: FranklinWHController):
     if alarms.get('dc_port_alrm', 0):
         print(f"    ⚠️  DC Port Alarm:  0x{alarms['dc_port_alrm']:08X}")
         has_alarms = True
-    if alarms.get('battery_sta', 0) == 6:
-        print(f"    ⚠️  Battery Status: FAULT")
+    if alarms.get('battery_sta', 0) == ctrl.M713_STA_ERROR:
+        print(f"    ⚠️  Battery Status: ERROR  (M713.Sta)")
+        has_alarms = True
+    elif alarms.get('battery_sta', 0) == ctrl.M713_STA_WARNING:
+        print(f"    ⚠️  Battery Status: WARNING  (M713.Sta)")
         has_alarms = True
     if not has_alarms:
         print(f"    ✓ No alarms active")
@@ -629,11 +632,11 @@ def print_health(health):
         else:
             print(f"    {key}: {value}")
     
-    # Blocking alarms
-    blocking = details.get('blocking_alarms', [])
-    if blocking:
-        print(f"\n  ⚠️  BLOCKING ALARMS:")
-        for alarm in blocking:
+    # Active alarms
+    active = details.get('alarms', [])
+    if active:
+        print(f"\n  ⚠️  ACTIVE ALARMS:")
+        for alarm in active:
             print(f"    • {alarm}")
     
     print("\n  Recommendations:")
@@ -726,10 +729,10 @@ def print_startup_summary(state: dict, requested_mode: str = None, args=None):
     
     # Display alarms if any
     alarms = current.get('alarms', {})
-    blocking = alarms.get('blocking', [])
-    if blocking:
-        print(f"\n  🚨 BLOCKING ALARMS:")
-        for alarm in blocking:
+    active = alarms.get('active', [])
+    if active:
+        print(f"\n  🚨 ACTIVE ALARMS:")
+        for alarm in active:
             print(f"    • {alarm}")
     
     # Display conflicts and info messages
@@ -994,18 +997,29 @@ def main():
             else:
                 print(f"    ✓ None active")
             
+            # Solar events
+            print(f"\n  Solar Events (Model 502): 0x{alarms.get('solar_evt', 0):08X}")
+            solar = decoded.get('solar', [])
+            if solar:
+                for event in solar:
+                    print(f"    ⚠️  {event}")
+            else:
+                print(f"    ✓ None active")
+            
             # Battery status
             print(f"\n  Battery Status: {decoded.get('battery_status', 'UNKNOWN')}")
+            if decoded.get('vendor_info'):
+                print(f"  Vendor Alarm Info: {decoded['vendor_info']}")
             
-            # Check if blocking
-            can_operate, blocking = ctrl.check_blocking_alarms()
-            if blocking:
-                print(f"\n  🚨 BLOCKING ALARMS: {', '.join(blocking)}")
+            # The CLI's own rule: exit 1 if any alarm is active
+            active = ctrl.active_alarms(alarms)
+            if active:
+                print(f"\n  🚨 ACTIVE ALARMS: {', '.join(active)}")
             else:
-                print(f"\n  ✓ No blocking alarms - operation permitted")
+                print(f"\n  ✓ No active alarms")
             
             print("=" * 70)
-            sys.exit(0 if can_operate else 1)
+            sys.exit(1 if active else 0)
         
         # Stop control
         if args.stop:

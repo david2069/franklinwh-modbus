@@ -61,8 +61,12 @@ nav:
   - Getting Started:
     - Setup Guide: GETTING_STARTED.md
     - Python Integration: HOWTO_PYTHON.md
+    - Home Assistant (Modbus YAML): HOME_ASSISTANT_MODBUS_YAML.md
+    - API Cookbook: API_COOKBOOK.md
+    - Modbus vs Cloud API: MODBUS_CLOUD_COMPARISON.md
     - Modbus Protocol Guide: FRANKLINWH_MODBUS_GUIDE.md
     - What is Modbus TCP?: WHAT_IS_MODBUS_TCP.md
+    - Modbus Client Libraries: MODBUS_CLIENT_LIBRARIES.md
     - Architecture Overview: ARCHITECTURE.md
   - Command Line Tools:
     - CLI Command Reference: CLI_COMMAND_REFERENCE.md
@@ -85,7 +89,8 @@ nav:
     - SunSpec Interop Guide: SUNSPEC_700_INTEROP_GUIDE.md
     - SunSpec Quirks: FRANKLINWH_SUNSPEC_QUIRKS.md
     - PICS Conformance: PICS_CONFORMANCE_CROSS_REFERENCE.md
-    - Extensions Manifest: FRANKLINWH_EXTENSIONS_MANIFEST.md
+    - FranklinWH Extension Registers: FRANKLINWH_MODBUS_EXTENSIONS.md
+    - Extensions Manifest (raw scans): FRANKLINWH_EXTENSIONS_MANIFEST.md
     - aGate Network Profile: AGATE_NETWORK_PROFILE.md
     - Finding an aGate (discovery): DISCOVERY.md
     - Hardware Test Guide: HARDWARE_TEST_GUIDE.md

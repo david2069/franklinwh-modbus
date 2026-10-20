@@ -1,6 +1,6 @@
 # Change Management Policy
 
-*Effective: 2026-03-18*
+*Effective: 2026-03-18. Revised 2026-10-17: labels, issue lifecycle and owner decisions aligned with franklinwh-modbus-bridge `docs/issue-policy.md`.*
 
 > **Purpose:** Prevent cascading defects from reactive break-fix cycles. All changes follow a queue → group → plan → execute model. The agent MUST enforce this policy and flag violations — including by the user.
 
@@ -18,15 +18,18 @@
 
 | Severity | Definition | Response |
 |----------|-----------|----------|
-| **S1 — Blocker** | System down, data loss, security vulnerability, cannot proceed | Fix immediately (with test plan) |
+| **S1 — Blocker** | Wrong battery control, an unintended device write, safety, data loss, security vulnerability, cannot proceed | Fix immediately (with test plan); patch release (see `release_policy.md`) |
 | **S2 — High** | Feature broken but workaround exists | Queue → next planned batch |
 | **S3 — Medium** | Cosmetic, UX improvement, non-functional | Queue → group by functional area |
 | **S4 — Low** | Nice-to-have, future feature, cleanup | Queue → backlog review |
 
+- A **regression** (worked in an earlier release) goes up one level.
+- **When unsure, take the higher severity.** The agent proposes it; the owner can change it.
+
 ### 1.3 Queue → Group → Plan → Execute
 
 ```
-Report → Queue (in_flight_work.md) → Periodic Triage → Group by Area → Plan → Execute → Verify
+Report → Queue (GitHub issue) → Periodic Triage → Group by Area → Plan → Execute → Verify
          ↑                                                                              |
          └──── New defects found during Verify ────────────────────────────────────────┘
 ```
@@ -58,9 +61,9 @@ Report → Queue (in_flight_work.md) → Periodic Triage → Group by Area → P
 
 The agent MUST:
 
-1. **Enforce repo scope** — this agent works ONLY on `franklinwh-modbus` (`~/dev/modbus`). If the user requests work on another repo (e.g. `franklinwh-cloud`), respond:
+1. **Enforce repo scope** — this agent works ONLY on `franklinwh-modbus`, wherever it is cloned. If the user requests work on another repo (e.g. `franklinwh-cloud`), respond:
    > *"That change belongs to a different repo. I'm scoped to franklinwh-modbus only. Please switch to the appropriate agent/session for that repo."*
-2. **Queue all requests** — add to `in_flight_work.md` before acting
+2. **Queue all requests** — file a GitHub issue (see §4) before acting
 3. **Flag violations** — if user or agent attempts a reactive fix:
    > ⚠️ **Change Mgmt Reminder:** This looks like a reactive fix. Should I queue it for the next planned batch instead? If this is a Severity 1 blocker, please confirm.
 4. **Propose batches** — periodically suggest: *"We have N queued items in [area]. Ready to plan a batch?"*
@@ -86,3 +89,39 @@ The only exception to queue-first is **Severity 1**:
 - Cannot proceed with ANY development work
 
 Even S1 fixes get a brief plan statement before execution.
+
+---
+
+## 4. Issues and Labels
+
+Labels are shared with the bridge repos (`sev:*`, `nature:*` and the state labels have the same names in all of them).
+
+| Group | Labels |
+|-------|--------|
+| Type | `bug`, `enhancement`, `documentation`, `chore` |
+| Severity | `sev:S1-blocker`, `sev:S2-high`, `sev:S3-medium`, `sev:S4-low` |
+| Nature | `nature:code`, `nature:device`, `nature:doc`, `nature:test-gap`, `nature:design-risk` |
+| Area | `area:controller`, `area:modes`, `area:alarms-health`, `area:cli-tools`, `area:discovery`, `area:docs`, `area:packaging` |
+| State | `untriaged`, `needs-info` (closed after 30 days without reply), `blocked` (blocker stated in a comment), `fixed`, `regression`, `wontfix`, `duplicate` |
+
+### 4.1 Lifecycle
+
+1. **File** an issue when a defect is found, with type, sev, nature and area. Unknown → `untriaged`.
+2. **Triage** at session start: set missing labels, group by area into the next batch.
+3. **PRs say `Refs #N`**, never `Fixes`/`Closes`, so merging does not close the issue.
+4. **At merge**, add `fixed`. The issue stays open.
+5. **Close** only after the fix is published on PyPI and checked against the published package (install it, rerun the check, name the version in a comment).
+
+### 4.2 Cross-repo
+
+- Use full references: `david2069/franklinwh-modbus-bridge#230`.
+- A defect reported by another repo or session is a claim until verified here (see `evidence_and_testing.md`). Record who reported it and what was verified.
+- Do not edit, comment on or file issues in another repo; hand that to its agent.
+
+### 4.3 Owner Decisions
+
+Questions for the owner go in the pinned issue **#68 — "Owner decisions needed (running list)"** (it replaced #50, deleted 2026-10-19), never as question lists in chat or pop-ups:
+
+- One numbered checklist item per question (`- [ ] **N.** …`), with context and the agent's recommendation. Numbers are never reused.
+- In chat, say only "added as #68 item N".
+- The owner answers in a comment (`3: release it`) or ticks the box. The agent strikes the item through and records the answer and where it was acted on.

@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Home Assistant: Monitoring with Modbus YAML** (`docs/HOME_ASSISTANT_MODBUS_YAML.md`): a monitor-only proof of concept using Home Assistant's built-in Modbus integration. It covers 16 sensors (SoC, battery, grid, solar, home, reserve, mode, lifetime grid, battery and solar energy, and M701 grid connection, inverter state, DER mode and alarm bits), plus template sensors for **grid status** (on grid / backup (off-grid) / disconnected) and **grid connected**, Energy dashboard mapping, a built-in-cards dashboard, a scale-factor check, verification against the CLI, troubleshooting, and pros and cons. Tested against the gateway emulator in HA 2026.10.1, with screenshots; not yet tested against a real aGate.
+
+### Changed
+- **"What is Modbus TCP?" rewritten** with sourced background:
+  - Modbus origins (Modicon 1979, Modbus Organization 2004, TCP/IP 1999) and its specifications;
+  - the SunSpec Alliance, the "SunS" model chain, the 700-series DER models and IEEE 1547-2018;
+  - SunSpec publications;
+  - what a PICS is and how certification works, plus FranklinWH's PICS;
+  - where the FranklinWH extension registers sit in that context: outside the SunSpec chain, not vendor models, and not covered by certification.
+
+  It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
+
+### Added
+- **Modbus Client Libraries** (`docs/MODBUS_CLIENT_LIBRARIES.md`), every claim sourced. It covers:
+  - this library's dependencies;
+  - the Python Modbus client libraries, with PyPI facts;
+  - the pros and cons of raw register reads;
+  - worked pysunspec2 examples;
+  - the Open Home Foundation's modbus-connection, its pros, cons and boundary;
+  - whether a FranklinWH-specific library is needed.
+  - the API 2.0 decision record and the read-only spike plan, folded in from PR #32's evaluation, which this page supersedes.
+
+### Added
+- **FranklinWH Extension Registers** page (`docs/FRANKLINWH_MODBUS_EXTENSIONS.md`): one table of every extension register (15000–15043, 15500–15513, 16000–16002), with access, type and unit, meaning, library accessor and evidence, plus how to read and write them. QUIRKS and the cookbook now point to it instead of keeping their own copies. The Extensions Manifest is marked as raw scan evidence, with its correlation guesses flagged as speculative.
+- **API Cookbook** (`docs/API_COOKBOOK.md`): worked examples for connecting, a full status snapshot, every TUI panel and key mapped to its API call, each CLI command with its Python equivalent, battery control, virtual modes, alarms, the FranklinWH extension registers (what they are, how to read and write them, quirks), and a link to the cloud comparison.
+- **Modbus vs Cloud API comparison** (`docs/MODBUS_CLOUD_COMPARISON.md`): a field-by-field map of the Modbus client and the FranklinWH cloud API, covering units, signs, the 3 vs 4 grid states, energy and evidence labels. It's kept in step with franklinwh-cloud's own copy.
+
+### Changed
+- **Docs: Modbus addressing uses modbus.org terms.** Every register address in the docs is now a Modbus **PDU address** (0-based, as sent on the wire, as in the FranklinWH PICS: ControllerHb is 1092). The "base-1" and "base-40000" labels, which wrongly called PDU addresses base-1, are gone. QUIRKS now separates what Modbus defines (PDU address, register number, holding registers, the Modicon 4xxxx reference) from what SunSpec adds (the "SunS" marker at PDU 0, 40000 or 50000). The aGate's map starts at PDU 0. Device snapshot sections and glossary columns say which notation they print. Dead links to the proprietary PICS spreadsheet, which is not distributed here, now cite it by name. (#43)
+
+## [0.10.0] - 2026-10-17
+
+> **Alarms are reported, not decided.** The library now names every active alarm from the SunSpec models and leaves the decision to the caller. `check_blocking_alarms()` is deprecated, and `healthcheck()` no longer turns unhealthy on alarms. A failed alarm read is never reported as "no alarms". Read the upgrade notes if you use `healthcheck()`, `--check-alarms` or `check_blocking_alarms()`.
+
+### Upgrade notes
+- **The library no longer decides what an alarm means; the client does.** (#40, #46)
+  - `check_blocking_alarms()` is deprecated (it warns, and will be removed). Use `read_alarms()` or the new `active_alarms()` and apply your own rule.
+  - `healthcheck()` lists active alarms in `details['alarms']` and in its recommendations, but they no longer affect `healthy` or `message`. `details['blocking_alarms']` and `details['can_operate']` are gone.
+  - The conflict check's `result['alarms']` is now `{'active', 'system_alrm', 'decoded'}`; `can_operate` and `blocking` are gone.
+  - `VirtualModeController.run_continuous(enable_safety_checks=True)` no longer stops after two alarm checks. Its SoC-limit and dispatch-verification checks are unchanged.
+  - A failed alarm read is never "no alarms": `active_alarms()` returns `["Alarm read failed: …"]`, so `--check-alarms` exits 1, and the deprecated `check_blocking_alarms()` returns `(False, ["ALARM_READ_FAILED: …"])`. Its `CRITICAL_BITS` are still the set that is one bit off from model 701 (#46); it's kept unchanged until the function is removed.
+  - `--check-alarms` exits 1 if **any** alarm is active (before: only the fixed "critical" set). `--healthcheck` and `--status` print "ACTIVE ALARMS".
+- `read_alarms()` now reads models 701, 713, 714 and 502 itself (pass `refresh=False` if you read them in the same poll), and it fills `decoded`. DC ports in `decoded['dc_port']` are numbered from 1, the same as `read_battery_status()['individual_batteries']`. (#39)
+- If `read_alarms()` fails, the result has an `error` key and the failure is logged at warning level. It used to return zeros at debug level, which looked like "no alarms". Check `error` before trusting an empty alarm list. (#39)
+
+### Added
+- `FranklinWHController.active_alarms(alarms=None)`: every active alarm by name (system, DC port, solar, and the battery when not OK), from `read_alarms()`. Reports only. (#46)
+
+### Fixed
+- `--status --detail` labels AC Type `(derived from M701.LNV)`. It said `(M701.ACType)`, a point the library doesn't read; the value comes from the voltage band. (#42)
+- **`read_alarms()` reads the device and names every active alarm.** It returned whatever another call had last loaded into the models (it never read them itself) and left `decoded` empty, so `--check-alarms` printed `Battery Status: UNKNOWN` and empty lists. It now reads models 701, 713, 714 and 502 first (pass `refresh=False` if you read them moments ago) and lists every set bit, named from the SunSpec model definitions in pysunspec2: M701 `Alrm`, M502 `Evt` (new: `solar_evt`, `decoded['solar']`), M713 `Sta` (OK / WARNING / ERROR), M701 `MnAlrmInfo` (new: `vendor_info`), and per DC port the `DCAlrm` bits plus a WARNING/ERROR `DCSta`. M714 `PrtAlrms` only flags which ports have an alarm; it is not an alarm-type field. The standalone tool's name tables were not ported: its system-alarm names are shifted by one bit from model 701, and its DC-port names are not in model 714. (#39)
+
+## [0.9.6] - 2026-10-17
+
+> **Upgrade advisory: all 0.9.5 users should upgrade.** 0.9.5 has two S1 defects that act on the battery. `connect()` writes the operating mode and reserves (15507–15509) on every connection (#24), and a charge or discharge above the device rating is clamped to full power in the **opposite** direction (#28). 0.9.6 also fixes the battery ERROR status, which was never recognised (#38). Read the upgrade notes below before upgrading: several behaviours changed.
+
 ### Upgrade notes
 Behaviour changes that can affect code built on the library:
 - `connect()` no longer runs the extension writability test, so `_extension_writable` stays `None` after connecting. Call `test_extension_writability()` explicitly if you need it. **That call writes 15507–15509.** (#24)
@@ -14,8 +71,11 @@ Behaviour changes that can affect code built on the library:
 - Self-consumption grid-charges only below `self_reserve_pct` (default 20%), not below `target_soc`, and no longer refuses to start with a full battery. (#20)
 - `verify_command_execution()` returns `ok=False` when the readback fails. It used to assume success. (#21)
 - Failed status reads log at **warning** level (first failure, then at most once a minute, then on recovery) instead of debug. (#22)
+- When one model fails inside `read_battery_status()` or `read_solar_status()`, the result now carries `partial` (e.g. `['714']`) and **leaves that model's keys out**. `read_solar_status()` used to report them as `0`. Use `.get()` on `ac_power_w`, `dc_power_w` and `battery_dc_power_w`, and treat a present `partial` as an incomplete sample. (#52)
 
 ### Fixed
+- **Partial read failures are no longer silent.** A model 714 (or 502) read that failed inside an otherwise successful `read_battery_status()` or `read_solar_status()` was logged at debug level only. Battery power, state, current and temperature disappeared without trace, and `read_solar_status()` reported `0` W, which looks the same as an idle battery or no solar. It now logs a warning (first failure, then at most once a minute per model, then on recovery), updates `last_error`, and lists the model in `partial`. A failed M502 still falls back to the extension solar total when one is available. `consecutive_failures` keeps counting whole-read failures only. (#52)
+- **Battery status is read with the SunSpec values.** Model 713 defines `Sta` as 0 OK, 1 WARNING, 2 ERROR (pysunspec2 1.3.3 `model_713.json`); the library tested for 6, which SunSpec does not define, so a battery ERROR was never recognised. `--status` now prints ERROR or WARNING, and `check_blocking_alarms()` reports `BATTERY_FAULT` on 2 instead of 6. A WARNING, or a value SunSpec does not define, is logged. Only `Sta = 0` has been observed on the aGate. (#38)
 - **`connect()` no longer writes to the device.** It ran the extension writability test on every connection: it wrote 15507 (operating mode), 15508 and 15509 (reserves) with test values and restored them only if the readback matched. On a unit where those registers are writable, every connect (including every bridge reconnect) briefly changed the mode and reserves, and a dropped link could leave them changed (a 100% reserve was tested as 0%). The test is now the explicit `test_extension_writability()`, still run by `--test-extension-write`. (#24)
 - **The rating clamp no longer reverses the direction of over-limit commands.** `send_command()` clamped a charge above the device rating to a full-rate discharge, and a discharge above it to a full-rate charge (e.g. `--power 6000` on a 5 kW unit discharged at 5 kW). It now clamps to the rating in the requested direction. The same fix is in `tools/franklinwh_control_standalone.py`. (#28)
 - Virtual-mode calculators now return the `BatteryCommand` convention (positive = charge, negative = discharge) that the SoC limiter and `send_command()` expect. Self-consumption, peak-shave and the TOU `discharge` strategy returned the opposite sign, so the limiter ramped and blocked the wrong direction (a charge near the discharge floor was cut back or blocked without any log), and the inverted setpoint went out as a positive `WSetPct`, which the device ignores. Reported by @balloobbot in #12. (#20)
@@ -29,6 +89,7 @@ Behaviour changes that can affect code built on the library:
 - The SoC limiter logs when it ramps a command (once per distinct value), not only when it blocks one. (#20)
 
 ### Changed
+- `send_command(duration_s=…)` documents that its timeout runs `reset_control_state()` on a timer thread without the caller's lock. Callers that share the controller across threads should release from their own watchdog instead. A lock fix is tracked in #54.
 - Failed status reads (`read_battery_status`, `read_grid_status`, `read_solar_status`, `read_control_status`) log at warning level on the first failure and then at most once a minute, plus once on recovery. They were logged at debug level only. Return values are unchanged (`{}` on failure). (#22)
 
 ## [0.9.5] - 2026-10-07
@@ -161,7 +222,9 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...v0.10.0
+[0.9.6]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.2...v0.9.3
