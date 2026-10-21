@@ -25,12 +25,22 @@ Each item is graded by its evidence: **Measured** (read directly by us from the 
 | E4 | V12: raw +10 latched; battery power did not change | Measured, once | Same poll, 04:26:14Z; read-back 04:27:18Z |
 | E5 | V12: raw +500 refused with Modbus exception 3 | Reported | Bridge UI message, 2026-10-21 15:27:18 AEDT; also reported earlier that morning |
 | E6 | V12: whether +110 and +200 got exception 3 or were never sent | **Unknown** | Bridge audit log requested |
-| E7 | V10: a 5000 W discharge (raw 1000) delivered about 4.8 kW, 2026-10-20 18:00–19:03 AEDT | Reported, plus measured power history | Bridge activity log; the bridge's 24 h power history shows about +4.9 kW battery and −4.7 kW grid |
-| E8 | The firmware was V10R01B04D00 at the time of E7 | Reported (owner) | Owner: updated in the early hours of 2026-10-21. Last V10 read on record: 2026-10-18; first V12 read: 2026-10-20T20:17Z |
+| E7 | V10: a 5000 W discharge (raw 1000) delivered about 4.8 kW, 2026-10-20 18:00–19:03 AEDT | Reported, plus measured power history; firmware confirmed by E8 | Bridge activity log; the bridge's 24 h power history shows about +4.9 kW battery and −4.7 kW grid |
+| E8 | The firmware changed to V12R02B60D00 at 21:11 AEDT on 2026-10-20, after E7 | Measured | Direct Connect bridge log: aGate unreachable 10:10:59Z, then "firmware changed: V12R02B30D06_260304 → V12R02B60D00_260924" at 10:11:39Z (local-API version strings); matches the GridDisconnect event at 21:07:32 AEDT. E7 ran 07:00:59–08:04:00Z |
 | E9 | V10 accepted `WSetPct` = 1500 without exception 3 | Documented | `docs/NON_COMPLIANCE_ASSESSMENT.md` (2026-05-14) |
 | E10 | Raw −500 latched for 216 s (firmware not recorded) | Documented | `docs/PICS_CONFORMANCE_CROSS_REFERENCE.md`, test of 2026-03-13 |
 
-**What isn't shown yet:** any negative (charge) value on V12; the exact boundary (raw 101); repeatability; behaviour after a reboot; the reply code for E3.
+### Phase 1 results (2026-10-21 06:34–06:45Z, two passes, measured)
+
+| Raw | Result, both passes | `DCW` |
+|---|---|---|
+| +10, +50, +100 | accepted, latched | 0, +200, +500 W |
+| +101, +110, +200, +500, +1000 | exception 3 at the `WSetPct` write | — |
+| −10, −100, −101, −110, −500 | exception 3 at the `WSetPct` write | — |
+
+V12R02B60D00 accepts `WSetPct` only in raw 0…+100: discharge up to 10 %, no charge. This matches the PICS range read as raw values. On V10R01B04D00, `WSetPct` ±1500 was accepted (2026-03-13). Writing M702 `WMax`, `VAMax`, `WChaRteMax` or `WDisChaRteMax` didn't change the result.
+
+**Still not shown:** behaviour after a reboot (phases 2–3); the `WSet` (watts) path (phase 4).
 
 ## 3. Standards and declarations we will measure against
 
