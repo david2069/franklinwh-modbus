@@ -68,6 +68,8 @@ class FranklinWHController:
     EXT_ONGRID_MODE = 15507      # 1=Backup, 2=Self-Consumption, 3=TOU
     EXT_SELF_RESERVE = 15508     # Percentage
     EXT_TOU_RESERVE = 15509      # Percentage
+    EXT_ACTIVE_RESERVE = 16001   # Undocumented: active mode's reserve (measured V12R02B60D00; #90)
+    EB_RESERVE_PCT = 100         # Emergency Backup holds the battery full (16001 = 100 measured; #90)
     
     # Native operating modes (15507), each read on V12R02B60D00 with the app
     # in that mode (#75). No other value has been observed.
@@ -1023,11 +1025,24 @@ class FranklinWHController:
             resp = sock.recv(256)
             if len(resp) >= 15:
                 vals = struct.unpack('>HHH', resp[9:15])
+                # Active reserve from undocumented 16001; None if unreadable or out of range
+                active = None
+                try:
+                    req2 = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 3, self.EXT_ACTIVE_RESERVE, 1)
+                    sock.sendall(req2)
+                    resp2 = sock.recv(256)
+                    if len(resp2) >= 11 and resp2[7] == 3:  # FC03 reply, not an exception
+                        v = struct.unpack('>H', resp2[9:11])[0]
+                        if v <= 100:
+                            active = v
+                except Exception:
+                    pass
                 return {
                     'mode_raw': vals[0],
                     'mode_name': self.NATIVE_MODES.get(vals[0], f'Unknown({vals[0]})'),
                     'self_reserve_pct': vals[1],
                     'tou_reserve_pct': vals[2],
+                    'active_reserve_pct': active,
                 }
         except Exception as e:
             logger.debug(f"Native mode read failed: {e}")
@@ -1249,9 +1264,15 @@ class FranklinWHController:
     def get_effective_reserve_level(self) -> Tuple[Optional[int], str]:
         """Get the effective reserve level based on current aGate mode.
         
+        The mode's own reserve (Emergency Backup = 100, Self-Consumption =
+        15508, TOU = 15509) is compared with the active reserve in 16001,
+        and the higher one is used. 16001 is undocumented and was measured
+        on V12R02B60D00 only, so it can raise the reserve but never lower it.
+
         Returns:
-            Tuple of (reserve_pct, source) where source describes which
-            reserve setting is active ('self', 'tou', 'none', 'unknown').
+            Tuple of (reserve_pct, source) where source is 'backup', 'self',
+            'tou', 'active' (16001 was higher) or 'unknown' (mode not read or
+            not recognised; reserve is None and discharge is refused).
         """
         native = self.read_native_mode()
         if not native:
@@ -1260,18 +1281,19 @@ class FranklinWHController:
         mode_raw = native.get('mode_raw', -1)
         
         # Mode mapping: 1=Emergency Backup, 2=Self-Consumption, 3=TOU
-        if mode_raw == 2:  # Self-Consumption
-            reserve = native.get('self_reserve_pct', 20)
-            return reserve, 'self'
+        if mode_raw == 1:  # Emergency Backup
+            reserve, source = self.EB_RESERVE_PCT, 'backup'
+        elif mode_raw == 2:  # Self-Consumption
+            reserve, source = native.get('self_reserve_pct', 20), 'self'
         elif mode_raw == 3:  # TOU
-            reserve = native.get('tou_reserve_pct', 20)
-            return reserve, 'tou'
-        elif mode_raw == 1:  # Emergency Backup
-            # Emergency backup typically uses self_reserve
-            reserve = native.get('self_reserve_pct', 20)
-            return reserve, 'self'
+            reserve, source = native.get('tou_reserve_pct', 20), 'tou'
         else:
             return None, 'unknown'
+        
+        active = native.get('active_reserve_pct')
+        if active is not None and active > reserve:
+            return active, 'active'
+        return reserve, source
     
     def validate_target_soc(
         self,
@@ -1317,6 +1339,15 @@ class FranklinWHController:
         reserve, source = self.get_effective_reserve_level()
         details['effective_reserve'] = reserve
         details['reserve_source'] = source
+        
+        if reserve is None and operation == 'discharge':
+            # Unknown mode or failed read: refuse rather than skip the reserve check (#90)
+            return (
+                False,
+                "E007: Reserve level unknown (aGate mode not read or not recognised). "
+                "Discharge refused.",
+                details
+            )
         
         if reserve is not None:
             # GAP-2: Apply safety margin above reserve
