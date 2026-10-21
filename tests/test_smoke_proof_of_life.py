@@ -130,7 +130,7 @@ hs = HealthStatus(healthy=True, message="All good", recommendations=[])
 test("HealthStatus", hs.healthy and hs.message == "All good")
 
 # ONGRID_MODES
-test("ONGRID_MODES has 4 modes", len(ONGRID_MODES) == 4,
+test("ONGRID_MODES has 3 modes", len(ONGRID_MODES) == 3,
      str(ONGRID_MODES))
 
 

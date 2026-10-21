@@ -512,7 +512,7 @@ The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Kee
       - name: aGate Operating Mode
         unique_id: agate_operating_mode
         state: >
-          {% set names = {1: 'Emergency Backup', 2: 'Self-Consumption', 3: 'TOU', 4: 'Manual'} %}
+          {% set names = {1: 'Emergency Backup', 2: 'Self-Consumption', 3: 'TOU'} %}
           {% set v = states('sensor.agate_operating_mode_raw') | int(-1) %}
           {{ names.get(v, 'Unknown (' ~ v ~ ')') }}
 
@@ -555,7 +555,7 @@ The serial number (M1 `SN`, PDU 52, 16 registers) can be added the same way. Kee
 | Grid Mode | M701 `DERMode` | Grid Forming (bit 1: the aPower makes its own AC, i.e. off-grid) or Grid Following (bit 0: on grid) |
 | Grid Status / Grid Connected | `ConnSt` + `DERMode` | On grid, Backup (off-grid), Grid disconnected (core YAML) |
 | PV Clipped | M701 `DERMode` bit 2 | Solar is being curtailed, typically off-grid; not yet observed |
-| Operating Mode | Extension 15507 | **Provisional names (#75):** 1 Emergency Backup, 2 Self-Consumption, 3 TOU, 4 Manual |
+| Operating Mode | Extension 15507 | 1 Emergency Backup, 2 Self-Consumption, 3 TOU, each read with the app in that mode (#75) |
 | Battery Current | Power ÷ voltage | M714 `DCA` isn't populated on the aGate, so current is worked out as the library does. Unavailable while the voltage reads 0 |
 | Active Alarms | M701 `Alrm` | Names of the set bits, from SunSpec model 701, or "No alarms". A template result of `None` would show as unknown in Home Assistant |
 

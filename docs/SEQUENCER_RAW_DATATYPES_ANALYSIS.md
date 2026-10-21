@@ -40,7 +40,7 @@ Embed a proprietary register definition registry directly within the `franklinwh
 ```python
 EXTENSION_REGISTRY = {
     15506: {"name": "LoadActiveP", "type": "uint16", "sf": 0},
-    15507: {"name": "OnGridMode", "type": "uint16", "sf": 0, "symbols": {1: "Backup", 2: "Self-Consumption", 3: "TOU", 4: "Manual"}},
+    15507: {"name": "OnGridMode", "type": "uint16", "sf": 0, "symbols": {1: "Backup", 2: "Self-Consumption", 3: "TOU"}},
     15508: {"name": "SelfReserve", "type": "uint16", "sf": 0},
     15509: {"name": "TouReserve", "type": "uint16", "sf": 0},
     15510: {"name": "PVOutputWh", "type": "uint32", "sf": 0},

@@ -20,7 +20,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 15504 | — | R | uint16, W | PV remote 1 | `…['pv_remote1']` | Documented |
 | 15505 | — | R | uint16, W | PV remote 2 | `…['pv_remote2']` | Documented |
 | 15506 | LoadActiveP | R | uint16, W (~100 W steps) | Home load | `…['home_load_ext_quantized']` | Documented; measured 2026-03-15 |
-| 15507 | OnGridMode | R (writes undocumented) | uint16 enum | Operating mode | `read_native_mode()['mode_raw']`, `['mode_name']`; written by `set_native_mode()` | **Values under review (#75)**; see below |
+| 15507 | OnGridMode | R (writes undocumented) | uint16 enum | Operating mode | `read_native_mode()['mode_raw']`, `['mode_name']`; written by `set_native_mode()` | Measured 2026-10-21/22, V12R02B60D00 (1, 2, 3); see below |
 | 15508 | SelfReserve | R (writes undocumented) | uint16, % | Self-consumption SoC reserve | `read_native_mode()['self_reserve_pct']`; `set_self_consumption_reserve()` | Measured 2026-10-18, V10R01B04D00 |
 | 15509 | TouReserve | R (writes undocumented) | uint16, % | TOU SoC reserve. **On V12R02B60D00 it holds the TOU reserve** (15 vs SC 8, matching the app). On V10R01B04D00 it repeated 15508 | `read_native_mode()['tou_reserve_pct']`; `set_tou_reserve()` | Measured 2026-10-20/21, V12R02B60D00; the defect measured 2026-10-18, V10R01B04D00 (#63) |
 | 15510–15511 | PVOutputWh | R | uint32 (high, low), Wh | PV energy, total (lifetime) | read, not returned | Measured: matches M502 `OutWh` |
@@ -34,17 +34,13 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 
 ### 15507 operating mode values
 
-The sources disagree, so compare modes by **name** and **don't write modes 1, 3 or 4** until #75 is settled:
+| Value | Mode | Evidence |
+|---|---|---|
+| 1 | Emergency Backup | Measured on V12R02B60D00 with the app in that mode (2026-10-22) |
+| 2 | Self-Consumption | Measured on V12R02B60D00 (2026-10-21) |
+| 3 | TOU | Measured on V12R02B60D00 (2026-10-22) |
 
-| Value | Library (`NATIVE_MODES`) | Device scan 2026-05-14 (Manifest) | Older QUIRKS table | **Measured on V12R02B60D00** (app mode → 15507) |
-|---|---|---|---|
-| 0 | — | — | Emergency | — |
-| 1 | Emergency Backup | Backup | TOU | **Emergency Backup** (2026-10-22) |
-| 2 | Self-Consumption | Self-Consumption | Self-Consumption | **Self-Consumption** (2026-10-21) |
-| 3 | TOU | TOU | Manual | **TOU** (2026-10-22) |
-| 4 | Manual | — | — | not yet read |
-
-Reads on V12R02B60D00 confirm **1 = Emergency Backup, 2 = Self-Consumption and 3 = TOU**, as the library and the 2026-05-14 scan say; the older QUIRKS table is wrong. **4 = Manual** is unread (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping holds for reading only.
+No other value has been read from 15507. This matches the library, the 2026-05-14 device scan and the first QUIRKS table. Earlier docs and code also listed **0 = Emergency** and **4 = Manual**, and one QUIRKS revision had 1 = TOU and 3 = Manual. Those were added without a source and have been removed (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping holds for reading only.
 
 ## Reading
 

@@ -21,11 +21,11 @@ class TestNativeExtensions:
             return ctrl
 
     def test_native_modes_dictionary(self, mock_controller):
-        """Verify that NATIVE_MODES supports Backup (1), Self (2), TOU (3), and Manual (4)."""
+        """Verify that NATIVE_MODES is Backup (1), Self (2), TOU (3) and nothing else (#75)."""
         assert mock_controller.NATIVE_MODES[1] == 'Emergency Backup'
         assert mock_controller.NATIVE_MODES[2] == 'Self-Consumption'
         assert mock_controller.NATIVE_MODES[3] == 'TOU'
-        assert mock_controller.NATIVE_MODES[4] == 'Manual'
+        assert set(mock_controller.NATIVE_MODES) == {1, 2, 3}
 
     def test_set_self_consumption_reserve_validation(self, mock_controller):
         """Verify that set_self_consumption_reserve validates bounds (0-100)."""
@@ -95,17 +95,17 @@ class TestNativeExtensions:
             assert reserve == 30
             assert source == 'self'
 
-        # 4. Manual (4)
+        # 4. Unobserved value (4): no known mode, so no reserve
         with patch.object(mock_controller, 'read_native_mode') as mock_read:
             mock_read.return_value = {
                 'mode_raw': 4,
-                'mode_name': 'Manual',
+                'mode_name': 'Unknown(4)',
                 'self_reserve_pct': 30,
                 'tou_reserve_pct': 15,
             }
             reserve, source = mock_controller.get_effective_reserve_level()
             assert reserve is None
-            assert source == 'none'
+            assert source == 'unknown'
 
     def test_virtual_mode_controller_read_agate_reserve_1_indexed(self, mock_controller):
         """Verify VirtualModeController._read_agate_reserve_soc() maps correctly under 1-indexed modes."""

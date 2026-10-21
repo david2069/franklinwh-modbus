@@ -906,7 +906,7 @@ class CLIMonitor:
         if self.show_prompt and self.prompt_mode:
             # Show input prompt with context
             if self.prompt_mode == 'mode':
-                prompt_text = f"Set native mode (1=Backup, 2=Self, 3=TOU, 4=Manual): {self.prompt_buffer}_"
+                prompt_text = f"Set native mode (1=Backup, 2=Self, 3=TOU): {self.prompt_buffer}_"
             elif self.prompt_mode == 'self_reserve':
                 prompt_text = f"Set Self-Consumption Reserve % (0-100): {self.prompt_buffer}_"
             elif self.prompt_mode == 'tou_reserve':
@@ -977,7 +977,7 @@ class CLIMonitor:
         """.strip()
         
         if self.data.extension_writable:
-            help_text += "\n[o] Native Mode      - Set native mode (1=Backup, 2=Self, 3=TOU, 4=Manual)\n[v] Self Reserve     - Set Self-Consumption Reserve %\n[t] TOU Reserve      - Set TOU Reserve %"
+            help_text += "\n[o] Native Mode      - Set native mode (1=Backup, 2=Self, 3=TOU)\n[v] Self Reserve     - Set Self-Consumption Reserve %\n[t] TOU Reserve      - Set TOU Reserve %"
             
         content = Text(help_text)
         return Panel(content, title="[bold]Keyboard Help[/bold] (press h to close)", 
