@@ -373,7 +373,7 @@ class FranklinWHController:
     EXT_PV_TOTAL = 15502
     EXT_HOME_LOAD = 15506
     EXT_HOME_LOAD_HIRES = 16000       # Undocumented high-res mirror (~1W vs ~100W quantized)
-    EXT_ONGRID_MODE = 15507      # 0=Backup, 1=TOU, 2=Self-Consumption, 3=Manual
+    EXT_ONGRID_MODE = 15507      # 1=Backup, 2=Self-Consumption, 3=TOU
     EXT_SELF_RESERVE = 15508     # Percentage
     EXT_TOU_RESERVE = 15509      # Percentage
     
@@ -806,7 +806,7 @@ class FranklinWHController:
         if span_status['readable']:
             # Check OnGridMode for safety
             ongrid_mode = span_status.get('ongrid_mode', -1)
-            mode_names = {0: 'Backup', 1: 'Self', 2: 'TOU', 3: 'Manual'}
+            mode_names = {1: 'Backup', 2: 'Self', 3: 'TOU'}
             checks['ongrid_mode'] = ongrid_mode
             checks['ongrid_mode_name'] = mode_names.get(ongrid_mode, 'Unknown')
             
@@ -2013,11 +2013,11 @@ class VirtualModeController:
         tou_reserve = native_mode.get('tou_reserve_pct', -1)
         
         # Determine which reserve is active based on OnGridMode
-        # 0=Backup (no reserve shown), 1=Self, 2=TOU, 3=Manual
+        # 1=Backup (no reserve shown), 2=Self, 3=TOU
         active_reserve = "N/A"
-        if ongrid_mode == 1:
+        if ongrid_mode == 2:
             active_reserve = f"{self_reserve}% (Self)"
-        elif ongrid_mode == 2:
+        elif ongrid_mode == 3:
             active_reserve = f"{tou_reserve}% (TOU)"
         
         # Detect potential Cloud API activity
@@ -2025,9 +2025,8 @@ class VirtualModeController:
         cloud_active_warning = ""
         
         # Check for activity not from our Modbus control
-        if ongrid_mode != 3:  # Not in Manual mode
-            if abs(dc_power) > 100:  # Battery is actively charging/discharging
-                cloud_active_warning = f" ⚠️  CLOUD ACTIVE (OnGridMode={ongrid_name})"
+        if abs(dc_power) > 100:  # Battery is actively charging/discharging
+            cloud_active_warning = f" ⚠️  CLOUD ACTIVE (OnGridMode={ongrid_name})"
         
         # Battery state icon
         # FranklinWH defect: dc_power from Model 713 is often 0 even when active

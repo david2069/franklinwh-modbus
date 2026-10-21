@@ -23,7 +23,7 @@ A read-only capture of the reference aGate X after a FranklinWH firmware update,
 | 15500 PVUse / 15501 apBoxPVUse | 15500–15501 "not actively used" | 1 / 0 |
 | 15040, 15043 | Not captured (scan stopped at 15039) | 826 / 1 (meaning unknown) |
 
-**Mode readings (owner, read-only, 2026-10-21/22):** in Self-Consumption, 15507 = 2, 15508 = 8, 15509 = 15, 16001 = 8, 16002 = 20. In TOU, 15507 = 3, 15508 = 8, 15509 = 15, **16001 = 15**, 16002 = 20. In Emergency Backup (2026-10-22), 15507 = 1 and **16001 = 100**. So 16001 holds the active mode's reserve in all three modes (#63), and 15507's 1/2/3 are confirmed. 4 (Manual) is not read (#75). The re-scan answered the rest: the M714 port block reads zero, and PDU 40071 returns data on V12 (so #71's probe happens to work there).
+**Mode readings (owner, read-only, 2026-10-21/22):** in Self-Consumption, 15507 = 2, 15508 = 8, 15509 = 15, 16001 = 8, 16002 = 20. In TOU, 15507 = 3, 15508 = 8, 15509 = 15, **16001 = 15**, 16002 = 20. In Emergency Backup (2026-10-22), 15507 = 1 and **16001 = 100**. So 16001 holds the active mode's reserve in all three modes (#63), and 15507's 1/2/3 are confirmed. No other value has been read (#75). The re-scan answered the rest: the M714 port block reads zero, and PDU 40071 returns data on V12 (so #71's probe happens to work there).
 
 Sweeps of 15044–15099, 15514–15599 and 16003–16099 in 10-register chunks all read without exceptions and found nothing populated.
 

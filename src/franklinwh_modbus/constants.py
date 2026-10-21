@@ -345,8 +345,7 @@ EXTENSION_REGISTRY = {
         "symbols": {
             1: "Emergency Backup",
             2: "Self-Consumption",
-            3: "TOU",
-            4: "Manual"
+            3: "TOU"
         }
     },
     15508: {"name": "SelfReserve", "type": "uint16", "sf": 0},

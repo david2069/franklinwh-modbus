@@ -75,7 +75,7 @@ class TestVirtualModeControllerIntegration:
         
         ctrl.read_native_mode.return_value = {
             'mode_raw': 3,
-            'mode_name': 'Manual',
+            'mode_name': 'TOU',
             'self_reserve_pct': 20,
             'tou_reserve_pct': 15,
         }

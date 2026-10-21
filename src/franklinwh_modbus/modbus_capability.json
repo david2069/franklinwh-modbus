@@ -113,7 +113,7 @@
     "15507": {
       "name": "Operating Mode",
       "status": "provisioned",
-      "description": "Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU, 4=Manual. Write transactions are accepted at the protocol level but discarded internally without error on the firmware tested. Cause undetermined."
+      "description": "Native mode control: 1=Backup, 2=Self-Consumption, 3=TOU. Write transactions are accepted at the protocol level but discarded internally without error on the firmware tested. Cause undetermined."
     },
     "15508": {
       "name": "Self-Consumption Reserve",

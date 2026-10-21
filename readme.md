@@ -211,7 +211,7 @@ franklinwh-modbus/
 
 | Register | Address | Access | Description |
 |----------|---------|--------|-------------|
-| OnGridMode | 15507 | R (writes undocumented) | 1=Emergency Backup, 2=Self-Consumption, 3=TOU, 4=Manual |
+| OnGridMode | 15507 | R (writes undocumented) | 1=Emergency Backup, 2=Self-Consumption, 3=TOU |
 | Self Reserve SOC | 15508 | R (writes undocumented) | Self-consumption reserve percentage (0-100) |
 | TOU Reserve SOC | 15509 | R (writes undocumented) | ⚠️ Known defect: always mirrors 15508 |
 

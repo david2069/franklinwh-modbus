@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Native mode mapping for CLI arguments (maps to Register 15507 indices 1-4)
+# Native mode mapping for CLI arguments (maps to Register 15507 values 1-3)
 NATIVE_MODE_MAP = {
     'backup': 1,
     'self-consumption': 2,

@@ -69,12 +69,12 @@ class FranklinWHController:
     EXT_SELF_RESERVE = 15508     # Percentage
     EXT_TOU_RESERVE = 15509      # Percentage
     
-    # Mapping for native operating modes (1-indexed per hardware spec)
+    # Native operating modes (15507), each read on V12R02B60D00 with the app
+    # in that mode (#75). No other value has been observed.
     NATIVE_MODES = {
         1: 'Emergency Backup',
         2: 'Self-Consumption',
-        3: 'TOU',
-        4: 'Manual'
+        3: 'TOU'
     }
 
     # SunSpec 713 Sta (model_713.json): storage status
@@ -1038,7 +1038,7 @@ class FranklinWHController:
         Set FranklinWH native operating mode via Modbus Register 15507.
         
         Args:
-            mode: Mode index (1: Backup, 2: Self-Consumption, 3: TOU, 4: Manual)
+            mode: Mode index (1: Backup, 2: Self-Consumption, 3: TOU)
             dry_run: If True, report what would happen without writing
             
         Returns:
@@ -1049,7 +1049,7 @@ class FranklinWHController:
         after a successful-looking write. The cause is undetermined.
         """
         if mode not in self.NATIVE_MODES:
-            return False, f"Invalid mode index: {mode}. Must be 1-4."
+            return False, f"Invalid mode index: {mode}. Must be 1-3."
         
         mode_name = self.NATIVE_MODES[mode]
         
@@ -1259,7 +1259,7 @@ class FranklinWHController:
         
         mode_raw = native.get('mode_raw', -1)
         
-        # 1-indexed Mode mapping: 1=Emergency Backup, 2=Self-Consumption, 3=TOU, 4=Manual
+        # Mode mapping: 1=Emergency Backup, 2=Self-Consumption, 3=TOU
         if mode_raw == 2:  # Self-Consumption
             reserve = native.get('self_reserve_pct', 20)
             return reserve, 'self'
@@ -1270,9 +1270,6 @@ class FranklinWHController:
             # Emergency backup typically uses self_reserve
             reserve = native.get('self_reserve_pct', 20)
             return reserve, 'self'
-        elif mode_raw == 4:  # Manual
-            # Manual mode may not enforce reserve, but we still check
-            return None, 'none'
         else:
             return None, 'unknown'
     
