@@ -188,6 +188,25 @@ def run_observe(dev: Device, log: CappedLog, interval: float) -> None:
     log.write({"t": utc_now(), "event": "stop", "reason": log.stop_reason})
 
 
+MAX_READ_FAILURES = 3
+
+
+class LinkLost(Exception):
+    """Too many consecutive failed reads: stop writing."""
+
+
+def checked_sample(dev: Device, state: dict) -> dict:
+    """sample(), counting consecutive failures; raises LinkLost at MAX_READ_FAILURES."""
+    s = sample(dev)
+    if "m704_error" in s:
+        state["fails"] = state.get("fails", 0) + 1
+        if state["fails"] >= MAX_READ_FAILURES:
+            raise LinkLost(f"{state['fails']} consecutive failed reads")
+    else:
+        state["fails"] = 0
+    return s
+
+
 def plan_steps(values: List[int], repeat: int) -> List[int]:
     return [v for _ in range(repeat) for v in values]
 
@@ -206,10 +225,22 @@ def run_probe(dev: Device, log: CappedLog, args) -> List[dict]:
         return []
 
     results = []
+    link = {}
+    try:
+        _run_steps(dev, log, args, sf, results, link)
+    except LinkLost as e:
+        release(dev, log, f"link lost: {e}")
+        log.stop_reason = f"link lost: {e}"
+    log.write({"t": utc_now(), "event": "stop", "reason": log.stop_reason or "plan complete",
+               "after": sample(dev)})
+    return results
+
+
+def _run_steps(dev: Device, log: CappedLog, args, sf, results: List[dict], link: dict) -> None:
     for step, raw in enumerate(plan_steps(args.values, args.repeat), 1):
         if log.capped():
             break
-        soc = sample(dev).get("SoC_raw")
+        soc = checked_sample(dev, link).get("SoC_raw")
         soc_pct = soc / 10 if soc is not None else None
         if raw > 0 and soc_pct is not None and soc_pct < args.min_soc:
             log.write({"t": utc_now(), "event": "skip", "step": step, "raw": raw,
@@ -223,7 +254,7 @@ def run_probe(dev: Device, log: CappedLog, args) -> List[dict]:
         try:
             end = time.monotonic() + (args.hold if accepted else 0)
             while time.monotonic() < end and not log.capped():
-                s = sample(dev)
+                s = checked_sample(dev, link)
                 samples.append(s)
                 log.write({"event": "hold", "step": step, **s})
                 time.sleep(args.interval)
@@ -239,11 +270,8 @@ def run_probe(dev: Device, log: CappedLog, args) -> List[dict]:
         log.write({"t": utc_now(), "event": "result", **res})
         gap_end = time.monotonic() + args.gap
         while time.monotonic() < gap_end and not log.capped():
-            log.write({"event": "gap", "step": step, **sample(dev)})
+            log.write({"event": "gap", "step": step, **checked_sample(dev, link)})
             time.sleep(args.interval)
-    log.write({"t": utc_now(), "event": "stop", "reason": log.stop_reason or "plan complete",
-               "after": sample(dev)})
-    return results
 
 
 def parse_values(text: str) -> List[int]:

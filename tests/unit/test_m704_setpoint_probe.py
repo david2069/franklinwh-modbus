@@ -138,6 +138,25 @@ def test_firmware_read_and_no_ip_in_output(tmp_path):
     assert "192." not in text
 
 
+def test_link_loss_releases_and_stops_writing(tmp_path):
+    fake = FakeAGate()
+    real_read = fake.read_holding_registers
+    calls = {"n": 0}
+
+    def flaky(addr, count, device_id):
+        calls["n"] += 1
+        if calls["n"] > 12:  # link drops after the first step's reads
+            raise ConnectionError("no route")
+        return real_read(addr, count, device_id)
+    fake.read_holding_registers = flaky
+    log = _log(tmp_path)
+    probe.run_probe(probe.Device(fake, 1), log, _args(values=[100, 50, 10], hold=0.05))
+    log.close()
+    assert log.stop_reason.startswith("link lost")
+    assert (probe.WSET_PCT, 50) not in fake.writes and (probe.WSET_PCT, 10) not in fake.writes
+    assert fake.writes[-2:] == [(probe.WSET_ENA, 0), (probe.WSET_PCT, 0)]
+
+
 def test_dry_run_and_max_raw_never_connect(capsys):
     assert probe.main(["-i", "192.0.2.1", "probe", "--values", "100,110"]) == 0
     assert "Dry run" in capsys.readouterr().out
