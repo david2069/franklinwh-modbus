@@ -1,6 +1,6 @@
 # Test and Proof Plan: M704 `WSetPct` Limit on V12R02B60D00
 
-**Status:** draft, 2026-10-21. Owner sign-off is needed before any step that writes to the aGate.
+**Status:** phases 0.5–3 complete, 2026-10-21; phase 4 open. Owner sign-off is needed before any step that writes to the aGate.
 **Issue:** [#92](https://github.com/david2069/franklinwh-modbus/issues/92)
 **Tool:** [`tools/m704_setpoint_probe.py`](https://github.com/david2069/franklinwh-modbus/blob/develop/tools/m704_setpoint_probe.py)
 
@@ -40,7 +40,21 @@ Each item is graded by its evidence: **Measured** (read directly by us from the 
 
 V12R02B60D00 accepts `WSetPct` only in raw 0…+100: discharge up to 10 %, no charge. This matches the PICS range read as raw values. On V10R01B04D00, `WSetPct` ±1500 was accepted (2026-03-13). Writing M702 `WMax`, `VAMax`, `WChaRteMax` or `WDisChaRteMax` didn't change the result.
 
-**Still not shown:** behaviour after a reboot (phases 2–3); the `WSet` (watts) path (phase 4).
+### Phases 2–3 results (2026-10-21, measured)
+
+**Phase 2:** the owner rebooted the aGate X at 17:59:18 AEDT (06:59:18Z). A read-only re-scan afterwards showed the same firmware (`Vr` V12R02B60D00), the same 17-model map, the 40000 mirror, `WSetPct_SF` −1 and `WSetEna` 0.
+
+**Phase 3** (07:07:40–07:19:08Z, two passes, same command as phase 1):
+
+| Raw | Phase 1 (×2) | Phase 3, after reboot (×2) | `DCW` median |
+|---|---|---|---|
+| +10, +50, +100 | accepted, latched | accepted, latched | 0, +200, +500 W |
+| +101, +110, +200, +500, +1000 | exception 3 | exception 3 | — |
+| −10, −100, −101, −110, −500 | exception 3 | exception 3 | — |
+
+Every step ended released. The final state was `WSetEna` 0, `WSetPct` 0, `DCW` 0, SoC 99.0 %, with no read errors. Phase 3 matches phase 1 in all 26 steps, so H1–H4 hold on this unit: the limit survives a reboot.
+
+**Still not shown:** the `WSet` (watts) path (phase 4).
 
 ## 3. Standards and declarations we will measure against
 
