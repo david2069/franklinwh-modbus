@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Docs: reserve and mode readings on V12R02B60D00.** **16001 holds the reserve for the active mode** (8 in Self-Consumption, 15 in TOU); it was documented as a mirror of 15508. 15507 is confirmed as 2 = Self-Consumption and 3 = TOU by reads in each mode; 1 and 4 are still unread (#75). 16002 reads 20 in both modes. (#63)
+- **Docs: reserve and mode readings on V12R02B60D00.** **16001 holds the reserve for the active mode** (8 in Self-Consumption, 15 in TOU); it was documented as a mirror of 15508. 15507 is confirmed as 1 = Emergency Backup, 2 = Self-Consumption and 3 = TOU by reads in each mode; 4 is still unread (#75). In Emergency Backup, 16001 reads 100. 16002 reads 20 in both modes. (#63)
 
 ### Changed
 - **Docs: aGate firmware V12R02B60D00.**
