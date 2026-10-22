@@ -852,7 +852,9 @@ def main():
                 if isinstance(data, list):
                     sequence = data
                 elif isinstance(data, dict):
-                    if "writes" in data or "reads" in data:
+                    if "steps" in data:
+                        sequence = data  # {"steps": [...], "cleanup": [...]}
+                    elif "writes" in data or "reads" in data:
                         sequence = [data]
                     else:
                         # Treat as single step

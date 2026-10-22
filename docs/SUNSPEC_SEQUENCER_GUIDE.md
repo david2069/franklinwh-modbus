@@ -45,6 +45,24 @@ python3 tools/franklinwh_cli.py -i <IP> -b 1000 -u 1 --sequence-file <PATH>
 | `abort_on_failure` | bool | Stop sequence if this step fails. | `true` (Default) |
 | `sleep_ms` | int | Wait after step completion (settling time). | `500` for hardware propagation. |
 | `wait_for` | object | Poll a register until a condition is met. | See "Wait For Configuration" below. |
+| `on_error` | string | What to do when the step fails: `abort` (default), `continue` or `retry`. | `"continue"` for a probe where a rejection is the expected result. |
+| `retries` / `retry_ms` | int | With `on_error: retry`: attempts and delay. **Transport errors only** (timeout, lost connection). A Modbus exception response is never retried. | `2` / `1000` |
+
+#### Failure handling and cleanup
+
+A sequence can be a plain list of steps, or an object with a `cleanup` block:
+
+```json
+{
+  "steps":   [ { "step": "Enable", "writes": { "704.WSetEna": 1 } } ],
+  "cleanup": [ { "step": "Release", "writes": { "704.WSetEna": 0 } } ]
+}
+```
+
+- The `cleanup` steps **always run**: after the last step, after an abort, after a rejected write, and after Ctrl-C. A failed cleanup step doesn't stop the rest of the cleanup.
+- A rejected write (the device answers with a Modbus exception, e.g. code 3 = illegal value) is reported as `REJECTED (exc 3)`, then `on_error` decides: `abort` skips the remaining steps (cleanup still runs), `continue` goes on.
+- A verify failure with no exception still honours `abort_on_failure`.
+- At the end the sequencer logs a summary: `OK`, `REJECTED (exc N)`, `TIMEOUT`, `TRANSPORT ERROR`, `FAILED (verify)`, `SKIPPED (abort)`, `CLEANUP …`. The exit code is 0 only if every step succeeded.
 
 #### Wait For Configuration (`wait_for`)
 
