@@ -105,19 +105,24 @@ class TestSequencerExtensions:
         """Verify raw uint16 write uses single-register write (Function 6)."""
         seq = SunSpecSequencer(mock_device)
         
-        seq.write_value("15508", 25)
+        mock_device.client.socket.recv.return_value = struct.pack('>HHHBBHH', 0, 0, 6, 2, 6, 15508, 25)
+        assert seq.write_value("15508", 25) == 25
         
-        # Verify write_hregs call on sunspec client
-        mock_device.client.write_hregs.assert_called_once_with(15508, [25])
+        # Verify the FC06 packet sent on the raw socket
+        sent = mock_device.client.socket.sendall.call_args[0][0]
+        assert struct.unpack('>HHHBBHH', sent)[3:] == (2, 6, 15508, 25)
 
     def test_raw_write_uint32_registry(self, mock_device):
         """Verify raw uint32 write uses multiple-register write (2 words)."""
         seq = SunSpecSequencer(mock_device)
         
         # Writing 12959408 (0x00C5BEB0) to 15510 should write [197, 48816]
-        seq.write_value("15510", 12959408)
+        mock_device.client.socket.recv.return_value = struct.pack('>HHHBBHH', 0, 0, 6, 2, 16, 15510, 2)
+        assert seq.write_value("15510", 12959408) == 12959408
         
-        mock_device.client.write_hregs.assert_called_once_with(15510, [197, 48816])
+        sent = mock_device.client.socket.sendall.call_args[0][0]
+        assert struct.unpack('>HHHBBHHB', sent[:13])[4:] == (16, 15510, 2, 4)
+        assert list(struct.unpack('>2H', sent[13:17])) == [197, 48816]
 
     def test_execute_writes_uint32_mock_socket(self, mock_device):
         """Verify execute_writes for uint32 maps Function 16 writes correctly over raw socket."""
@@ -181,3 +186,55 @@ class TestSequencerExtensions:
             
             # Assert logger printed symbol description
             mock_log.assert_called_once_with("  Read 15507: 3 (TOU)")
+
+
+class TestSequencerRawReconnect:
+    """Raw-address access must reconnect: pysunspec2 leaves client.socket = None after a scan."""
+
+    @pytest.fixture
+    def closed_device(self):
+        device = MagicMock()
+        device.slave_id = 1
+        device.models = {}
+        client = MagicMock()
+        client.socket = None
+        sock = MagicMock()
+
+        def connect():
+            client.socket = sock
+        client.connect.side_effect = connect
+        device.client = client
+        return device, sock
+
+    def test_raw_read_connects_first(self, closed_device):
+        device, sock = closed_device
+        sock.recv.return_value = struct.pack('>HHHBBB', 0, 0, 5, 1, 3, 2) + struct.pack('>H', 6)
+        assert SunSpecSequencer(device).read_value("15016") == 6
+        device.client.connect.assert_called()
+
+    def test_raw_step_write_connects_and_sends(self, closed_device):
+        device, sock = closed_device
+        # before-read 0, FC06 echo, verify-read 1
+        sock.recv.side_effect = [
+            struct.pack('>HHHBBB', 0, 0, 5, 1, 3, 2) + struct.pack('>H', 0),
+            struct.pack('>HHHBBHH', 0, 0, 6, 1, 6, 15600, 1),
+            struct.pack('>HHHBBB', 0, 0, 5, 1, 3, 2) + struct.pack('>H', 1),
+        ]
+        ok = SunSpecSequencer(device).execute_writes({"15600": 1}, {}, dry_run=False)
+        assert ok
+        writes = [c[0][0] for c in sock.sendall.call_args_list if c[0][0][7] == 6]
+        assert len(writes) == 1
+        assert struct.unpack('>HHHBBHH', writes[0])[5:] == (15600, 1)
+
+    def test_write_value_uses_raw_socket(self, closed_device):
+        device, sock = closed_device
+        sock.recv.return_value = struct.pack('>HHHBBHHB', 0, 0, 6, 1, 16, 15600, 2, 4)
+        val = SunSpecSequencer(device).write_value({"addr": 15600, "type": "uint32"}, 300)
+        assert val == 300
+        sent = sock.sendall.call_args[0][0]
+        assert sent[7] == 16 and struct.unpack('>I', sent[13:17])[0] == 300
+
+    def test_raw_write_exception_response_is_failure(self, closed_device):
+        device, sock = closed_device
+        sock.recv.return_value = struct.pack('>HHHBBB', 0, 0, 3, 1, 0x86, 3)
+        assert SunSpecSequencer(device).write_value("15600", 1) is None
