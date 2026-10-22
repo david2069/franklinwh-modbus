@@ -5,9 +5,17 @@ Executes deterministic sequences of SunSpec register operations with verificatio
 
 import logging
 import time
+import re
 import struct
 from typing import Dict, List, Any, Optional, Tuple
 from .constants import EXTENSION_REGISTRY
+
+try:
+    from sunspec2.modbus.modbus import ModbusClientError, ModbusClientException, ModbusClientTimeout
+except ImportError:  # pragma: no cover - pysunspec2 is a hard dependency
+    class ModbusClientError(Exception): pass
+    class ModbusClientException(ModbusClientError): pass
+    class ModbusClientTimeout(ModbusClientError): pass
 
 try:
     import sunspec2.modbus.client as client
@@ -15,6 +23,29 @@ except ImportError:
     client = None
 
 logger = logging.getLogger(__name__)
+
+class WriteRejected(Exception):
+    """The device answered a write with a Modbus exception response."""
+
+    def __init__(self, code: Optional[int], detail: str = ""):
+        self.code = code
+        super().__init__(detail or f"Modbus exception {code}")
+
+
+def _classify(exc: BaseException) -> Tuple[str, Optional[int]]:
+    """Map an exception to ('rejected', code) | ('transport', None) | ('error', None).
+
+    A rejection means the device answered and refused, so it is never retried (#96).
+    """
+    if isinstance(exc, WriteRejected):
+        return 'rejected', exc.code
+    if isinstance(exc, ModbusClientException):
+        m = re.search(r'exception:? (\d+)', str(exc))
+        return 'rejected', int(m.group(1)) if m else None
+    if isinstance(exc, (ModbusClientError, TimeoutError, ConnectionError, OSError)):
+        return 'transport', None
+    return 'error', None
+
 
 class TransitionValidationError(Exception):
     """Raised when a mandatory state transition is not observed."""
@@ -35,6 +66,8 @@ class SunSpecSequencer:
         self.device = device
         self.base_address = base_address
         self.verbose = False
+        self.last_raw_error: Optional[int] = None
+        self.results: List[Tuple[str, str]] = []
 
     def _raw_socket(self):
         """Return a connected socket for raw-address access, or None.
@@ -65,7 +98,9 @@ class SunSpecSequencer:
         sock.sendall(req)
         resp = sock.recv(256)
         if len(resp) < 12 or resp[7] != func:
+            code = resp[8] if len(resp) >= 9 and resp[7] == (func | 0x80) else None
             logger.error(f"  ✗ Raw write to {addr} failed (Response: {resp.hex()})")
+            self.last_raw_error = code
             return False
         return True
 
@@ -247,48 +282,118 @@ class SunSpecSequencer:
         model.write()
         return raw_val
 
-    def run_sequence(self, sequence: List[Dict[str, Any]], dry_run: bool = False) -> bool:
-        """Execute a list of step dictionaries."""
-        total_steps = len(sequence)
-        logger.info(f"Starting sequence with {total_steps} steps...")
-        
-        for i, step in enumerate(sequence):
-            step_name = step.get('name', step.get('step', f"Step {i+1}"))
-            logger.info(f"\n--- [{i+1}/{total_steps}] {step_name} ---")
-            
-            # 1. Handle Writes
-            writes = step.get('writes', {})
-            if writes:
-                if not self.execute_writes(writes, step, dry_run):
-                    if step.get('abort_on_failure', True):
-                        logger.error(f"Aborting sequence due to write failure in '{step_name}'")
-                        return False
+    def run_sequence(self, sequence: Any, dry_run: bool = False) -> bool:
+        """Execute a sequence: a list of steps, or {"steps": [...], "cleanup": [...]}.
 
-            # 2. Handle Wait For (Polling Loop)
-            wait_for = step.get('wait_for')
-            if wait_for:
-                if not self.execute_wait_for(wait_for, step_name):
-                    if step.get('abort_on_failure', True):
-                        logger.error(f"Aborting sequence due to wait condition failure in '{step_name}'")
-                        return False
+        Per step, "on_error" decides what happens when the step fails:
+          "abort" (default)  stop the remaining steps (cleanup still runs)
+          "continue"         log the failure and go on
+          "retry"            retry transport errors ("retries", "retry_ms"); a
+                             Modbus exception response is never retried
+        The cleanup steps always run, after an abort, a rejection or Ctrl-C.
+        Returns True only if every step succeeded.
+        """
+        if isinstance(sequence, dict):
+            steps = sequence.get('steps', [])
+            cleanup = sequence.get('cleanup', [])
+        else:
+            steps, cleanup = sequence, []
+        self.results = []
+        ok = True
+        logger.info(f"Starting sequence with {len(steps)} steps"
+                    + (f" (+{len(cleanup)} cleanup)" if cleanup else "") + "...")
+        try:
+            for i, step in enumerate(steps):
+                name = step.get('name', step.get('step', f"Step {i+1}"))
+                logger.info(f"\n--- [{i+1}/{len(steps)}] {name} ---")
+                status, action = self._run_step_guarded(step, name, dry_run)
+                self.results.append((name, status))
+                if status != 'OK':
+                    ok = False
+                if action == 'abort':
+                    logger.error(f"Aborting sequence at '{name}' ({status})")
+                    for later in steps[i+1:]:
+                        self.results.append((later.get('name', later.get('step', '?')), 'SKIPPED (abort)'))
+                    break
+        except KeyboardInterrupt:
+            logger.error("Interrupted: running cleanup")
+            ok = False
+            self.results.append(('(interrupted)', 'INTERRUPTED'))
+        finally:
+            for j, step in enumerate(cleanup):
+                name = step.get('name', step.get('step', f"Cleanup {j+1}"))
+                logger.info(f"\n--- [cleanup {j+1}/{len(cleanup)}] {name} ---")
+                status, _ = self._run_step_guarded(dict(step, on_error='continue'), name, dry_run)
+                self.results.append((name, 'CLEANUP ' + status))
+                if status != 'OK':
+                    ok = False
+            self._log_summary()
+        logger.info("\nSequence complete." if ok else "\nSequence finished with failures.")
+        return ok
 
-            # 3. Handle Reads
-            reads = step.get('reads', [])
-            if reads:
-                self.execute_reads(reads)
+    def _run_step_guarded(self, step: Dict[str, Any], name: str, dry_run: bool) -> Tuple[str, str]:
+        """Run one step; return (status, action) where action is 'next' or 'abort'."""
+        on_error = step.get('on_error', 'abort')
+        retries = int(step.get('retries', 0)) if on_error == 'retry' else 0
+        attempt = 0
+        while True:
+            try:
+                if self._run_step(step, dry_run):
+                    return 'OK', 'next'
+                # Verify or wait_for failure (no exception): the existing flag still applies.
+                status = 'FAILED (verify)'
+                if on_error == 'continue' or not step.get('abort_on_failure', True):
+                    return status, 'next'
+                return status, 'abort'
+            except TransitionValidationError as e:
+                logger.error(f"  ✗ {e}")
+                return 'FAILED (transition)', 'next' if on_error == 'continue' else 'abort'
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                kind, code = _classify(e)
+                if kind == 'rejected':
+                    status = f"REJECTED (exc {code})" if code is not None else "REJECTED"
+                    logger.error(f"  ✗ {status}: {e} (not retried: the device refused the write)")
+                elif kind == 'transport':
+                    status = 'TIMEOUT' if isinstance(e, (ModbusClientTimeout, TimeoutError)) else 'TRANSPORT ERROR'
+                    if attempt < retries:
+                        attempt += 1
+                        logger.warning(f"  {status}: {e}; retry {attempt}/{retries}")
+                        time.sleep(step.get('retry_ms', 1000) / 1000.0)
+                        continue
+                    logger.error(f"  ✗ {status}: {e}")
+                else:
+                    status = f"ERROR ({type(e).__name__})"
+                    logger.error(f"  ✗ {status}: {e}")
+                return status, 'next' if on_error == 'continue' else 'abort'
 
-            # 4. Handle Sleep
-            sleep_ms = step.get('sleep_ms', step.get('post_sleep_ms', 0))
-            if sleep_ms > 0:
-                logger.info(f"Sleeping for {sleep_ms}ms...")
-                time.sleep(sleep_ms / 1000.0)
-            
-            # Step completion summary (especially useful if logs are suppressed)
-            if logger.level > logging.INFO:
-                print(f"DONE: {step_name}")
-
-        logger.info("\nSequence complete.")
+    def _run_step(self, step: Dict[str, Any], dry_run: bool) -> bool:
+        """Writes, wait_for, reads, sleep. False on a verify/wait failure."""
+        writes = step.get('writes', {})
+        if writes and not self.execute_writes(writes, step, dry_run):
+            return False
+        wait_for = step.get('wait_for')
+        if wait_for and not self.execute_wait_for(wait_for, step.get('name', step.get('step', ''))):
+            return False
+        reads = step.get('reads', [])
+        if reads:
+            self.execute_reads(reads)
+        sleep_ms = step.get('sleep_ms', step.get('post_sleep_ms', 0))
+        if sleep_ms > 0:
+            logger.info(f"Sleeping for {sleep_ms}ms...")
+            time.sleep(sleep_ms / 1000.0)
+        if logger.level > logging.INFO:
+            print(f"DONE: {step.get('name', step.get('step', ''))}")
         return True
+
+    def _log_summary(self):
+        if not self.results:
+            return
+        bad = [(n, st) for n, st in self.results if st not in ('OK', 'CLEANUP OK')]
+        logger.info(f"\nSummary: {len(self.results) - len(bad)}/{len(self.results)} steps OK")
+        for n, st in bad:
+            logger.info(f"  {st}: {n}")
 
     def execute_writes(self, writes: Dict[str, Any], step: Dict[str, Any], dry_run: bool) -> bool:
         verify = step.get('verify', True)
@@ -400,7 +505,9 @@ class SunSpecSequencer:
                 else:
                     for addr, raw_val, val_obj in points:
                         reg_config = val_obj if isinstance(val_obj, dict) else EXTENSION_REGISTRY.get(addr, {})
-                        self._raw_write(sock, addr, raw_val, reg_config.get('type', 'uint16'))
+                        if not self._raw_write(sock, addr, raw_val, reg_config.get('type', 'uint16')):
+                            raise WriteRejected(self.last_raw_error, f"raw write to {addr} rejected"
+                                                f" (exception {self.last_raw_error})")
 
         # Verification
         if not verify:
