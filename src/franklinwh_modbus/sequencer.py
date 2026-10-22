@@ -36,6 +36,39 @@ class SunSpecSequencer:
         self.base_address = base_address
         self.verbose = False
 
+    def _raw_socket(self):
+        """Return a connected socket for raw-address access, or None.
+
+        pysunspec2 closes the socket after a scan, so connect first
+        (as the controller's raw helpers do).
+        """
+        client_obj = getattr(self.device, 'client', None)
+        if client_obj is None:
+            return None
+        try:
+            client_obj.connect()
+        except Exception as e:
+            logger.error(f"  Raw access: connect failed: {e}")
+            return None
+        return client_obj.socket
+
+    def _raw_write(self, sock, addr: int, raw_val: int, reg_type: str) -> bool:
+        """Write one raw register (FC06) or a 32-bit pair (FC16). True on a normal response."""
+        unit_id = getattr(self.device, 'slave_id', 1)
+        if reg_type in ('uint32', 'int32'):
+            fmt = '>I' if reg_type == 'uint32' else '>i'
+            req = struct.pack('>HHHBBHHB', 0, 0, 11, unit_id, 16, addr, 2, 4) + struct.pack(fmt, raw_val)
+            func = 16
+        else:
+            req = struct.pack('>HHHBBHH', 0, 0, 6, unit_id, 6, addr, int(raw_val))
+            func = 6
+        sock.sendall(req)
+        resp = sock.recv(256)
+        if len(resp) < 12 or resp[7] != func:
+            logger.error(f"  ✗ Raw write to {addr} failed (Response: {resp.hex()})")
+            return False
+        return True
+
     def get_point(self, tag: Any) -> Tuple[Optional[Any], Any]:
         """Resolve 'Model.Point', 'RawAddress' tag, or a config dict."""
         tag_str = tag
@@ -128,13 +161,12 @@ class SunSpecSequencer:
             sf = reg_config.get('sf', 0)
             count = 2 if reg_type in ('uint32', 'int32') else 1
             
-            client_obj = getattr(self.device, 'client', None)
-            if client_obj and client_obj.socket:
+            sock = self._raw_socket()
+            if sock:
                 try:
                     unit_id = getattr(self.device, 'slave_id', 1)
                     # Raw Modbus TCP: Transaction(2) Protocol(2) Length(2) Unit(1) Func(1) Addr(2) Count(2)
                     req = struct.pack('>HHHBBHH', 0, 0, 6, unit_id, 3, addr, count)
-                    sock = client_obj.socket
                     sock.sendall(req)
                     resp = sock.recv(256)
                     if len(resp) >= 9 + count * 2: # 9 header + data
@@ -185,19 +217,13 @@ class SunSpecSequencer:
             else:
                 raw_val = int(actual_val)
                 
-            client_obj = getattr(self.device, 'client', None)
-            if client_obj:
+            sock = self._raw_socket()
+            if sock:
                 try:
-                    if reg_type in ('uint32', 'int32'):
-                        fmt = '>I' if reg_type == 'uint32' else '>i'
-                        packed = struct.pack(fmt, raw_val)
-                        words = list(struct.unpack('>2H', packed))
-                        client_obj.write_hregs(addr, words)
-                    else:
-                        client_obj.write_hregs(addr, [raw_val])
-                    return actual_val
+                    if self._raw_write(sock, addr, raw_val, reg_type):
+                        return actual_val
                 except Exception as e:
-                    logger.debug(f"Raw write at {addr} failed: {e}")
+                    logger.error(f"  ✗ Raw write at {addr} failed: {e}")
             return None
 
         raw_val = human_val
@@ -368,29 +394,13 @@ class SunSpecSequencer:
                 model.write()
             else:
                 # Raw Modbus writes - Uses raw socket to bypass sunspec2 remapping
-                client_obj = getattr(self.device, 'client', None)
-                if client_obj and client_obj.socket:
-                    unit_id = getattr(self.device, 'slave_id', 1)
-                    sock = client_obj.socket
+                sock = self._raw_socket()
+                if not sock:
+                    logger.error("  ✗ Raw write skipped: no connection")
+                else:
                     for addr, raw_val, val_obj in points:
                         reg_config = val_obj if isinstance(val_obj, dict) else EXTENSION_REGISTRY.get(addr, {})
-                        reg_type = reg_config.get('type', 'uint16')
-                        
-                        if reg_type in ('uint32', 'int32'):
-                            fmt = '>I' if reg_type == 'uint32' else '>i'
-                            packed_val = struct.pack(fmt, raw_val)
-                            header = struct.pack('>HHHBBHHB', 0, 0, 11, unit_id, 16, addr, 2, 4)
-                            req = header + packed_val
-                            sock.sendall(req)
-                            resp = sock.recv(256)
-                            if len(resp) < 12 or resp[7] != 16:
-                                logger.error(f"  ✗ Raw 32-bit write to {addr} failed (Response: {resp.hex()})")
-                        else:
-                            req = struct.pack('>HHHBBHH', 0, 0, 6, unit_id, 6, addr, int(raw_val))
-                            sock.sendall(req)
-                            resp = sock.recv(256)
-                            if len(resp) < 12 or resp[7] != 6:
-                                logger.error(f"  ✗ Raw write to {addr} failed (Response: {resp.hex()})")
+                        self._raw_write(sock, addr, raw_val, reg_config.get('type', 'uint16'))
 
         # Verification
         if not verify:
