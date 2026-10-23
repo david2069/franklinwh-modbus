@@ -7,64 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- Model 704 conformance results on V12R02B60D00 (#104), and V12 heartbeat, inverted reversion, 40000-mirror write echo and extension-write re-test (#107).
+
 ## [0.10.1] - 2026-10-24
 
+**Force Discharge works on V12R02B60D00.** 0.10.0 sent power as a percentage, which V12 refuses above 10 % (500 W). 0.10.1 sends watts. Tested live: 5000 W.
+
 ### Upgrade notes
-- **`send_command` now writes `WSetMod=1` + `WSet` (watts), not `WSetPct`.** It no longer writes `WSetEna=0` before each command, and it returns `(False, "Command not applied: …")` if the read-back differs. Anything that read `WSetPct` to see the active command should read `WSet`/`WSetMod` (or `read_control_status()['wset_mode']`/`['wset_watts']`).
-- **A refused write now fails at once** with "Rejected by the aGate (…)", instead of reconnecting and resending (#96).
-- **Charging is still refused by V12R02B60D00** (negative `WSet` and `WSetPct`, exception 3); a charge command returns that rejection.
+- `send_command` writes `WSetMod=1` + `WSet` (watts), not `WSetPct`. It no longer writes `WSetEna=0` first, and returns `(False, "Command not applied: …")` if the read-back differs. Read the active command from `read_control_status()['wset_mode']` / `['wset_watts']`, not `WSetPct`.
+- A refused write fails at once with "Rejected by the aGate (…)", with no reconnect or resend (#96).
+- V12 still refuses **charge** (negative `WSet` or `WSetPct`, exception 3). A charge command returns that rejection.
 
 ### Fixed
-- **Sequencer raw-address reads and writes did nothing** after the scan, because the socket was closed and `write_value` called a missing method (#99). They now reconnect first and handle FC06/FC16.
-- **Sequencer: a rejected write aborted the sequence and skipped restore steps** (#101). Steps take `on_error` (abort / continue / retry; transport errors only), and a `{"steps", "cleanup"}` form whose cleanup always runs.
-- **`send_command` now sends watts through `WSet` (`WSetMod=1`), not `WSetPct`.** V12R02B60D00 refuses `WSetPct` above 10 % with exception 3, so a 5000 W Force Discharge (sent as 100 %) never ran; one bridge log recorded 116 refusals in an hour. The watts path delivered 5000 W, 3 of 3 runs. `WSetEna` is no longer cycled to 0 before each change (DER v1.2 §3.3), `WSetMod`+`WSet` go in one write, and the result is read back. Charging through `WSet` is still refused by V12.
-- **A Modbus exception response is no longer treated as a connection fault** (#96). `_with_retry` reconnected and resent on exception 3; it now returns "Rejected by the aGate" at once.
+- Force Discharge above 500 W refused on V12 (exception 3): now sent as watts.
+- Refused writes treated as connection errors and resent (#96).
+- Sequencer raw-address reads/writes did nothing after the scan (#99).
+- Sequencer: a rejected write skipped the restore steps (#101). Steps now take `on_error`, and a `cleanup` block always runs.
 
-### Changed
-- **Docs: reserve and mode readings on V12R02B60D00.** **16001 holds the reserve for the active mode** (8 in Self-Consumption, 15 in TOU); it was documented as a mirror of 15508. 15507 is confirmed as 1 = Emergency Backup, 2 = Self-Consumption and 3 = TOU by reads in each mode; 4 is still unread (#75). In Emergency Backup, 16001 reads 100. 16002 reads 20 in both modes. (#63)
-
-### Changed
-- **Docs: aGate firmware V12R02B60D00.**
-  - A new dated snapshot (`docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md`): the SunSpec map is unchanged from 2026-05-14, as are the scale factors.
-  - **Read-only re-scan (2026-10-20T20:17Z):**
-    - On V12R02B60D00 the **SunSpec map is also served at PDU 40000** (it returned exception 2 on V10). Pysunspec2's scan, and this library (#84), bind to that mirror; writes to it are unverified.
-    - M714's per-port block reads all zero on V12, so battery DC voltage and temperature aren't available from it.
-    - 15500 = 1; 15040 and 15043 are newly seen.
-  - The docs that said "40000+ returns exception 2" now give the result per firmware.
-  - **15509 now holds the TOU reserve.** The V10R01B04D00 defect, where it repeated 15508, is fixed on V12 (#63). The extension page, QUIRKS, the HA guide (add a TOU reserve sensor on V12+) and the cloud comparison now say this per firmware.
-- **HA Modbus YAML guide: "everything the TUI shows" (§2b).** It adds 18 optional sensors: battery SoH, energy available and rating, voltage and temperature; AC voltage, current, frequency, PF, VA and VAR; ambient and cabinet temperature; solar proximal and remote 1/2; model and firmware. It adds **description templates** for inverter state, battery state (Charging / Discharging / Idle), grid mode (Grid Forming / Grid Following), operating mode (provisional, #75), battery current, active alarm names and PV clipped. Also a TUI panel → entity map and a TUI-style card. The battery voltage and temperature addresses are computed from SunSpec model 714 and were confirmed against the gateway emulator. They may read 0 on V10R01B04D00, which is unresolved and noted in the guide. Tested 2026-10-20 against the emulator (34 sensors, 9 templates, on-grid and off-grid), with screenshots. Active Alarms shows "No alarms" instead of a value HA reads as unknown.
-
-### Added
-- **Home Assistant: Monitoring with Modbus YAML** (`docs/HOME_ASSISTANT_MODBUS_YAML.md`): a monitor-only proof of concept using Home Assistant's built-in Modbus integration. It covers 16 sensors (SoC, battery, grid, solar, home, reserve, mode, lifetime grid, battery and solar energy, and M701 grid connection, inverter state, DER mode and alarm bits), plus template sensors for **grid status** (on grid / backup (off-grid) / disconnected) and **grid connected**, Energy dashboard mapping, a built-in-cards dashboard, a scale-factor check, verification against the CLI, troubleshooting, and pros and cons. Tested against the gateway emulator in HA 2026.10.1, with screenshots; not yet tested against a real aGate.
-
-### Changed
-- **"What is Modbus TCP?" rewritten** with sourced background:
-  - Modbus origins (Modicon 1979, Modbus Organization 2004, TCP/IP 1999) and its specifications;
-  - the SunSpec Alliance, the "SunS" model chain, the 700-series DER models and IEEE 1547-2018;
-  - SunSpec publications;
-  - what a PICS is and how certification works, plus FranklinWH's PICS;
-  - where the FranklinWH extension registers sit in that context: outside the SunSpec chain, not vendor models, and not covered by certification.
-
-  It also corrects "TOU schedules: read-only (extension registers)": TOU schedules aren't available over Modbus.
-- **Removed the remaining "SPAN unlock" claims** from the docs, the bug template, the sequencer example, the compliance report and tool messages. These said extension register writes need a "SPAN Modbus" (or "SPAN/Lumin") installer unlock or provisioning. FranklinWH has not documented the extension registers and has never documented any of them as writable; whether it must authorise a Modbus client to write them is unknown. On `V12R02B60D00` (owner observation, 2026-10-21) writes to 15507–15509 did not take effect. Access columns for 15507–15509 now read "R (writes undocumented)", and the raw reader labels them `R`. Earlier `RW` labels are marked as speculation. SPAN is a third-party company; no relationship is implied.
-
-### Added
-- **Modbus Client Libraries** (`docs/MODBUS_CLIENT_LIBRARIES.md`), every claim sourced. It covers:
-  - this library's dependencies;
-  - the Python Modbus client libraries, with PyPI facts;
-  - the pros and cons of raw register reads;
-  - worked pysunspec2 examples;
-  - the Open Home Foundation's modbus-connection, its pros, cons and boundary;
-  - whether a FranklinWH-specific library is needed.
-  - the API 2.0 decision record and the read-only spike plan, folded in from PR #32's evaluation, which this page supersedes.
-
-### Added
-- **FranklinWH Extension Registers** page (`docs/FRANKLINWH_MODBUS_EXTENSIONS.md`): one table of every extension register (15000–15043, 15500–15513, 16000–16002), with access, type and unit, meaning, library accessor and evidence, plus how to read and write them. QUIRKS and the cookbook now point to it instead of keeping their own copies. The Extensions Manifest is marked as raw scan evidence, with its correlation guesses flagged as speculative.
-- **API Cookbook** (`docs/API_COOKBOOK.md`): worked examples for connecting, a full status snapshot, every TUI panel and key mapped to its API call, each CLI command with its Python equivalent, battery control, virtual modes, alarms, the FranklinWH extension registers (what they are, how to read and write them, quirks), and a link to the cloud comparison.
-- **Modbus vs Cloud API comparison** (`docs/MODBUS_CLOUD_COMPARISON.md`): a field-by-field map of the Modbus client and the FranklinWH cloud API, covering units, signs, the 3 vs 4 grid states, energy and evidence labels. It's kept in step with franklinwh-cloud's own copy.
-
-### Changed
-- **Docs: Modbus addressing uses modbus.org terms.** Every register address in the docs is now a Modbus **PDU address** (0-based, as sent on the wire, as in the FranklinWH PICS: ControllerHb is 1092). The "base-1" and "base-40000" labels, which wrongly called PDU addresses base-1, are gone. QUIRKS now separates what Modbus defines (PDU address, register number, holding registers, the Modicon 4xxxx reference) from what SunSpec adds (the "SunS" marker at PDU 0, 40000 or 50000). The aGate's map starts at PDU 0. Device snapshot sections and glossary columns say which notation they print. Dead links to the proprietary PICS spreadsheet, which is not distributed here, now cite it by name. (#43)
+### Docs
+- V12R02B60D00: firmware snapshot, 40000 mirror, reserve/mode readings (16001, 15509).
+- New pages: Extension Registers, API Cookbook, Modbus vs Cloud, Modbus Client Libraries, HA Modbus YAML monitoring.
+- Modbus addressing uses PDU terms; unsourced "SPAN unlock" claims removed.
 
 ## [0.10.0] - 2026-10-17
 
