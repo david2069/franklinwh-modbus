@@ -16,7 +16,7 @@ running V12R02B60D00, recorded on 2026-10-22.
 | c1 | Spec order: set `WSetPct`, then `WSetEna=1`; change value while enabled | ✅ Matches §3.3. 10 % → `714.DCW` 500 W; change while enabled applies without rewriting the enable; 0 % holds 0 W |
 | c2 | `702.WMax` as the percentage reference | ⚠️ Writes acknowledged but ignored (`WMax` stays 0). 10 % stays 500 W, so the reference is 5000 W |
 | c3 | Watts path: `WSetMod=1`, `WSet` 500 → 1000 W | ✅ Works. 1000 W is above the 10 % `WSetPct` cap |
-| c8 | Full-rate watts path: `WSetMod=1`, `WSet=5000`, `WSetEna=1` (2026-10-23) | ✅ `714.DCW` 4900–5000 W, `701.W` about −4710 W, within 5–10 s; cleanup restored 0 W |
+| c8 | Full-rate watts path: `WSetMod=1`, `WSet=5000`, `WSetEna=1` (2026-10-23) | ✅ `714.DCW` 4900–5000 W, `701.W` about −4710 W, within 5–10 s; after cleanup back to about 200 W (house load) |
 | c4, c4b | Reversion (`WSetRvrtTms`, `WSetPctRvrt`) | ❌ Behaves opposite to the spec (see below) |
 | c5 | **Charge by percentage:** `WSetPct = −5 %` | ❌ Rejected, Modbus exception 3 |
 | c6 | **Charge by watts:** `WSetMod=1`, `WSet = −500 W` | ❌ Rejected, Modbus exception 3 |
