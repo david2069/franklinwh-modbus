@@ -1,0 +1,202 @@
+{
+  "steps": [
+    {
+      "step": "Baseline",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ]
+    },
+    {
+      "step": "WSetMod=1 (WATTS)",
+      "writes": {
+        "704.WSetMod": 1
+      },
+      "sleep_ms": 1500,
+      "note": ""
+    },
+    {
+      "step": "WSet=5000 W (discharge) while disabled",
+      "writes": {
+        "704.WSet": 5000
+      },
+      "sleep_ms": 1500,
+      "note": "full rate via watts path; WSetPct raw 1000 is refused on V12"
+    },
+    {
+      "step": "Enable",
+      "writes": {
+        "704.WSetEna": 1
+      },
+      "sleep_ms": 1500,
+      "note": "expect 714.DCW about 5000"
+    },
+    {
+      "step": "WSet 5000 +5s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "WSet 5000 +10s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "WSet 5000 +15s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "WSet 5000 +20s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "WSet 5000 +25s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "WSet 5000 +30s",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    }
+  ],
+  "cleanup": [
+    {
+      "step": "RESTORE WSetEna=0",
+      "writes": {
+        "704.WSetEna": 0
+      },
+      "sleep_ms": 1500,
+      "note": ""
+    },
+    {
+      "step": "RESTORE WSet=0",
+      "writes": {
+        "704.WSet": 0
+      },
+      "sleep_ms": 1500,
+      "note": ""
+    },
+    {
+      "step": "RESTORE WSetMod=0",
+      "writes": {
+        "704.WSetMod": 0
+      },
+      "sleep_ms": 1500,
+      "note": ""
+    },
+    {
+      "step": "Post",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "Post",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    },
+    {
+      "step": "Post",
+      "reads": [
+        "704.WSetEna",
+        "704.WSetMod",
+        "704.WSet",
+        "704.WSetPct",
+        "714.DCW",
+        "701.W",
+        "713.SoC",
+        "15016"
+      ],
+      "sleep_ms": 5000,
+      "on_error": "continue"
+    }
+  ]
+}
