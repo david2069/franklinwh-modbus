@@ -1,0 +1,514 @@
+[
+  {
+    "step": "Baseline",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016",
+      "704.WSetPctRvrt",
+      "704.WSetEnaRvrt",
+      "704.WSetRvrtTms",
+      "704.WSet_SF",
+      "704.WSetPct_SF",
+      "702.WMaxRtg",
+      "702.W_SF"
+    ]
+  },
+  {
+    "step": "Configure reversion: WSetPctRvrt=5 %, WSetRvrtTms=60, WSetEnaRvrt=1",
+    "writes": {
+      "704.WSetPctRvrt": 5,
+      "704.WSetRvrtTms": 60,
+      "704.WSetEnaRvrt": 1
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Distinct reversion value (5 % = ~250 W) vs setpoint (10 % = ~500 W) shows which one is active before and after expiry",
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSetMod=0, WSetPct=10 %",
+    "writes": {
+      "704.WSetMod": 0,
+      "704.WSetPct": 10
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Setpoint",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Enable",
+    "writes": {
+      "704.WSetEna": 1
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Expect ~500 W, and WSetRvrtRem counting down from 60",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +25s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +30s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +35s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +40s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +45s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +50s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +55s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +60s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +65s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Before reversion +70s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "After timer: does power revert?",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016",
+      "704.WSetEnaRvrt",
+      "704.WSetRvrtTms"
+    ],
+    "sleep_ms": 5000,
+    "note": "V10 note in controller.py: the timer counted down but nothing reverted. Check WSetPct, WSetEna and DCW here",
+    "abort_on_failure": false
+  },
+  {
+    "step": "After reversion +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "After reversion +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "After reversion +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "After reversion +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetEna=0",
+    "writes": {
+      "704.WSetEna": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Disable first so no setpoint is live while the rest is reset",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetPct=0",
+    "writes": {
+      "704.WSetPct": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSet=0",
+    "writes": {
+      "704.WSet": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetMod=0",
+    "writes": {
+      "704.WSetMod": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline W_MAX_PCT",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE reversion off",
+    "writes": {
+      "704.WSetEnaRvrt": 0,
+      "704.WSetRvrtTms": 0,
+      "704.WSetPctRvrt": 0,
+      "704.WSetRvrt": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WMax=0",
+    "writes": {
+      "702.WMax": 0
+    },
+    "verify": true,
+    "sleep_ms": 5000,
+    "note": "Baseline read 2026-10-22: WMax 0 (WMaxRtg 5000)",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "step": "Baseline",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016",
+      "704.WSetPctRvrt",
+      "704.WSetEnaRvrt",
+      "704.WSetRvrtTms",
+      "704.WSet_SF",
+      "704.WSetPct_SF",
+      "702.WMaxRtg",
+      "702.W_SF"
+    ]
+  }
+]

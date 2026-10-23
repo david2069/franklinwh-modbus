@@ -1,0 +1,287 @@
+[
+  {
+    "step": "Baseline",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016",
+      "704.WSetPctRvrt",
+      "704.WSetEnaRvrt",
+      "704.WSetRvrtTms",
+      "704.WSet_SF",
+      "704.WSetPct_SF",
+      "702.WMaxRtg",
+      "702.W_SF"
+    ]
+  },
+  {
+    "step": "WSetMod=0",
+    "writes": {
+      "704.WSetMod": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Setup",
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSetPct=-5 % (charge) \u2014 EXPECTED exception 3 on V12",
+    "writes": {
+      "704.WSetPct": -5
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "The #92 probe saw exception 3 for every negative raw value. If the write is rejected, the sequencer stops here: run v12c_restore.json. Records whether M704 can charge at all on V12",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Enable",
+    "writes": {
+      "704.WSetEna": 1
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Only reached if the negative value was accepted",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +25s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Charge -5 % +30s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetEna=0",
+    "writes": {
+      "704.WSetEna": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Disable first so no setpoint is live while the rest is reset",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetPct=0",
+    "writes": {
+      "704.WSetPct": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSet=0",
+    "writes": {
+      "704.WSet": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetMod=0",
+    "writes": {
+      "704.WSetMod": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline W_MAX_PCT",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE reversion off",
+    "writes": {
+      "704.WSetEnaRvrt": 0,
+      "704.WSetRvrtTms": 0,
+      "704.WSetPctRvrt": 0,
+      "704.WSetRvrt": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WMax=0",
+    "writes": {
+      "702.WMax": 0
+    },
+    "verify": true,
+    "sleep_ms": 5000,
+    "note": "Baseline read 2026-10-22: WMax 0 (WMaxRtg 5000)",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  }
+]

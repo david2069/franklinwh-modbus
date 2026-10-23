@@ -1,0 +1,399 @@
+[
+  {
+    "step": "Baseline",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016",
+      "704.WSetPctRvrt",
+      "704.WSetEnaRvrt",
+      "704.WSetRvrtTms",
+      "704.WSet_SF",
+      "704.WSetPct_SF",
+      "702.WMaxRtg",
+      "702.W_SF"
+    ]
+  },
+  {
+    "step": "Configure WSetMod=1 (WATTS) while disabled",
+    "writes": {
+      "704.WSetMod": 1
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "DER v1.2 704: WSetMod 1 = Active Power as Watts (phase 4; never run on V12)",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Configure WSet=500 W while disabled",
+    "writes": {
+      "704.WSet": 500
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "WSet_SF 0. Expect no change while disabled",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Enable",
+    "writes": {
+      "704.WSetEna": 1
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Expect ~500 W discharge",
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +25s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 500 +30s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Change WSet=1000 W while enabled",
+    "writes": {
+      "704.WSet": 1000
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "DER v1.2 \u00a73.3: no enable rewrite needed. Expect ~1000 W",
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +25s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "WSet 1000 +30s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetEna=0",
+    "writes": {
+      "704.WSetEna": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Disable first so no setpoint is live while the rest is reset",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetPct=0",
+    "writes": {
+      "704.WSetPct": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSet=0",
+    "writes": {
+      "704.WSet": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WSetMod=0",
+    "writes": {
+      "704.WSetMod": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline W_MAX_PCT",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE reversion off",
+    "writes": {
+      "704.WSetEnaRvrt": 0,
+      "704.WSetRvrtTms": 0,
+      "704.WSetPctRvrt": 0,
+      "704.WSetRvrt": 0
+    },
+    "verify": true,
+    "sleep_ms": 1500,
+    "note": "Baseline 0",
+    "abort_on_failure": false
+  },
+  {
+    "step": "RESTORE WMax=0",
+    "writes": {
+      "702.WMax": 0
+    },
+    "verify": true,
+    "sleep_ms": 5000,
+    "note": "Baseline read 2026-10-22: WMax 0 (WMaxRtg 5000)",
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +5s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +10s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +15s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  },
+  {
+    "step": "Post +20s",
+    "reads": [
+      "704.WSetEna",
+      "704.WSetMod",
+      "704.WSet",
+      "704.WSetPct",
+      "704.WSetRvrtRem",
+      "702.WMax",
+      "714.DCW",
+      "701.W",
+      "713.SoC",
+      "15016"
+    ],
+    "sleep_ms": 5000,
+    "abort_on_failure": false
+  }
+]
