@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-24
+
+### Upgrade notes
+- **`send_command` now writes `WSetMod=1` + `WSet` (watts), not `WSetPct`.** It no longer writes `WSetEna=0` before each command, and it returns `(False, "Command not applied: …")` if the read-back differs. Anything that read `WSetPct` to see the active command should read `WSet`/`WSetMod` (or `read_control_status()['wset_mode']`/`['wset_watts']`).
+- **A refused write now fails at once** with "Rejected by the aGate (…)", instead of reconnecting and resending (#96).
+- **Charging is still refused by V12R02B60D00** (negative `WSet` and `WSetPct`, exception 3); a charge command returns that rejection.
+
 ### Fixed
+- **Sequencer raw-address reads and writes did nothing** after the scan, because the socket was closed and `write_value` called a missing method (#99). They now reconnect first and handle FC06/FC16.
+- **Sequencer: a rejected write aborted the sequence and skipped restore steps** (#101). Steps take `on_error` (abort / continue / retry; transport errors only), and a `{"steps", "cleanup"}` form whose cleanup always runs.
 - **`send_command` now sends watts through `WSet` (`WSetMod=1`), not `WSetPct`.** V12R02B60D00 refuses `WSetPct` above 10 % with exception 3, so a 5000 W Force Discharge (sent as 100 %) never ran; one bridge log recorded 116 refusals in an hour. The watts path delivered 5000 W, 3 of 3 runs. `WSetEna` is no longer cycled to 0 before each change (DER v1.2 §3.3), `WSetMod`+`WSet` go in one write, and the result is read back. Charging through `WSet` is still refused by V12.
 - **A Modbus exception response is no longer treated as a connection fault** (#96). `_with_retry` reconnected and resent on exception 3; it now returns "Rejected by the aGate" at once.
 
@@ -241,7 +250,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...v0.10.0
 [0.9.6]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...v0.9.6
 [0.9.5]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.4...v0.9.5
