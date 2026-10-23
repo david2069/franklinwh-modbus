@@ -61,52 +61,214 @@ After exhaustive P1-P4 testing, only **5 of 48 M704 registers** accept writes:
 
 ## 4. How to Control the Battery
 
-### Command Sequence (watts path)
+### What happens on the wire
 
+`send_command()` makes up to three Modbus requests and then checks the result.
+The battery only moves once `WSetEna = 1`.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Your code
+    participant Lib as FranklinWHController
+    participant aGate as aGate (M704)
+    participant Bat as Battery (M714)
+
+    App->>Lib: send_command(BatteryCommand(-3000))
+    Lib->>aGate: read M704 (is WSetEna already 1?)
+    Lib->>aGate: FC16 WSetMod=1, WSet=3000 (one write)
+    aGate-->>Lib: ack
+    alt WSetEna was 0
+        Lib->>aGate: write WSetEna=1
+        aGate-->>Lib: ack
+    end
+    aGate->>Bat: discharge 3000 W
+    Lib->>aGate: read back WSetEna, WSetMod, WSet
+    aGate-->>Lib: 1, 1, 3000
+    Lib-->>App: (True, "Command Sent: -3000W (WSet=3000)")
+    Note over App,Bat: The setpoint stays after your program exits
+
+    App->>Lib: verify_dispatch(-3000, timeout_s=15)
+    loop every 2 s until within tolerance or timeout
+        Lib->>aGate: read M704 setpoint
+        Lib->>Bat: read M714 DCW
+    end
+    Lib-->>App: {'ok': True, 'actual_w': -3000, ...}
 ```
-1. SETPOINT: WSetMod = 1, WSet = W   (one FC16 write; W > 0 = discharge)
-2. ENABLE:   WSetEna = 1             (only if not already enabled)
-3. VERIFY:   read WSetEna, WSetMod, WSet
+
+Changing power while running is one write, with no enable step (DER v1.2 §3.3).
+Stopping writes `WSetEna = 0`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Your code
+    participant Lib as FranklinWHController
+    participant aGate as aGate (M704)
+
+    App->>Lib: send_command(BatteryCommand(-1500))
+    Lib->>aGate: FC16 WSetMod=1, WSet=1500
+    Note right of aGate: WSetEna already 1, so it is not rewritten
+    Lib->>aGate: read back 1, 1, 1500
+    Lib-->>App: (True, ...)
+
+    App->>Lib: reset_control_state()
+    Lib->>aGate: write WSet=0, WSetPct=0 (battery to 0 W)
+    Note right of Lib: wait 1 s
+    Lib->>aGate: write WSetEna=0, WSet=0, WSetPct=0
+    Lib->>aGate: read back WSetEna=0
+    Lib-->>App: True
+    Note over aGate: The aGate goes back to its own mode (self-consumption, TOU, ...)
 ```
 
-Changing the setpoint while enabled needs no `WSetEna` rewrite (DER v1.2 §3.3).
-On V12R02B60D00 this path delivered 5000 W discharge, 3 of 3 runs; negative
-`WSet` (charge) was refused with exception 3. See [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md).
+> **Sign convention:** `BatteryCommand.power_watts` is positive = charge,
+> negative = discharge, 0 = hold. The library converts it for the aGate.
 
-> **Sign Convention:** on the aGate, `WSet` and `WSetPct` are positive = discharge, negative = charge. `BatteryCommand` uses positive = charge; the library inverts.
+### Power range
 
-### Python API
+Power is in watts, from 0 to the battery's rating
+(`ctrl.RATED_MAX_DISCHARGE_W`, read from the aGate at connect; 5000 W on one
+battery). Anything above the rating is clamped to it. For a percentage, convert
+it to watts (example 3).
+
+### Python examples
+
+Setup used by every example:
 
 ```python
-from franklinwh_modbus.types import BatteryCommand, ControlMode
+from franklinwh_modbus import FranklinWHController
+from franklinwh_modbus.types import BatteryCommand
 
-# Charge at 3000W
-cmd = BatteryCommand(power_watts=3000, mode=ControlMode.LIMIT_ABS)
-success, msg = ctrl.send_command(cmd)
-
-# Charge with auto-revert after 1 hour (software timer)
-ctrl.send_command(cmd, duration_s=3600)
-
-# Check timer
-ctrl.get_command_timer_status()  # {'active': True, 'interval_s': 3600}
-
-# Stop / release control
-ctrl.reset_control_state()
+ctrl = FranklinWHController('YOUR_AGATE_IP')
+ctrl.connect()
 ```
+
+**1. Discharge at 3000 W and confirm the battery moved**
+
+```python
+ok, msg = ctrl.send_command(BatteryCommand(power_watts=-3000))
+if not ok:
+    raise SystemExit(msg)          # refused, or read-back did not match
+
+# A successful write is not proof: check battery power (it ramps for a few seconds)
+result = ctrl.verify_dispatch(expected_w=-3000, timeout_s=15)
+print(result['ok'], result['actual_w'], result['reason'])
+```
+
+**2. Minimum and maximum**
+
+```python
+ctrl.send_command(BatteryCommand(power_watts=-500))
+ctrl.send_command(BatteryCommand(power_watts=-5000))   # maximum (M702 rating)
+ctrl.send_command(BatteryCommand(power_watts=-8000))   # clamped to -5000, logs a warning
+```
+
+Use `ctrl.RATED_MAX_DISCHARGE_W` instead of a fixed 5000; it is read from M702
+at connect.
+
+**3. Percent of maximum**
+
+`send_command()` takes watts. To work in percent, convert:
+
+```python
+pct = 40
+watts = pct / 100 * ctrl.RATED_MAX_DISCHARGE_W          # 2000 W
+ctrl.send_command(BatteryCommand(power_watts=-watts))
+```
+
+
+**4. Discharge for 30 minutes, then hand back to the aGate**
+
+```python
+ctrl.send_command(BatteryCommand(power_watts=-2000), duration_s=1800)
+ctrl.get_command_timer_status()    # {'active': True, 'interval_s': 1800}
+```
+
+The timer runs in your process. If the process exits, the battery keeps
+discharging: the aGate's own reversion timer does not work (§5.2). Keep the
+process running, or stop it yourself.
+
+**5. Change power while running**
+
+```python
+ctrl.send_command(BatteryCommand(power_watts=-1000))
+ctrl.send_command(BatteryCommand(power_watts=-4000))   # one write, applies directly
+```
+
+**6. Hold the battery at 0 W (standby)**
+
+```python
+ctrl.send_command(BatteryCommand(power_watts=0))
+```
+
+Standby: the battery neither charges nor discharges; solar and grid supply the
+house. Control stays with you. Release (example 7) hands control back, and the
+aGate resumes its own mode, which may charge or discharge.
+
+**7. Release control (hand back to the aGate)**
+
+```python
+ctrl.reset_control_state()          # True when WSetEna reads back 0
+```
+
+**8. Check the result**
+
+```python
+ok, msg = ctrl.send_command(BatteryCommand(power_watts=-2000))
+if not ok:
+    print(msg)   # the aGate refused it, or the read-back did not match
+```
+
+`send_command()` returns `(ok, msg)` and does not raise; always check `ok`.
+
+### Check the aGate's state
+
+Read this before a command (is the aGate already under control? what mode is it
+in?) and after (did it take?). Mode and reserves come from FranklinWH
+extension registers; see [Extension registers](FRANKLINWH_MODBUS_EXTENSIONS.md).
+
+```python
+bat  = ctrl.read_battery_status()    # M713/M714
+mode = ctrl.read_native_mode()       # extension 15507–15509
+ctl  = ctrl.read_control_status()    # M704
+grid = ctrl.read_grid_status()       # M701
+
+print("SoC            ", bat['soc'], "%")
+print("Battery        ", bat['battery_power_w'], "W", bat['battery_state'])  # + = discharge; state from DCW, ±50 W
+print("Operating mode ", mode['mode_name'])        # 15507: Emergency Backup / Self-Consumption / TOU
+print("SC reserve     ", mode['self_reserve_pct'], "%")   # 15508
+print("TOU reserve    ", mode['tou_reserve_pct'], "%")    # 15509
+print("Grid           ", grid['connection_state'])
+print("Under Modbus control:", ctl['wset_enabled'] == 1)
+```
+
+Notes:
+
+- `battery_state` is derived from battery power. M713 `Sta` always reads 0 (§5.3).
+- No extension register is documented as a run status. Don't treat any of
+  15000–15043 as one.
+- Extension registers are read-only in practice (§5.6). Don't write them to
+  change mode or reserves.
 
 ### CLI
 
 ```bash
-# Charge at 3000W (fire and forget — persists after CLI exits)
-python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --charge 3000
+# Discharge at 3000 W (persists after the CLI exits)
+python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --discharge 3000
 
-# Charge with auto-revert
-python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --charge 3000 --revert 3600
+# Discharge at 2000 W for 30 minutes (the CLI counts down, then stops; Ctrl+C stops early)
+python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --discharge 2000 --revert 1800
 
-# Check status (won't kill active commands)
+# Maximum discharge (M702 rating)
+python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --max-discharge
+
+# Standby: hold at 0 W, control stays with you
+python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --standby
+
+# Check status (does not change the setpoint)
 python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --status
 
-# Stop
+# Release: hand control back to the aGate
 python3 tools/franklinwh_cli.py -i YOUR_AGATE_IP --stop
 ```
 
