@@ -79,6 +79,7 @@ nav:
     - SunSpec 700 Series Verification Plan: SUNSPEC_700_SERIES_VERIFICATION_PLAN.md
     - Conformance & Telemetry Report: SUNSPEC_700_SERIES_TEST_REPORT.md
     - M704 Conformance (V12R02B60D00): SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md
+    - Battery Dispatch Sequence (0.10.1): BATTERY_DISPATCH_SEQUENCE.md
   - Control & Safety:
     - DER Control Reference: DER_CONTROL_REFERENCE.md
     - Safety Controls: SAFETY_CONTROLS.md
