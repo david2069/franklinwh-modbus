@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Force Discharge works on V12R02B60D00.** 0.10.0 sent power as a percentage, which V12 refuses above 10 % (500 W). 0.10.1 sends watts. Tested live: 5000 W.
 
-### Upgrade notes
-- `send_command` writes `WSetMod=1` + `WSet` (watts), not `WSetPct`. It no longer writes `WSetEna=0` first, and returns `(False, "Command not applied: …")` if the read-back differs. Read the active command from `read_control_status()['wset_mode']` / `['wset_watts']`, not `WSetPct`.
-- A refused write fails at once with "Rejected by the aGate (…)", with no reconnect or resend (#96).
-- V12 still refuses **charge** (negative `WSet` or `WSetPct`, exception 3). A charge command returns that rejection.
+### ⚠️ Breaking changes
+These change behaviour callers may rely on. Under the release policy they warranted a minor version (0.11.0), not a patch.
+- **Different registers:** `send_command` writes `WSetMod=1` + `WSet` (watts), not `WSetPct`. It no longer writes `WSetEna=0` first, and returns `(False, "Command not applied: …")` if the read-back differs. **Code that reads `WSetPct` to find the active command will now see 0:** read `read_control_status()['wset_mode']` / `['wset_watts']`, not `WSetPct`.
+- **Different failure behaviour:** a refused write fails at once with "Rejected by the aGate (…)", with no reconnect or resend (#96).
+
+### Known issue (unchanged)
+- V12 refuses **charge** by either route (negative `WSet` or `WSetPct`, exception 3). A charge command returns that rejection.
 
 ### Fixed
 - Force Discharge above 500 W refused on V12 (exception 3): now sent as watts.
