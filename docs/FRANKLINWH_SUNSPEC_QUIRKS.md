@@ -36,6 +36,9 @@ else:
     state = 'IDLE'
 ```
 
+!!! warning "Contradicted on V12R02B60D00"
+    On V12R02B60D00, `DCW` positive = **discharging**: `WSet` +5000 W read `DCW` +5000 W (c8, 2026-10-23, 3 of 3). The controller comment (`controller.py:594`) agrees. The 2026-03-10 statement above (V10R01B04D00 era) has not been rechecked. See [Battery Dispatch Sequence](BATTERY_DISPATCH_SEQUENCE.md#contradictions-in-older-docs).
+
 **Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta, always 0)
 
 ---
@@ -229,7 +232,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 |---------|--------------|-------------------|-------------------|-------------|
 | LocRemCtl handoff | Remote (0) enables writes | Always Local (1), read-only; yet M704 writes work | None needed — power writes accepted despite Local | Report as spec deviation |
 | Controller heartbeat | Client writes ControllerHb; DER monitors | ❌ Confirmed non-functional (write accepted, readback=0) | Not implemented — no alternative | Report as defect |
-| Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | ✅ **WORKS with proper sequencing!** Timer=60s accepted, countdown active (59→55→52) | Software `threading.Timer` via `duration_s` (may become optional) | N/A — working correctly |
+| Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | ✅ **WORKS with proper sequencing!** Timer=60s accepted, countdown active (59→55→52). ⚠️ Contradicted: the controller calls it "COSMETIC" (2026-03-08), and on V12R02B60D00 it runs in reverse (c4/c4b, 2026-10-22); see [Battery Dispatch Sequence](BATTERY_DISPATCH_SEQUENCE.md#contradictions-in-older-docs) | Software `threading.Timer` via `duration_s` (may become optional) | N/A — working correctly |
 | Reversion enable (WSetEnaRvrt) | Enables reversion behavior | ✅ **WORKS!** Readback=1 after write | N/A | N/A — working correctly |
 | Battery state (M713.Sta) | Reflects CHARGING/DISCHARGING/IDLE | Always 0 (OFF) | Derived from M714.DCW ±50W deadband | Report; workaround is robust |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
