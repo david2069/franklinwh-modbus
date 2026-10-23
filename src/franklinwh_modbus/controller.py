@@ -25,6 +25,11 @@ except ImportError:
     SunSpecModbusClientDeviceTCP = None
     SUNSPEC_AVAILABLE = False
 
+try:
+    from sunspec2.modbus.modbus import ModbusClientException
+except ImportError:
+    class ModbusClientException(Exception): pass
+
 # Cloud API availability flag
 CLOUD_API_AVAILABLE = False
 
@@ -489,6 +494,11 @@ class FranklinWHController:
                 result = operation()
                 self._record_io_success()
                 return result
+            except ModbusClientException as e:
+                # The device answered with a Modbus exception response (e.g. 3,
+                # illegal data value): a refusal, not a connection fault.
+                # Reconnecting and resending gets the same answer (#96).
+                raise ModbusClientException(f"Rejected by the aGate ({e})") from e
             except Exception as e:
                 # Check if it's a connection-related error
                 err_str = str(e).lower()
@@ -1570,49 +1580,44 @@ class FranklinWHController:
             
             safe_watts = self._validate_power(command.power_watts)
             
-            pct_sf = self._get_scale_factor(m704, 'WSetPct_SF')
-            # BUG FIX: Use direction-appropriate rate as denominator.
-            # Previously used RATED_MAX_W (WMaxRtg=1000W AC inverter rating)
-            # which caused 1200W → 120% → hardware interprets as max → 5000W charge.
-            # Must use WChaRteMaxRtg/WDisChaRteMaxRtg (5000W battery rate) instead.
-            is_charge = safe_watts > 0
-            rated_for_direction = self.RATED_MAX_CHARGE_W if is_charge else self.RATED_MAX_DISCHARGE_W
-            pct_raw = int((abs(safe_watts) / rated_for_direction) * 100 / (10 ** pct_sf))
-            # Restore sign (positive = charge in our convention)
-            if not is_charge:
-                pct_raw = -pct_raw
+            # Watts go to WSet with WSetMod=1 (Active Power as Watts, DER v1.2 704).
+            # V12R02B60D00 refuses WSetPct above 10 % (exception 3), so the old
+            # watts -> WSetPct conversion could not dispatch more than 500 W.
+            # Hardware WSet: positive = discharge, negative = charge (V12 c3/c8),
+            # the opposite of the BatteryCommand convention.
+            w_sf = self._get_scale_factor(m704, 'WSet_SF')
+            wset_raw = int(round(-safe_watts / (10 ** w_sf)))
             
             if dry_run:
-                return True, f"Dry Run: WSetPct={pct_raw} ({command.power_watts}W)"
+                return True, f"Dry Run: WSetMod=1, WSet={wset_raw} ({command.power_watts}W)"
             
             # Cancel any existing timer before sending new command
             self.cancel_command_timer()
             
-            # 1. STOP & CLEAR
+            # 1. SETPOINT - WSetMod and WSet are contiguous (319-321), so this is
+            # one FC16; a refusal rejects both. No WSetEna=0 first: DER v1.2 §3.3
+            # says the enable need not be rewritten, and V12 applies changes
+            # while enabled (c1, c3).
             m704.read()
-            m704.WSetEna.value = 0
+            was_enabled = m704.WSetEna.value == 1
+            m704.WSetMod.value = 1
+            m704.WSet.value = wset_raw
             m704.write()
-            time.sleep(0.3)
             
-            # 2. CONFIGURE - WSetPct ONLY, do not set WSet (causes mode flickering)
-            # NOTE: Invert sign - hardware WSetPct: positive=discharge, negative=charge
-            m704.read()
-            m704.WSetMod.value = 0
-            m704.WSetPct.value = -pct_raw  # INVERTED for hardware convention
-            m704.write()
-            time.sleep(0.3)
-            
-            # 3. ENABLE
-            m704.read()
-            m704.WSetEna.value = 1
-            m704.write()
+            # 2. ENABLE only if not already enabled
+            if not was_enabled:
+                time.sleep(0.3)
+                m704.WSetEna.value = 1
+                m704.write()
             time.sleep(0.5)
             
-            # 4. VERIFY
+            # 3. VERIFY - the device must read back what was written
             m704.read()
-            actual_pct = m704.WSetPct.value * (10 ** pct_sf) if m704.WSetPct.value else 0
-            logger.debug(f"Command sent: WSetPct={actual_pct}% (raw={m704.WSetPct.value}), "
-                       f"WSet={m704.WSet.value}, WSetEna={m704.WSetEna.value}")
+            got = (m704.WSetEna.value, m704.WSetMod.value, m704.WSet.value)
+            if got != (1, 1, wset_raw):
+                return False, (f"Command not applied: read back WSetEna={got[0]}, "
+                               f"WSetMod={got[1]}, WSet={got[2]} (expected 1, 1, {wset_raw})")
+            logger.debug(f"Command sent: WSetMod=1, WSet={wset_raw}, WSetEna=1")
             
             # 5. START SOFTWARE TIMEOUT if requested
             if duration_s and duration_s > 0:
@@ -1628,9 +1633,9 @@ class FranklinWHController:
                     self._command_timer.daemon = True  # Don't block exit
                     self._command_timer.start()
                 logger.info(f"Software timeout set: {duration_s}s")
-                return True, f"Command Sent: {command.power_watts}W ({actual_pct}% of {rated_for_direction}W) [timeout: {duration_s}s]"
+                return True, f"Command Sent: {command.power_watts}W (WSet={wset_raw}) [timeout: {duration_s}s]"
             
-            return True, f"Command Sent: {command.power_watts}W ({actual_pct}% of {rated_for_direction}W)"
+            return True, f"Command Sent: {command.power_watts}W (WSet={wset_raw})"
         
         try:
             return self._with_retry(_do_send, max_retries=2)
@@ -1652,6 +1657,12 @@ class FranklinWHController:
             # Hardware WSetPct: positive = discharge, negative = charge
             hw_pct = (m704.WSetPct.value or 0) * (10 ** pct_sf)
             rated = self.RATED_MAX_DISCHARGE_W if hw_pct > 0 else self.RATED_MAX_CHARGE_W
+            if m704.WSetMod.value == 1:
+                # Watts mode: hardware WSet positive = discharge
+                w_sf = self._get_scale_factor(m704, 'WSet_SF')
+                commanded_w = -(m704.WSet.value or 0) * (10 ** w_sf)
+            else:
+                commanded_w = -hw_pct / 100 * rated
             
             m714 = self.get_model(714)
             if not m714:
@@ -1668,7 +1679,7 @@ class FranklinWHController:
             return {
                 'enabled': m704.WSetEna.value == 1,
                 'wset_pct': hw_pct,
-                'commanded_w': -hw_pct / 100 * rated,
+                'commanded_w': commanded_w,
                 'actual_w': -dcw,
             }
         return self._with_retry(_do_read, max_retries=2)
@@ -2244,9 +2255,11 @@ class FranklinWHController:
             wset_pct = ctl.get('wset_pct', 0)
             result['wset_ena'] = wset_ena
             
-            # Calculate actual power from WSetPct
-            # Use direction-appropriate rate: negative pct = charge, positive = discharge
-            if wset_pct < 0:
+            # Calculate actual power from the active setpoint
+            # Hardware sign: negative = charge, positive = discharge
+            if ctl.get('wset_mode') == 1:
+                actual_power = (ctl.get('wset_watts') or 0) if wset_ena == 1 else 0
+            elif wset_pct < 0:
                 actual_power = (wset_pct / 100.0 * self.RATED_MAX_CHARGE_W) if wset_ena == 1 else 0
             else:
                 actual_power = (wset_pct / 100.0 * self.RATED_MAX_DISCHARGE_W) if wset_ena == 1 else 0

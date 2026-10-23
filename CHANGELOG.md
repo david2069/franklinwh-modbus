@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`send_command` now sends watts through `WSet` (`WSetMod=1`), not `WSetPct`.** V12R02B60D00 refuses `WSetPct` above 10 % with exception 3, so a 5000 W Force Discharge (sent as 100 %) never ran; one bridge log recorded 116 refusals in an hour. The watts path delivered 5000 W, 3 of 3 runs. `WSetEna` is no longer cycled to 0 before each change (DER v1.2 §3.3), `WSetMod`+`WSet` go in one write, and the result is read back. Charging through `WSet` is still refused by V12.
+- **A Modbus exception response is no longer treated as a connection fault** (#96). `_with_retry` reconnected and resent on exception 3; it now returns "Rejected by the aGate" at once.
+
 ### Changed
 - **Docs: reserve and mode readings on V12R02B60D00.** **16001 holds the reserve for the active mode** (8 in Self-Consumption, 15 in TOU); it was documented as a mirror of 15508. 15507 is confirmed as 1 = Emergency Backup, 2 = Self-Consumption and 3 = TOU by reads in each mode; 4 is still unread (#75). In Emergency Backup, 16001 reads 100. 16002 reads 20 in both modes. (#63)
 

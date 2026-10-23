@@ -18,7 +18,7 @@ These are the primary battery control registers. **This is what we use.**
 |---------|-------|-------|------|----|-------------|------|--------|----------------|
 | 40318 | `WSetEna` | Active Power Enable | enum16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 1 (disable=0) & 3 (enable=1) |
 | 40319 | `WSetMod` | Active Power Mode | enum16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 2 (set=0) |
-| 40320 | `WSet` | Active Power Setpoint (W) | int32 | RW | supported | ❌ | ⚠️ **Avoided** | Not used — causes mode flickering when set alongside WSetPct |
+| 40320 | `WSet` | Active Power Setpoint (W) | int32 | RW | supported | ❌ | ✅ **Used** | `send_command` writes watts here with `WSetMod=1` (V12: 5000 W discharge verified; negative refused) |
 | 40322 | `WSetRvrt` | Reversion Power (W) | int32 | RW | supported | ❌ | 🔲 **Untested** | Read by `read_control_status()` only |
 | 40324 | `WSetPct` | Active Power Setpoint (%) | int16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 2 — **sign inverted** (see quirks) |
 | 40325 | `WSetPctRvrt` | Reversion Power (%) | int16 | RW | supported | ❌ | 🔲 **Untested** | Could set fallback power level |
@@ -30,7 +30,7 @@ These are the primary battery control registers. **This is what we use.**
     **Sign Convention Quirk:** `WSetPct` is inverted on FranklinWH hardware. Positive values = discharge (in standard SunSpec, positive = charge). The library inverts: `m704.WSetPct.value = -pct_raw`. See `FRANKLINWH_SUNSPEC_QUIRKS.md`.
 
 !!! warning
-    **WSet vs WSetPct:** Writing to `WSet` (absolute watts) alongside `WSetPct` causes mode flickering on the aGate. The library uses **only WSetPct** for all power commands. `WSet` is zeroed during `reset_control_state()` but never used for active control.
+    **WSet vs WSetPct:** the library sends watts through `WSet` with `WSetMod=1`. V12R02B60D00 refuses `WSetPct` over 10 %. An older note that `WSet` causes "mode flickering" came from one unverified 2026-02 report written alongside `WSetPct`; see [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md).
 
 **Current Command Sequence:**
 ```
@@ -177,7 +177,7 @@ Legend:  ✅ Working   ⚠️ Partial   🔲 Untested   ❌ Broken/Blocked
 | Category | Registers | Status | Evidence |
 |----------|-----------|--------|----------|
 | **Battery Power (WSetPct)** | 40318-40324 | ✅ Working | Live verified — charge/discharge confirmed |
-| **WSet (absolute watts)** | 40320 | ⚠️ Avoided | Causes flickering when used with WSetPct |
+| **WSet (absolute watts)** | 40320 | ✅ Working | V12: `WSetMod=1`, 5000 W discharge, 3 of 3 runs (c8) |
 | **Reversion Config (WSetRvrtTms)** | 40327 | ⚠️ Config only | Value accepted & persists, but countdown never activates (TESTED) |
 | **Reversion Countdown (WSetRvrtRem)** | 40329 | ❌ Non-functional | Always 0 — hardware timer not implemented (TESTED) |
 | **Reversion Power** | 40322/40325 | 🔲 Untested | Could set fallback power after timeout |
@@ -275,7 +275,7 @@ ctrl.disconnect()
     - **Correct addresses** — legacy code used PDU offsets (317, 318, 319) instead of absolute addresses (40318, 40319, 40320)
     - **Sign conventions** — WSetPct is inverted on FranklinWH hardware (positive=discharge, not charge)
     - **Sequencing requirements** — M704 requires a multi-step STOP→CONFIG→ENABLE→VERIFY sequence; single writes are ignored
-    - **WSet vs WSetPct conflict** — writing both causes mode flickering; must use only WSetPct
+    - **WSet vs WSetPct** — the old "flickering" claim is unverified; the watts path works on V12
     - **FranklinWH quirks** — LocRemCtl handoff not supported, extension registers read-only
         This document now provides the correct baseline for future formal use-case testing of each register group.
 

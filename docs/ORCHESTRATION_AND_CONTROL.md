@@ -22,18 +22,15 @@ sequenceDiagram
     
     App->>Ctrl: send_command(power_watts)
     
-    Ctrl->>H: 1. Disable Control (WSetEna = 0)
+    Ctrl->>H: 1. Setpoint (WSetMod = 1, WSet = -power_watts), one FC16
+    Note right of Ctrl: WSet sign INVERTED: Negative=Charge, Positive=Discharge
+    H-->>Ctrl: Ack (or exception 3: refused, not retried)
+    
+    Ctrl->>H: 2. Enable Control (WSetEna = 1), only if not already enabled
     H-->>Ctrl: Ack
     
-    Ctrl->>H: 2. Configure (WSetMod = 0, WSetPct = -pct_raw)
-    Note right of Ctrl: WSetPct sign INVERTED: Negative=Charge, Positive=Discharge
-    H-->>Ctrl: Ack
-    
-    Ctrl->>H: 3. Enable Control (WSetEna = 1)
-    H-->>Ctrl: Ack
-    
-    Ctrl->>H: 4. Verify (Read WSetPct)
-    H-->>Ctrl: Return WSetPct Value
+    Ctrl->>H: 3. Verify (Read WSetEna, WSetMod, WSet)
+    H-->>Ctrl: Return values
     Ctrl-->>App: Success, Command Sent
 ```
 
@@ -115,9 +112,9 @@ The following table maps user-facing actions to their underlying orchestration a
 
 | User Action | Entry Point | Controller Call | Hardware Sequence (Model 704) |
 | :--- | :--- | :--- | :--- |
-| **CLI/TUI Charge** (`--charge W` or 'c') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(W)` | 1. WSetEna=0 (Stop) <br> 2. WSetMod=0, WSetPct=-pct (Config) <br> 3. WSetEna=1 (Enable) |
-| **CLI/TUI Discharge** (`--discharge W` or 'd') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(W)` | 1. WSetEna=0 (Stop) <br> 2. WSetMod=0, WSetPct=+pct (Config) <br> 3. WSetEna=1 (Enable) |
-| **CLI/TUI Standby** (`--standby` or 's') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(0)` | 1. WSetEna=0 (Stop) <br> 2. WSetMod=0, WSetPct=0 (Config) <br> 3. WSetEna=1 (Enable) |
+| **CLI/TUI Charge** (`--charge W` or 'c') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(W)` | 1. WSetMod=1, WSet=-W <br> 2. WSetEna=1 if not enabled |
+| **CLI/TUI Discharge** (`--discharge W` or 'd') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(W)` | 1. WSetMod=1, WSet=+W <br> 2. WSetEna=1 if not enabled |
+| **CLI/TUI Standby** (`--standby` or 's') | `franklinwh_cli.py` / `monitor.py` | `ctrl.send_command(0)` | 1. WSetMod=1, WSet=0 <br> 2. WSetEna=1 if not enabled |
 | **CLI/TUI Stop / Release** (`--stop` or 'r') | `franklinwh_cli.py` / `monitor.py` | `ctrl.reset_control_state()` | 1. WSetEna=0 <br> 2. WSetPct=0, WSet=0 |
 | **Function Call** (Python API) | `controller.py` | `send_command(cmd, duration_s=N)` | Via sunspec2 model point writes |
 | **Virtual Mode** (`--mode X`) | `modes.py` -> `set_mode` | `ctrl.send_command(...)` | Repeated updates based on SoC/Target logic |
@@ -163,9 +160,9 @@ ctrl.cancel_command_timer()
 | Register | Address | Name | Type | Unit | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `WSetEna` | 40318 | Active Power Enable | enum16 | — | 0=Disabled, 1=Enabled |
-| `WSetMod` | 40319 | Active Power Mode | enum16 | — | 0=Normal |
+| `WSetMod` | 40319 | Active Power Mode | enum16 | — | 1=Watts (used), 0=Percent |
 | `WSetPct` | 40324 | Active Power % | int16 | % | **Sign inverted:** +discharge, -charge |
-| `WSet` | 40320 | Active Power (W) | int32 | W | ⚠️ Avoided (causes flickering) |
+| `WSet` | 40320 | Active Power (W) | int32 | W | **Used by send_command.** +discharge, -charge (V12 refuses negative) |
 | `WSetRvrtTms` | 40327 | Reversion Timeout | uint32 | sec | ⚠️ **Non-functional** on FranklinWH |
 | `WSetRvrtRem` | 40329 | Reversion Remaining | uint32 | sec | ⚠️ **Never counts down** |
 

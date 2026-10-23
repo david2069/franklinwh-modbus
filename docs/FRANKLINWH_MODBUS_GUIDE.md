@@ -50,8 +50,8 @@ After exhaustive P1-P4 testing, only **5 of 48 M704 registers** accept writes:
 | Register | Address | Type | Works? | What It Does |
 |----------|---------|------|--------|---|
 | `WSetEna` | 40318 | enum16 | ✅ | Enable/disable battery power control |
-| `WSetMod` | 40319 | enum16 | ✅ | Power mode (always set to 0) |
-| `WSetPct` | 40324 | int16 | ✅ | **Primary control** — charge/discharge % |
+| `WSetMod` | 40319 | enum16 | ✅ | Power mode: 1 = watts (`WSet`), 0 = percent (`WSetPct`) |
+| `WSetPct` | 40324 | int16 | ⚠️ | Percent setpoint; V12 refuses values over 10 % |
 | `WSetRvrtTms` | 40327 | uint32 | ⚠️ | Accepts value, countdown never activates |
 | `PFWInjEna` | 40298 | enum16 | ✅ | Power factor enable (on by default) |
 
@@ -61,16 +61,19 @@ After exhaustive P1-P4 testing, only **5 of 48 M704 registers** accept writes:
 
 ## 4. How to Control the Battery
 
-### Command Sequence (mandatory 4-step)
+### Command Sequence (watts path)
 
 ```
-1. STOP:    WSetEna = 0               (disable control)
-2. CONFIG:  WSetMod = 0, WSetPct = -X (set mode + power %)
-3. ENABLE:  WSetEna = 1               (enable control)
-4. VERIFY:  read WSetPct              (confirm value stuck)
+1. SETPOINT: WSetMod = 1, WSet = W   (one FC16 write; W > 0 = discharge)
+2. ENABLE:   WSetEna = 1             (only if not already enabled)
+3. VERIFY:   read WSetEna, WSetMod, WSet
 ```
 
-> **Sign Convention:** `WSetPct` is **inverted** on FranklinWH. Negative = charge, positive = discharge. The library handles this automatically.
+Changing the setpoint while enabled needs no `WSetEna` rewrite (DER v1.2 §3.3).
+On V12R02B60D00 this path delivered 5000 W discharge, 3 of 3 runs; negative
+`WSet` (charge) was refused with exception 3. See [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md).
+
+> **Sign Convention:** on the aGate, `WSet` and `WSetPct` are positive = discharge, negative = charge. `BatteryCommand` uses positive = charge; the library inverts.
 
 ### Python API
 
@@ -147,14 +150,14 @@ else:                state = 'IDLE'
 
 | Register | Software | Hardware |
 |----------|----------|----------|
-| `WSet` | Positive = Charge | Positive = Charge |
+| `WSet` | Positive = Charge | **Negative = Charge** (V12, c3/c8) |
 | `WSetPct` | Positive = Charge | **Negative = Charge** |
 
-The library automatically inverts: `m704.WSetPct.value = -pct_raw`
+The library inverts: `m704.WSet.value = -watts`
 
-### 5.5 WSet vs WSetPct Conflict
+### 5.5 WSet vs WSetPct
 
-Writing to `WSet` (absolute watts) alongside `WSetPct` causes **mode flickering** on the aGate. The library uses **only WSetPct**. `WSet` is zeroed during `reset_control_state()`.
+An earlier note said writing `WSet` alongside `WSetPct` caused "mode flickering". It came from one user report (2026-02) with no firmware, frames or `WSetMod=1` test, and is unverified. With `WSetMod=1`, `WSet` works on V12 (c3, c8). The library now sends watts through `WSet`.
 
 ### 5.6 Extension Registers: Writes Undocumented
 
