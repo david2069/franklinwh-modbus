@@ -43,11 +43,12 @@ def test_asymmetric_ratings(ctrl):
 
 
 def test_over_limit_charge_writes_charge_setpoint(ctrl):
-    # Hardware WSetPct: negative = charge
+    # Hardware WSet: negative = charge
     m704 = MagicMock()
-    m704.WSetPct_SF = MagicMock(value=0)
+    m704.WSet_SF = MagicMock(value=0)
     with patch.object(ctrl, 'get_model', return_value=m704), \
          patch('franklinwh_modbus.controller.time.sleep'):
         ok, _ = ctrl.send_command(BatteryCommand(power_watts=6000))
     assert ok
-    assert m704.WSetPct.value == -100
+    assert m704.WSetMod.value == 1
+    assert m704.WSet.value == -5000
