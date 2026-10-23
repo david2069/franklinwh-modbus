@@ -379,7 +379,7 @@ On **V10R01B04D00** (tested 2026-03-15), PDU 40000+ returned exception 2. Either
 
 What this means:
 - **Keep using PDU 0 addresses.** They work on both firmwares.
-- **pysunspec2's `scan()` tries 40000 first,** so on V12 it finds the map at 40000 and records `dev.base_addr = 40000`. **Any client that probes 40000 first binds to the mirror,** including this library today: its `base_address` is ignored with pysunspec2 1.3.6 (#84). Model reads still work, because the mirror matched PDU 0. **Writes to the mirror are unverified.** `is_connected()` probes `dev.base_addr` (#71), so it works either way.
+- **pysunspec2's `scan()` tries 40000 first,** so on V12 it finds the map at 40000 and records `dev.base_addr = 40000`. **Any client that probes 40000 first binds to the mirror,** including this library today: its `base_address` is ignored with pysunspec2 1.3.6 (#84). Model reads still work, because the mirror matched PDU 0. **Writes to the mirror work** (2026-10-23: M704 at 40319, 5000 W discharge applied), **but the response echoes the base-0 address**: a write to 40319 is answered with address 319, and one to 41092 with 1092. Modbus requires the echo to match the request. pysunspec2 doesn't check it; a strict client may reject the reply. `is_connected()` probes `dev.base_addr` (#71), so it works either way.
 - **Extension registers have not been tested at a 40000 offset on V12.** Use their listed PDU addresses.
 
 A tool configured to subtract 40001 (or add 40000) will miss: send the PDU address as listed.
@@ -473,6 +473,17 @@ XXXXXXXXXXXXXXXXXXXX
 ---
 
 ## Model 704 — Hardware Reversion is Cosmetic (PICS Issue 4)
+
+!!! warning "V12R02B60D00 (2026-10-22): reversion fires, but inverted"
+    On V12 the countdown starts when `WSetRvrtTms` is **written**, not on enable. **During** the countdown the reversion value applies (0 W with `WSetPctRvrt=0`, about 250 W with `WSetPctRvrt=5`); **after** expiry the setpoint applies. `WSetEna` stays 1. This is the reverse of the spec, 3 of 3 runs, raw frames. It is not a fail-safe. The text below records the earlier firmware. See [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md).
+
+### Heartbeat on V12R02B60D00 (2026-10-23)
+
+`ControllerHb` (M715, PDU 1092–1093, mirror 41092) is still non-functional:
+- 24 FC16 writes (1…24, every 5 s) at 41092, all acknowledged; `ControllerHb` read 0 every time, and `DERHb` stayed 0.
+- Independent cross-check at base 0 with plain pymodbus: `ControllerHb=7` acknowledged, read back 0 for 3 s. A positive control in the same run (`WSetPctRvrt` at 325 = 50) read back 50, so the tool's writes do land.
+
+Logs: `tests/results/heartbeat/` (local, gitignored).
 
 **Issue:** WSetRvrtTms (327) countdown works (30→0), but **does NOT revert power** at expiry. WSetEna and WSetPct are unchanged 186 seconds post-expiry. The SunSpec dead-man switch is non-functional.
 
