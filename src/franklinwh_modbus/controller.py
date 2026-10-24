@@ -116,6 +116,8 @@ class FranklinWHController:
         self._override_max_discharge_w = max_discharge_w
         self.dev: Optional[SunSpecModbusClientDeviceTCP] = None
         self.models: dict = {}
+        # The last write that raised, so a refusal can be logged with its frame (#114 A4)
+        self._failed_write: Optional[Tuple[int, bytes]] = None
         
         # I/O health: lets callers tell stale data from an empty read.
         # Read methods return {} on failure; these record why and since when.
@@ -151,6 +153,7 @@ class FranklinWHController:
                 ipport=self.port,
                 timeout=self.timeout,
             )
+            self._track_writes()
             
             logger.debug(f"Scanning for SunSpec models (base_addr={self.base_address})...")
             # Try different parameter names for scan method (matching reader.py logic)
@@ -418,6 +421,7 @@ class FranklinWHController:
                 ipport=self.port,
                 timeout=self.timeout,
             )
+            self._track_writes()
             self.dev.scan()
             
             # Rebuild models dict
@@ -487,9 +491,43 @@ class FranklinWHController:
             return None
         return time.time() - self.last_success_ts
     
+    def _track_writes(self):
+        """Record a device write that raises.
+
+        pysunspec2's exception text has only the code, so this lets
+        _log_refusal() name the register and values that were refused.
+        """
+        dev_write = self.dev.write
+
+        def write(addr, data):
+            try:
+                return dev_write(addr, data)
+            except Exception:
+                self._failed_write = (addr, data)
+                raise
+
+        self.dev.write = write
+
+    def _log_refusal(self, e: Exception):
+        """Log a Modbus exception response from the aGate (#114 A4)."""
+        firmware = ''
+        m1 = self.get_model(1)
+        vr = getattr(getattr(m1, 'Vr', None), 'value', None) if m1 else None
+        if vr:
+            firmware = f", firmware {str(vr).strip()}"
+        if self._failed_write:
+            addr, data = self._failed_write
+            regs = struct.unpack(f'>{len(data) // 2}H', data[:len(data) // 2 * 2])
+            values = ' '.join(f'0x{r:04X}' for r in regs)
+            logger.warning(f"Refused by the aGate: write to register {addr} "
+                           f"[{values}] -> {e}{firmware}")
+        else:
+            logger.warning(f"Refused by the aGate: read -> {e}{firmware}")
+
     def _with_retry(self, operation, max_retries: int = 2):
         """Execute operation with automatic reconnect on failure."""
         for attempt in range(max_retries):
+            self._failed_write = None
             try:
                 result = operation()
                 self._record_io_success()
@@ -498,6 +536,7 @@ class FranklinWHController:
                 # The device answered with a Modbus exception response (e.g. 3,
                 # illegal data value): a refusal, not a connection fault.
                 # Reconnecting and resending gets the same answer (#96).
+                self._log_refusal(e)
                 raise ModbusClientException(f"Rejected by the aGate ({e})") from e
             except Exception as e:
                 # Check if it's a connection-related error

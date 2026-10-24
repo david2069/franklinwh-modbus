@@ -241,42 +241,44 @@ DEVICE_ARCHITECTURE = {
 }
 
 
-# Certified FranklinWH PICS Enum Mappings (Sourced from PICS documentation SM-000028)
+# Enum mappings for points FranklinWH lists in its PICS (SM-000028).
+# Values follow the SunSpec 2 model JSON symbols (0-based; #114). Entries
+# without SunSpec symbols (703 *CatRtg, 704 *.Ext, AdptCrvRslt) are unchanged.
 PICS_ENUMS = {
     701: {
         "ACType": {
-            1: "SINGLE_PHASE",
-            2: "SPLIT_PHASE",
-            3: "THREE_PHASE"
+            0: "SINGLE_PHASE",
+            1: "SPLIT_PHASE",
+            2: "THREE_PHASE"
         },
         "St": {
-            1: "OFF",
-            2: "ON"
+            0: "OFF",
+            1: "ON"
         },
         "InvSt": {
-            1: "OFF",
-            2: "SLEEPING",
-            3: "STARTING",
-            4: "RUNNING",
-            5: "THROTTLED",
-            6: "SHUTTING_DOWN",
-            7: "FAULT",
-            8: "STANDBY"
+            0: "OFF",
+            1: "SLEEPING",
+            2: "STARTING",
+            3: "RUNNING",
+            4: "THROTTLED",
+            5: "SHUTTING_DOWN",
+            6: "FAULT",
+            7: "STANDBY"
         },
         "ConnSt": {
-            1: "DISCONNECTED",
-            2: "CONNECTED"
+            0: "DISCONNECTED",
+            1: "CONNECTED"
         },
         "DERMode": {
-            1: "GRID_FOLLOWING",
-            2: "GRID_FORMING",
-            3: "PV_CLIPPED"
+            0: "GRID_FOLLOWING",
+            1: "GRID_FORMING",
+            2: "PV_CLIPPED"
         }
     },
     703: {
         "ES": {
-            1: "DISABLED",
-            2: "ENABLED"
+            0: "DISABLED",
+            1: "ENABLED"
         },
         "NorOpCatRtg": {
             1: "CAT_A",
@@ -301,16 +303,16 @@ PICS_ENUMS = {
         }
     },
     704: {
-        "PFWInjEna": {1: "DISABLED", 2: "ENABLED"},
-        "PFWInjEnaRvrt": {1: "DISABLED", 2: "ENABLED"},
-        "PFWAbsEna": {1: "DISABLED", 2: "ENABLED"},
-        "PFWAbsEnaRvrt": {1: "DISABLED", 2: "ENABLED"},
-        "WMaxLimPctEna": {1: "DISABLED", 2: "ENABLED"},
-        "WMaxLimPctEnaRvrt": {1: "DISABLED", 2: "ENABLED"},
-        "WSetEna": {1: "DISABLED", 2: "ENABLED"},
+        "PFWInjEna": {0: "DISABLED", 1: "ENABLED"},
+        "PFWInjEnaRvrt": {0: "DISABLED", 1: "ENABLED"},
+        "PFWAbsEna": {0: "DISABLED", 1: "ENABLED"},
+        "PFWAbsEnaRvrt": {0: "DISABLED", 1: "ENABLED"},
+        "WMaxLimPctEna": {0: "DISABLED", 1: "ENABLED"},
+        "WMaxLimPctEnaRvrt": {0: "DISABLED", 1: "ENABLED"},
+        "WSetEna": {0: "DISABLED", 1: "ENABLED"},
         "WSetMod": {0: "W_MAX_PCT", 1: "WATTS"},
-        "WSetEnaRvrt": {1: "DISABLED", 2: "ENABLED"},
-        "VarSetEna": {1: "DISABLED", 2: "ENABLED"},
+        "WSetEnaRvrt": {0: "DISABLED", 1: "ENABLED"},
+        "VarSetEna": {0: "DISABLED", 1: "ENABLED"},
         "VarSetMod": {
             0: "W_MAX_PCT",
             1: "VAR_MAX_PCT",
@@ -319,9 +321,9 @@ PICS_ENUMS = {
             4: "VARS"
         },
         "VarSetPri": {0: "ACTIVE", 1: "REACTIVE", 2: "VENDOR"},
-        "VarSetEnaRvrt": {1: "DISABLED", 2: "ENABLED"},
+        "VarSetEnaRvrt": {0: "DISABLED", 1: "ENABLED"},
         "WRmpRef": {0: "A_MAX", 1: "W_MAX"},
-        "AntiIslEna": {1: "DISABLED", 2: "ENABLED"},
+        "AntiIslEna": {0: "DISABLED", 1: "ENABLED"},
         "PFWInj.Ext": {0: "OVER_EXCITED", 1: "UNDER_EXCITED"},
         "PFWInjRvrt.Ext": {0: "OVER_EXCITED", 1: "UNDER_EXCITED"},
         "PFWAbs.Ext": {0: "OVER_EXCITED", 1: "UNDER_EXCITED"},

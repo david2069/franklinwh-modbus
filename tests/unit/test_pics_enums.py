@@ -5,12 +5,12 @@ from franklinwh_modbus.constants import get_pics_enum_desc, PICS_ENUMS
 
 def test_get_pics_enum_desc():
     # Test valid models & points
-    assert get_pics_enum_desc(701, "ACType", 1) == "SINGLE_PHASE"
-    assert get_pics_enum_desc(701, "ACType", 2) == "SPLIT_PHASE"
-    assert get_pics_enum_desc(701, "InvSt", 4) == "RUNNING"
-    assert get_pics_enum_desc(701, "InvSt", 8) == "STANDBY"
-    assert get_pics_enum_desc(703, "ES", 1) == "DISABLED"
-    assert get_pics_enum_desc(703, "ES", 2) == "ENABLED"
+    assert get_pics_enum_desc(701, "ACType", 0) == "SINGLE_PHASE"
+    assert get_pics_enum_desc(701, "ACType", 1) == "SPLIT_PHASE"
+    assert get_pics_enum_desc(701, "InvSt", 3) == "RUNNING"
+    assert get_pics_enum_desc(701, "InvSt", 7) == "STANDBY"
+    assert get_pics_enum_desc(703, "ES", 0) == "DISABLED"
+    assert get_pics_enum_desc(703, "ES", 1) == "ENABLED"
     assert get_pics_enum_desc(704, "WSetMod", 0) == "W_MAX_PCT"
     assert get_pics_enum_desc(704, "WSetMod", 1) == "WATTS"
     assert get_pics_enum_desc(715, "LocRemCtl", 0) == "REMOTE"
@@ -33,7 +33,7 @@ class TestPICSControllerExposure:
 
     def test_controller_get_enum_desc(self, mock_controller):
         """Verify that FranklinWHController.get_enum_desc correctly forwards to resolver."""
-        assert mock_controller.get_enum_desc(701, "ACType", 1) == "SINGLE_PHASE"
+        assert mock_controller.get_enum_desc(701, "ACType", 0) == "SINGLE_PHASE"
         assert mock_controller.get_enum_desc(704, "WSetMod", 1) == "WATTS"
         assert mock_controller.get_enum_desc(715, "LocRemCtl", 1) == "LOCAL"
         assert mock_controller.get_enum_desc(701, "ACType", 99) == "UNKNOWN (99)"
