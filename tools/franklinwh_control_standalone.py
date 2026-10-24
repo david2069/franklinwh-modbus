@@ -107,11 +107,9 @@ logger = logging.getLogger(__name__)
 
 
 class ControlMode(IntEnum):
-    """DERCtlAC WSetMod values per SunSpec 802/704."""
-    LIMIT_ABS = 0      # Limit active power to WSet (absolute watts)
-    LIMIT_PCT = 1      # Limit to percentage of max
-    SET_ABS = 2        # Set active power to WSet (signed, charge/discharge)
-    SET_PCT = 3        # Set to percentage of max (signed)
+    """Model 704 WSetMod values (SunSpec 2 model_704.json)."""
+    W_MAX_PCT = 0      # WSetPct: percent of WMax
+    WATTS = 1          # WSet: watts
 
 
 class VirtualMode(Enum):
@@ -128,7 +126,7 @@ class VirtualMode(Enum):
 class BatteryCommand:
     """Battery control command."""
     power_watts: float  # Positive=charge, negative=discharge, 0=idle
-    mode: ControlMode = ControlMode.LIMIT_ABS
+    mode: ControlMode = ControlMode.WATTS
 
 
 @dataclass
@@ -1903,7 +1901,7 @@ class VirtualModeController:
         power = self.calculate_power()
         
         # Send via hardware controller
-        cmd = BatteryCommand(power_watts=power, mode=ControlMode.LIMIT_ABS)
+        cmd = BatteryCommand(power_watts=power, mode=ControlMode.WATTS)
         success, msg = self.ctrl.send_command(cmd)
         
         if success:
@@ -3436,7 +3434,7 @@ def main():
         # Direct control (original functionality with new explicit flags)
         if args.power is not None or args.idle or args.standby:
             power = 0.0 if (args.idle or args.standby) else args.power
-            cmd = BatteryCommand(power_watts=power, mode=ControlMode.LIMIT_ABS)
+            cmd = BatteryCommand(power_watts=power, mode=ControlMode.WATTS)
             
             success, msg = ctrl.send_command(cmd, args.revert, args.dry_run)
             print(f"\nResult: {'SUCCESS' if success else 'FAILED'} - {msg}")

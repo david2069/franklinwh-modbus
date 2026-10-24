@@ -709,8 +709,8 @@ def print_startup_summary(state: dict, requested_mode: str = None, args=None):
     
     print(f"\n  Control:")
     print(f"    WSetEna:       {current.get('wset_ena', 0)}")
-    actual_power = current.get('actual_power', 0)
-    print(f"    Actual Power:  {actual_power:.0f}W")
+    print(f"    Setpoint:      {current.get('setpoint_w', 0):.0f}W")
+    print(f"    Battery DC:    {current.get('measured_dc_w', 0):.0f}W (measured, + = discharge)")
     
     if current.get('ongrid_mode'):
         print(f"\n  aGate Mode:")
@@ -1502,7 +1502,7 @@ def main():
             else:
                 # One-shot command
                 revert_s = args.revert if args.revert and args.revert > 0 else None
-                cmd = BatteryCommand(power_watts=args.power, mode=ControlMode.LIMIT_ABS)
+                cmd = BatteryCommand(power_watts=args.power, mode=ControlMode.WATTS)
                 success, msg = ctrl.send_command(cmd, dry_run=args.dry_run)
                 print(f"Result: {'SUCCESS' if success else 'FAILED'} - {msg}")
                 if success:

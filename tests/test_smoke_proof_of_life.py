@@ -113,16 +113,16 @@ test("VirtualMode.SELF_CONSUMPTION", VirtualMode.SELF_CONSUMPTION.value == "self
 test("VirtualMode.MANUAL", VirtualMode.MANUAL.value == "manual")
 
 # ControlMode enum
-test("ControlMode.LIMIT_ABS = 0", ControlMode.LIMIT_ABS == 0)
-test("ControlMode.SET_IMPORT = 3", ControlMode.SET_IMPORT == 3)
+test("ControlMode.W_MAX_PCT = 0", ControlMode.W_MAX_PCT == 0)
+test("ControlMode.WATTS = 1", ControlMode.WATTS == 1)
 
 # BatteryCommand dataclass
 cmd = BatteryCommand(power_watts=3000)
-test("BatteryCommand(3000W)", cmd.power_watts == 3000 and cmd.mode == ControlMode.LIMIT_ABS,
+test("BatteryCommand(3000W)", cmd.power_watts == 3000 and cmd.mode == ControlMode.WATTS,
      f"power={cmd.power_watts}W, mode={cmd.mode.name}")
 
-cmd_neg = BatteryCommand(power_watts=-2000, mode=ControlMode.SET_EXPORT)
-test("BatteryCommand(-2000W, SET_EXPORT)", cmd_neg.power_watts == -2000,
+cmd_neg = BatteryCommand(power_watts=-2000)
+test("BatteryCommand(-2000W)", cmd_neg.power_watts == -2000,
      f"power={cmd_neg.power_watts}W, mode={cmd_neg.mode.name}")
 
 # HealthStatus dataclass

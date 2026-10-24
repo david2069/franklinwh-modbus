@@ -17,7 +17,7 @@ These are the primary battery control registers. **This is what we use.**
 | Address | Field | Label | Type | RW | PICS Status | Used | Status | Code Reference |
 |---------|-------|-------|------|----|-------------|------|--------|----------------|
 | 40318 | `WSetEna` | Active Power Enable | enum16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 1 (disable=0) & 3 (enable=1) |
-| 40319 | `WSetMod` | Active Power Mode | enum16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 2 (set=0) |
+| 40319 | `WSetMod` | Active Power Mode | enum16 | RW | supported | ✅ | ✅ **Working** | `send_command()` writes 1 (WATTS) |
 | 40320 | `WSet` | Active Power Setpoint (W) | int32 | RW | supported | ❌ | ✅ **Used** | `send_command` writes watts here with `WSetMod=1` (V12: 5000 W discharge verified; negative refused) |
 | 40322 | `WSetRvrt` | Reversion Power (W) | int32 | RW | supported | ❌ | 🔲 **Untested** | Read by `read_control_status()` only |
 | 40324 | `WSetPct` | Active Power Setpoint (%) | int16 | RW | supported | ✅ | ✅ **Working** | `send_command()` step 2 — **sign inverted** (see quirks) |

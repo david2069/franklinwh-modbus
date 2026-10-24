@@ -136,7 +136,11 @@ class FranklinWHController:
             return -1
     
     def command(self, power_w: float) -> bool:
-        """Send battery power command."""
+        """Send battery power command as WSet watts, in the aGate's sign.
+
+        WSet positive = discharge, negative = charge (V12R02B60D00, c3/c8).
+        V12 refuses negative WSet (charge) with exception 3.
+        """
         try:
             self._m704.read()
             
@@ -144,7 +148,7 @@ class FranklinWHController:
             old_ena = self._m704.WSetEna.value
             
             self._m704.WSet.value = int(power_w)
-            self._m704.WSetMod.value = 2
+            self._m704.WSetMod.value = 1  # WATTS (SunSpec 704; 2 is not defined)
             self._m704.WSetEna.value = 1
             
             self._m704.write()
@@ -155,7 +159,7 @@ class FranklinWHController:
             success = (self._m704.WSetEna.value == 1 and 
                       self._m704.WSet.value == int(power_w))
             
-            action = "charge" if power_w > 0 else "discharge" if power_w < 0 else "idle"
+            action = "discharge" if power_w > 0 else "charge" if power_w < 0 else "idle"
             logger.info(f"Command: {abs(power_w):.0f}W {action} "
                        f"(was: ena={old_ena}, wset={old_wset})")
             
@@ -215,8 +219,8 @@ def demo():
                   f"Home={s.get('home_load_w')}W, SOC={soc}%")
             time.sleep(1)
         
-        # Charge command
-        print("\n--- COMMAND: +1000W CHARGE ---")
+        # Discharge command (WSet positive = discharge)
+        print("\n--- COMMAND: WSet +1000W DISCHARGE ---")
         ctrl.command(1000)
         
         print("Monitoring (10 seconds):")
@@ -253,8 +257,8 @@ def demo():
                   f"Home={s.get('home_load_w')}W")
             time.sleep(1)
         
-        # Discharge
-        print("\n--- COMMAND: -500W DISCHARGE ---")
+        # Charge (WSet negative; refused on V12R02B60D00)
+        print("\n--- COMMAND: WSet -500W CHARGE ---")
         ctrl.command(-500)
         
         for i in range(5):

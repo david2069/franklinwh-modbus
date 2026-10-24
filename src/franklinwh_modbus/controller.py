@@ -12,7 +12,7 @@ import threading
 import warnings
 from typing import Dict, Any, Optional, Tuple, List, Union
 
-from .types import BatteryCommand, HealthStatus, ONGRID_MODES
+from .types import BatteryCommand, ControlMode, HealthStatus, ONGRID_MODES
 from .constants import DISCLAIMER, get_pics_enum_desc
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,23 @@ def _sunspec_symbols(model_id: int, point: str, group: Optional[str] = None) -> 
 def _bit_names(value: int, names: Dict[int, str]) -> List[str]:
     """Names of the set bits in value; bits without a name come out as BIT_n."""
     return [names.get(bit, f'BIT_{bit}') for bit in range(32) if value & (1 << bit)]
+
+
+class _StateDict(dict):
+    """check_state() result; warns when the deprecated 'actual_power' is read (#114 A3)."""
+
+    def _warn(self, key):
+        if key == 'actual_power':
+            warnings.warn("check_state()['actual_power'] is the setpoint, not measured power; "
+                          "use 'setpoint_w' or 'measured_dc_w'", DeprecationWarning, stacklevel=3)
+
+    def __getitem__(self, key):
+        self._warn(key)
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        self._warn(key)
+        return super().get(key, default)
 
 
 class FranklinWHController:
@@ -1612,6 +1629,13 @@ class FranklinWHController:
                 and release from your own watchdog under your own lock.
             dry_run: If True, report what would happen without writing
         """
+        if command.mode != ControlMode.WATTS:
+            # Watts are never sent as a percentage (#114 A2/A6).
+            msg = (f"Command not sent: send_command takes watts (mode WATTS); "
+                   f"got mode {ControlMode(command.mode).name}")
+            logger.warning(msg)
+            return False, msg
+
         def _do_send():
             m704 = self.get_model(704)
             if not m704:
@@ -1908,7 +1932,7 @@ class FranklinWHController:
                 resolved_power = -resolved_power
                 
         # 4. Construct Command
-        cmd = BatteryCommand(power_watts=resolved_power, mode=ControlMode.LIMIT_ABS)
+        cmd = BatteryCommand(power_watts=resolved_power, mode=ControlMode.WATTS)
         
         # 5. Handle Target SOC Check and Loops (if Blocking is requested)
         if blocking:
@@ -2254,24 +2278,30 @@ class FranklinWHController:
             - grid_connected: Whether grid is connected and stable
             - grid_power: Current grid power (negative = exporting)
             - grid_voltage: Grid voltage
-            - battery_activity: Charging/Discharging/Idle description
-            - actual_power: Current battery power from WSetPct
+            - battery_activity: Charging/Discharging/Idle, from measured M714 DCW
+            - setpoint_w: Active Modbus setpoint in W (0 if WSetEna=0)
+            - measured_dc_w: Measured battery DC power, M714 DCW
+            - actual_power: Deprecated alias of setpoint_w (#114 A3)
+              setpoint_w and measured_dc_w use the hardware sign:
+              positive = discharge, negative = charge
             - wset_ena: Control enabled state
             - ongrid_mode: Current aGate mode
             - conflicts: List of potential conflicts
             - alarms: Active alarm summary
         """
-        result = {
+        result = _StateDict({
             'soc': 0,
             'grid_connected': False,
             'grid_power': 0,
             'grid_voltage': 0,
             'battery_activity': 'Unknown',
+            'setpoint_w': 0,
+            'measured_dc_w': 0,
             'actual_power': 0,
             'wset_ena': 0,
             'ongrid_mode': 'Unknown',
             'conflicts': []
-        }
+        })
         
         try:
             # Battery status
@@ -2294,7 +2324,7 @@ class FranklinWHController:
             wset_pct = ctl.get('wset_pct', 0)
             result['wset_ena'] = wset_ena
             
-            # Calculate actual power from the active setpoint
+            # The active setpoint (what was commanded, not what the battery does)
             # Hardware sign: negative = charge, positive = discharge
             if ctl.get('wset_mode') == 1:
                 actual_power = (ctl.get('wset_watts') or 0) if wset_ena == 1 else 0
@@ -2302,17 +2332,19 @@ class FranklinWHController:
                 actual_power = (wset_pct / 100.0 * self.RATED_MAX_CHARGE_W) if wset_ena == 1 else 0
             else:
                 actual_power = (wset_pct / 100.0 * self.RATED_MAX_DISCHARGE_W) if wset_ena == 1 else 0
+            result['setpoint_w'] = actual_power
             result['actual_power'] = actual_power
             
-            # Determine battery activity
+            # Battery activity from measured DC power
             dc_power = bat.get('battery_power_w', 0) or 0
+            result['measured_dc_w'] = dc_power
             if wset_ena == 1:
-                if actual_power < -50:
-                    result['battery_activity'] = f'Charging ({abs(actual_power):.0f}W)'
-                elif actual_power > 50:
-                    result['battery_activity'] = f'Discharging ({actual_power:.0f}W)'
+                if dc_power < -50:
+                    result['battery_activity'] = f'Charging ({abs(dc_power):.0f}W, setpoint {abs(actual_power):.0f}W)'
+                elif dc_power > 50:
+                    result['battery_activity'] = f'Discharging ({dc_power:.0f}W, setpoint {abs(actual_power):.0f}W)'
                 else:
-                    result['battery_activity'] = 'Idle'
+                    result['battery_activity'] = f'Idle (setpoint {actual_power:.0f}W)'
             else:
                 # No Modbus control — show actual DC power from native mode
                 if dc_power < -50:

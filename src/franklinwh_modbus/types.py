@@ -14,11 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class ControlMode(IntEnum):
-    """Battery control modes per SunSpec Model 704."""
-    LIMIT_ABS = 0       # Absolute power limit (W)
-    LIMIT_PCT = 1       # Percentage of max power
-    SET_EXPORT = 2      # Target export power
-    SET_IMPORT = 3      # Target import power
+    """Model 704 WSetMod values (SunSpec 2 model_704.json).
+
+    send_command() takes watts, so it accepts only WATTS (#114 A2).
+    """
+    W_MAX_PCT = 0       # WSetPct: percent of WMax
+    WATTS = 1           # WSet: watts
 
 
 class VirtualMode(Enum):
@@ -42,7 +43,7 @@ class BatteryCommand:
     Attributes:
         power_watts: Target power in watts
                      Positive = charge, negative = discharge, 0 = idle
-        mode: Control mode (usually LIMIT_ABS for absolute wattage)
+        mode: WSetMod for the command; send_command() accepts only WATTS
     
     Note:
         power_watts is clamped to [-DEFAULT_MAX_POWER_W, DEFAULT_MAX_POWER_W]
@@ -51,7 +52,7 @@ class BatteryCommand:
         input validation (PICS Issue 5).
     """
     power_watts: float
-    mode: ControlMode = ControlMode.LIMIT_ABS
+    mode: ControlMode = ControlMode.WATTS
     
     def __post_init__(self):
         """Validate and clamp power_watts to safe range."""

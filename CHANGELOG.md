@@ -9,8 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ⚠️ Breaking changes
 - **Enum descriptions change** (`get_pics_enum_desc` / `get_enum_desc`): 17 `PICS_ENUMS` entries were one higher than SunSpec. For example, `WSetEna` 1 returned DISABLED, and `InvSt` 3 returned STARTING instead of RUNNING. They now follow the SunSpec 2 model JSON (0 DISABLED, 1 ENABLED; `InvSt` 0 OFF … 7 STANDBY). This affects 701 `ACType`, `St`, `InvSt`, `ConnSt`, `DERMode`; 703 `ES`; and the 704 `*Ena` / `*EnaRvrt` points (#114 A1).
+- **`ControlMode` has the two SunSpec `WSetMod` values:** `W_MAX_PCT` (0) and `WATTS` (1). `LIMIT_ABS`, `LIMIT_PCT`, `SET_EXPORT` and `SET_IMPORT` are removed; use `ControlMode.WATTS` where code used `LIMIT_ABS`. `BatteryCommand.mode` defaults to `WATTS`. `send_command` used to ignore the mode; now any mode other than `WATTS` returns `(False, "Command not sent: …")` and logs a warning, with no write (#114 A2, A6).
+- **`check_state()`:** `actual_power` was the setpoint, not measured power. Read `setpoint_w` (the Modbus setpoint) or `measured_dc_w` (M714 `DCW`). Both use the hardware sign: positive = discharge. `actual_power` remains as a deprecated alias that raises a `DeprecationWarning` when read. Under Modbus control, `battery_activity` now comes from measured DC power and shows the setpoint alongside, for example `Discharging (400W, setpoint 1000W)` (#114 A3).
 
 ### Fixed
+- `tools/franklinwh_min_demo.py` wrote `WSetMod=2`, which SunSpec doesn't define. It now writes 1 (WATTS). Its labels now use the aGate's sign (WSet positive = discharge), so the "+1000 W" step is labelled discharge (#114 A2).
 - A Modbus exception response from the aGate is now logged at WARNING. The log line gives the refused register, the raw values and the firmware, for example `Refused by the aGate: write to register 40324 [0xFFCE] -> Modbus exception: 3, firmware V12R02B60D00`. It covers operations run through the controller's retry path (#114 A4).
 
 ### Docs
