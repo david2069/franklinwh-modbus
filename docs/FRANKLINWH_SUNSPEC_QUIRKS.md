@@ -6,37 +6,36 @@ Documenting non-standard behaviors, missing registers, and implementation-specif
 
 ## Model 713 - DER Storage Capacity
 
-### Sta (Status) Register Always 0
+### Sta (Status) is not a battery state
 
-**Issue:** The `Sta` register in Model 713 always returns 0 (OFF) regardless of actual battery state.
+**Issue:** `Sta` in Model 713 is a status flag, not a charge/discharge state. It read 0 while the battery was charging at 400 W (2026-03-10). Under SunSpec 2, 0 means OK, so that reading is consistent with the spec. It does not tell you whether the battery is charging.
 
-**SunSpec 2 M713.Sta enum:**
+**SunSpec 2 M713.Sta enum** (`model_713.json`):
 | Value | Meaning |
 |-------|---------|
-| 0 | OFF |
-| 1 | EMPTY |
-| 2 | DISCHARGING |
-| 3 | CHARGING |
-| 4 | FULL |
-| 5 | HOLDING |
-| 6 | TESTING |
+| 0 | OK: no warnings or errors pending |
+| 1 | WARNING: one or more warnings pending |
+| 2 | ERROR: one or more errors pending |
 
-**Observed:** Battery actively charging at -400W (M714.DCW), SoC 79% — M713.Sta remains 0 (OFF).
+Whether this aGate ever reports 1 or 2 has not been tested.
 
-**Workaround:** Derive battery state from M714 DCW power direction (±50W deadband):
+**Battery state:** derived from the direction of M714 `DCW` (±50 W deadband):
 ```python
-# M714.DCW sign convention (confirmed empirically 2026-03-10):
-#   positive = power INTO battery (Charging)
-#   negative = power OUT of battery (Discharging)
-if dc_power > 50:
+# M714.DCW sign on V12R02B60D00 (c8, 2026-10-23: 5000 W discharge read DCW +4900 to +5000):
+#   positive = power OUT of battery (Discharging)
+#   negative = power INTO battery (Charging)
+if dc_power < -50:
     state = 'CHARGING'
-elif dc_power < -50:
+elif dc_power > 50:
     state = 'DISCHARGING'
 else:
     state = 'IDLE'
 ```
 
-**Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` — returns `battery_state` (derived) and `status_raw` (M713.Sta, always 0)
+!!! note "Correction (#114)"
+    An earlier version of this snippet had the sign reversed (positive = charging). The code (`read_battery_status()`) uses positive = discharging. The 2026-03-10 observation above (charging at −400 W) also fits positive = discharging. The enum table earlier listed 0 OFF … 6 TESTING, which is not the SunSpec 2 Model 713 enum.
+
+**Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` returns `battery_state` (derived from DCW) and `status_raw` (M713.Sta: 0 OK, 1 WARNING, 2 ERROR).
 
 ---
 
@@ -229,14 +228,14 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 |---------|--------------|-------------------|-------------------|-------------|
 | LocRemCtl handoff | Remote (0) enables writes | Always Local (1), read-only; yet M704 writes work | None needed — power writes accepted despite Local | Report as spec deviation |
 | Controller heartbeat | Client writes ControllerHb; DER monitors | ❌ Confirmed non-functional (write accepted, readback=0) | Not implemented — no alternative | Report as defect |
-| Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | ✅ **WORKS with proper sequencing!** Timer=60s accepted, countdown active (59→55→52) | Software `threading.Timer` via `duration_s` (may become optional) | N/A — working correctly |
+| Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | V10 (2026-03-13): countdown runs (59→55→52) but power was not reverted at expiry (see "Hardware Reversion is Cosmetic" below). V12R02B60D00: the reverse of the spec — the reversion value applies **during** the countdown, the setpoint after; see [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md) | Software `threading.Timer` via `duration_s` | Report as defect |
 | Reversion enable (WSetEnaRvrt) | Enables reversion behavior | ✅ **WORKS!** Readback=1 after write | N/A | N/A — working correctly |
-| Battery state (M713.Sta) | Reflects CHARGING/DISCHARGING/IDLE | Always 0 (OFF) | Derived from M714.DCW ±50W deadband | Report; workaround is robust |
+| Battery state (M713.Sta) | Sta is a status (0 OK, 1 WARNING, 2 ERROR), not a battery state | Read 0 (OK) while charging | Battery state derived from M714.DCW ±50W deadband | N/A — not a defect |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
 | Extension register writes | N/A (vendor-specific) | Read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) | Cloud API bypass (Tier 2) for mode changes | Unknown; FranklinWH has not documented any write mechanism |
 | Remote Control activation | WSetEna=1 starts remote DER control | ✅ Works — activates Remote Control (exclusive) | None needed — works as intended | N/A — working correctly |
-| Command persistence | WSetRvrtTms reverts after timeout | WSetRvrtTms countdown active; WSetEna persists after timer expiry (partial implementation?) | Software timer + `reset_control_state()` remains recommended | Investigate: does countdown actually revert power? |
+| Command persistence | WSetRvrtTms reverts after timeout | V10: countdown active, power not reverted at expiry. V12R02B60D00: inverted, see [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md). `WSetEna` stays 1 on both | Software timer + `reset_control_state()` remains recommended | Report as defect |
 | Throttle % (ThrotPct) | Reports inverter power curtailment % | ✅ Readable (40180), always 0% in testing | None — read-only info point | N/A — may activate under thermal/grid stress |
 | Throttle source (ThrotSrc) | Bitfield of throttle cause | 0xFFFFFFFF (unimplemented) | Not implemented — no alternative | Report; no workaround possible |
 | Grid charge/discharge limits | `WChaRteMax` / `WDisChaRteMax` (RW per spec) | ❌ Confirmed: registers return 0xFFFF, writes silently discarded even with Remote Control + proper sequencing | Cloud API `setPowerControl` is only path | Report as defect |
@@ -251,7 +250,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 ### Crash-Orphan Risk
 
 !!! caution
-    If the consumer application crashes while `WSetEna=1`, the aGate remains in Remote Control indefinitely (mobile app continues to show "VPP Mode"). There is no hardware timeout to auto-revert (WSetRvrtTms behavior unverified). The library provides `reset_control_state()` for graceful shutdown, but **crash recovery is a consumer responsibility**, not a library concern.
+    If the consumer application crashes while `WSetEna=1`, the aGate remains in Remote Control indefinitely (mobile app continues to show "VPP Mode"). There is no hardware timeout to auto-revert (WSetRvrtTms does not revert per spec on V10 or V12R02B60D00; see "Hardware Reversion is Cosmetic" below). The library provides `reset_control_state()` for graceful shutdown, but **crash recovery is a consumer responsibility**, not a library concern.
 
 ### The LocRemCtl Paradox (Model 715) — TESTED 2026-03-08
 
@@ -264,7 +263,7 @@ Model 715 `LocRemCtl` (PDU address 1089) reports `1` = **Local Control** and is 
 **FranklinWH violates this fundamentally.** The aGate:
 - ✅ Accepts M704 power writes (WSetEna, WSetPct, WSetMod) despite being in Local mode
 - ❌ Ignores M715 lifecycle writes (ControllerHb — **confirmed non-functional** even with proper sequencing)
-- ✅ **WSetRvrtTms WORKS** with proper sequencing (countdown active, 59→55→52)
+- ⚠️ WSetRvrtTms value accepted and the countdown runs (V10, 59→55→52). Power was not reverted at expiry on V10, and on V12R02B60D00 the behaviour is inverted (see "Hardware Reversion is Cosmetic" below)
 
 This creates a **selective-write hybrid** that is non-standard:
 
@@ -273,7 +272,7 @@ This creates a **selective-write hybrid** that is non-standard:
 | Power writes (WSetPct) | ❌ Reject | ✅ Accepts |
 | Power enable (WSetEna) | ❌ Reject | ✅ Accepts |
 | Reversion config (WSetRvrtTms) | ❌ Reject | ✅ Accepts value |
-| Reversion countdown (WSetRvrtRem) | N/A | ✅ **Active!** Counts down correctly (59→55→52) |
+| Reversion countdown (WSetRvrtRem) | N/A | Counts down (V10, 59→55→52); does not give a spec reversion (see below) |
 | Controller heartbeat (ControllerHb) | ❌ Reject | ❌ **Confirmed non-functional** (write accepted, readback=0) |
 | DER heartbeat (DERHb) | N/A | ❌ Always 0 |
 | LocRemCtl write | Allow | ❌ Read-only |
@@ -284,7 +283,7 @@ This creates a **selective-write hybrid** that is non-standard:
 
 1. **Remote Control provides clean control handoff:** When `WSetEna=1`, the aGate suspends native mode and grants exclusive Modbus control. This is cooperative, not conflicting.
 
-2. **Hardware reversion timer available:** WSetRvrtTms **works** — the aGate counts down and (potentially) reverts the power setpoint. However, WSetEna may persist after timer expiry. Further investigation needed on whether power actually reverts or just the countdown is cosmetic.
+2. **No usable hardware reversion timer:** on V10 the WSetRvrtTms countdown ran but power was not reverted at expiry; on V12R02B60D00 the reversion value applies during the countdown and the setpoint after it ([M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md)). Neither is a fail-safe.
 
 3. **ControllerHb remains non-functional:** Even with proper sequencing, heartbeat writes are silently discarded. Software watchdog (`duration_s` / `--revert`) remains the primary safety mechanism.
 

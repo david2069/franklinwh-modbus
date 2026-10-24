@@ -465,7 +465,7 @@ class CLIMonitor:
                 self.data.power_flow.home_w = solar_total + battery_dc + grid_raw
             
             # Battery state from enriched read_battery_status()
-            # (derived from M714 DCW — M713.Sta is always 0 on FranklinWH)
+            # (derived from M714 DCW — M713.Sta is OK/WARNING/ERROR, not a battery state)
             self.data.power_flow.battery_state = battery.get('battery_state', 'IDLE')
                  
             # Update Battery DC — all from enriched read_battery_status()

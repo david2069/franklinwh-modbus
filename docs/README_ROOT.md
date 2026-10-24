@@ -173,7 +173,7 @@ franklinwh-modbus/
 | 704 | DER AC Controls | ✅ | ✅ | WSetPct/WSetEna confirmed working |
 | 705 | DER Volt-Var | ✅ | ⚠️ | Untested |
 | 706 | DER Volt-Watt | ✅ | ⚠️ | Untested |
-| 713 | DER Storage Capacity | ✅ | ❌ | ⚠️ Sta always 0 (unreliable) |
+| 713 | DER Storage Capacity | ✅ | ❌ | Sta is OK/WARNING/ERROR, not a battery state |
 | 714 | DER DC Measurement | ✅ | ❌ | DCW used for battery-state derivation; multi-stack aware |
 | 715 | DERCtl | ✅ | ❌ | LocRemCtl read-only, heartbeat non-functional |
 
