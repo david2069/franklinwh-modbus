@@ -541,7 +541,7 @@ class VirtualModeController:
         
         power = self.calculate_power()
         
-        cmd = BatteryCommand(power_watts=power, mode=ControlMode.LIMIT_ABS)
+        cmd = BatteryCommand(power_watts=power, mode=ControlMode.WATTS)
         success, msg = self.ctrl.send_command(cmd, dry_run=dry_run)
         
         if dry_run:

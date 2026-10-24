@@ -596,6 +596,8 @@ state = ctrl.check_state()
 print(f"SoC: {state['soc']:.1f}%")
 print(f"Grid Connected: {state['grid_connected']}")
 print(f"Battery Activity: {state['battery_activity']}")
+# Setpoint vs measured battery DC power (W; positive = discharge, negative = charge)
+print(f"Setpoint: {state['setpoint_w']:.0f}W, measured: {state['measured_dc_w']:.0f}W")
 print(f"aGate Mode: {state['ongrid_mode']}")
 
 # Check for conflicts (e.g., aGate actively controlling)
