@@ -566,7 +566,7 @@ class FranklinWHController:
         
         Returns dict with:
             soc, soh, wh_rating, wh_available (from M713)
-            status_raw: M713.Sta raw value (always 0 on FranklinWH — do not use)
+            status_raw: M713.Sta raw value (SunSpec 2: 0 OK, 1 WARNING, 2 ERROR; not a battery state)
             battery_state: Derived from M714 DCW power direction (CHARGING/DISCHARGING/IDLE)
             battery_power_w, battery_current_a, battery_temp_c (from M714)
             partial: list of models that failed to read (e.g. ['714']); present
@@ -587,7 +587,7 @@ class FranklinWHController:
                 'soh': round(m713.SoH.value * (10 ** sf_pct), 1),
                 'wh_rating': m713.WHRtg.value * (10 ** sf_wh),
                 'wh_available': m713.WHAvail.value * (10 ** sf_wh),
-                'status_raw': m713.Sta.value,  # Always 0 on FranklinWH (quirk)
+                'status_raw': m713.Sta.value,  # 0 OK, 1 WARNING, 2 ERROR
             }
             
             # Model 714 - Battery DC power
@@ -614,7 +614,7 @@ class FranklinWHController:
                     result['battery_power_w'] = total_dc_power
                     
                     # Derive battery state from total DC power direction (±50W deadband)
-                    # FranklinWH M713.Sta is always 0 (OFF) — cannot rely on it
+                    # M713.Sta is OK/WARNING/ERROR, not a battery state
                     if total_dc_power < -50:
                         result['battery_state'] = 'Charging'
                     elif total_dc_power > 50:

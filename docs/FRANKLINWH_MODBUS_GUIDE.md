@@ -298,9 +298,9 @@ Commands **persist indefinitely** after disconnect. The aGate holds the last WSe
 
 There is **no automatic timeout** — hardware reversion (`WSetRvrtTms`) accepts values but never executes. Use the library's software timer (`duration_s` parameter).
 
-### 5.3 Battery State Register Unreliable
+### 5.3 Battery State Is Not in M713
 
-M713 `Sta` is **always 0 (OFF)** regardless of actual state. Derive battery state from M714 `DCW`:
+M713 `Sta` is a status flag (SunSpec 2: 0 OK, 1 WARNING, 2 ERROR), not a charge/discharge state; it read 0 (OK) while charging. Derive battery state from M714 `DCW` (positive = discharging on V12, c8):
 
 ```python
 if dc_power < -50:   state = 'CHARGING'
@@ -384,7 +384,7 @@ M715 registers are read and written at their **PDU addresses** (1087–1095, as 
 | Auto-Revert Timer | ❌ WSetRvrtTms broken | ✅ `duration_s` param |
 | Heartbeat | ❌ ControllerHb ignored | ❌ Not implemented |
 | SoC Ramp | ❌ WRmp unimplemented | ✅ `--soc-ramp-window` |
-| Battery State | ❌ M713.Sta always 0 | ✅ Derived from M714 DCW |
+| Battery State | ❌ Not in M713 (Sta is OK/WARNING/ERROR) | ✅ Derived from M714 DCW |
 | Conflict Detection | N/A | ✅ `check_state()` |
 | Mode Control | ❌ Extensions read-only | ⚠️ Virtual modes (power-only) |
 

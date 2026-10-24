@@ -53,7 +53,7 @@ What the **aGate X / aPower S** system implements via Modbus TCP:
 | Function | Model | Details |
 |----------|-------|---------|
 | Battery charge / discharge / standby | M704 (WSetPct) | Primary control mechanism — percentage of rated max |
-| Battery SoC, SoH, DC power | M713 / M714 | M713.Sta unreliable (always 0) — state derived from M714.DCW |
+| Battery SoC, SoH, DC power | M713 / M714 | M713.Sta is a status (0 OK, 1 WARNING, 2 ERROR), not a battery state — state derived from M714.DCW |
 | Battery lifetime energy | M714 (DCWhInj / DCWhAbs) | Cumulative charge and discharge (Wh) |
 | AC grid power, voltage, frequency | M701 | Full implementation including per-phase data |
 | Grid lifetime energy | M701 (TotWhInj / TotWhAbs) | Cumulative grid export and import (Wh) |
@@ -150,7 +150,7 @@ ctrl.disconnect()
 | 704 | DER AC Controls | ✅ | ✅ | WSetPct/WSetEna confirmed working |
 | 705 | DER Volt-Var | ✅ | ⚠️ | Untested |
 | 706 | DER Volt-Watt | ✅ | ⚠️ | Untested |
-| 713 | DER Storage Capacity | ✅ | ❌ | ⚠️ Sta always 0 (unreliable) |
+| 713 | DER Storage Capacity | ✅ | ❌ | Sta is OK/WARNING/ERROR, not a battery state |
 | 714 | DER DC Measurement | ✅ | ❌ | DCW used for battery-state derivation; multi-stack aware |
 | 715 | DERCtl | ✅ | ❌ | LocRemCtl read-only, heartbeat non-functional |
 
