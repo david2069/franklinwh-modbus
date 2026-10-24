@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠️ Breaking changes
+- **Enum descriptions change** (`get_pics_enum_desc` / `get_enum_desc`): 17 `PICS_ENUMS` entries were one higher than SunSpec. For example, `WSetEna` 1 returned DISABLED, and `InvSt` 3 returned STARTING instead of RUNNING. They now follow the SunSpec 2 model JSON (0 DISABLED, 1 ENABLED; `InvSt` 0 OFF … 7 STANDBY). This affects 701 `ACType`, `St`, `InvSt`, `ConnSt`, `DERMode`; 703 `ES`; and the 704 `*Ena` / `*EnaRvrt` points (#114 A1).
+
+### Fixed
+- A Modbus exception response from the aGate is now logged at WARNING. The log line gives the refused register, the raw values and the firmware, for example `Refused by the aGate: write to register 40324 [0xFFCE] -> Modbus exception: 3, firmware V12R02B60D00`. It covers operations run through the controller's retry path (#114 A4).
+
 ### Docs
 - Model 704 conformance results on V12R02B60D00 (#104), and V12 heartbeat, inverted reversion, 40000-mirror write echo and extension-write re-test (#107).
 
