@@ -93,6 +93,7 @@ nav:
     - FranklinWH Extension Registers: FRANKLINWH_MODBUS_EXTENSIONS.md
     - Extensions Manifest (raw scans): FRANKLINWH_EXTENSIONS_MANIFEST.md
     - Snapshot V12R02B60D00 (2026-10-20): SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md
+    - "Test Plan: V12 WSetPct Limit": V12_WSETPCT_TEST_PLAN.md
     - aGate Network Profile: AGATE_NETWORK_PROFILE.md
     - Finding an aGate (discovery): DISCOVERY.md
     - Hardware Test Guide: HARDWARE_TEST_GUIDE.md
