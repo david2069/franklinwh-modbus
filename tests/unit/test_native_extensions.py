@@ -92,8 +92,8 @@ class TestNativeExtensions:
                 'tou_reserve_pct': 15,
             }
             reserve, source = mock_controller.get_effective_reserve_level()
-            assert reserve == 30
-            assert source == 'self'
+            assert reserve == 100  # EB holds the battery full, not the self reserve (#90)
+            assert source == 'backup'
 
         # 4. Unobserved value (4): no known mode, so no reserve
         with patch.object(mock_controller, 'read_native_mode') as mock_read:
@@ -106,6 +106,58 @@ class TestNativeExtensions:
             reserve, source = mock_controller.get_effective_reserve_level()
             assert reserve is None
             assert source == 'unknown'
+
+    @staticmethod
+    def _native(mode_raw, self_pct=8, tou_pct=15, active=None):
+        return {'mode_raw': mode_raw, 'mode_name': 'x', 'self_reserve_pct': self_pct,
+                'tou_reserve_pct': tou_pct, 'active_reserve_pct': active}
+
+    def test_active_reserve_16001_can_raise_but_not_lower_the_reserve(self, mock_controller):
+        """16001 is undocumented: used only when it is higher than the mode's reserve (#90)."""
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(2, active=40)):
+            assert mock_controller.get_effective_reserve_level() == (40, 'active')
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(2, active=5)):
+            assert mock_controller.get_effective_reserve_level() == (8, 'self')
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(1, active=0)):
+            assert mock_controller.get_effective_reserve_level() == (100, 'backup')
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(3, active=None)):
+            assert mock_controller.get_effective_reserve_level() == (15, 'tou')
+
+    def test_discharge_refused_when_reserve_unknown(self, mock_controller):
+        """Unknown mode or failed read refuses discharge instead of skipping the check (#90)."""
+        for native in ({}, self._native(4)):
+            with patch.object(mock_controller, 'read_native_mode', return_value=native):
+                ok, msg, details = mock_controller.validate_target_soc(50.0, 'discharge')
+                assert not ok and msg.startswith('E007')
+                ok, _, _ = mock_controller.validate_target_soc(90.0, 'charge')
+                assert ok
+
+    def test_discharge_refused_in_emergency_backup(self, mock_controller):
+        """In EB the floor is 100 %, so any discharge target is refused (#90)."""
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(1)):
+            ok, msg, details = mock_controller.validate_target_soc(50.0, 'discharge')
+            assert not ok and msg.startswith('E002')
+            assert details['effective_reserve'] == 100
+
+    def test_read_native_mode_parses_16001(self, mock_controller):
+        """read_native_mode() adds 16001 when it answers, None on an exception reply (#90)."""
+        def reply(fc, regs):
+            body = bytes([len(regs) * 2]) + b''.join(r.to_bytes(2, 'big') for r in regs)
+            return b'\x00\x00\x00\x00' + (len(body) + 2).to_bytes(2, 'big') + bytes([1, fc]) + body
+        sock = MagicMock()
+        mock_controller.dev.client.socket = sock
+        sock.recv.side_effect = [reply(3, [1, 8, 15]), reply(3, [100])]
+        assert mock_controller.read_native_mode()['active_reserve_pct'] == 100
+        sock.recv.side_effect = [reply(3, [2, 8, 15]), b'\x00\x00\x00\x00\x00\x03\x01\x83\x02']
+        native = mock_controller.read_native_mode()
+        assert native['active_reserve_pct'] is None and native['self_reserve_pct'] == 8
+
+    def test_virtual_mode_controller_reserve_in_backup_and_unknown(self, mock_controller):
+        """VirtualModeController uses 100 in EB and when the reserve is unknown (#90)."""
+        with patch.object(mock_controller, 'read_native_mode', return_value=self._native(1)):
+            assert VirtualModeController(mock_controller, min_discharge_soc=None).min_discharge_soc == 100
+        with patch.object(mock_controller, 'read_native_mode', return_value={}):
+            assert VirtualModeController(mock_controller, min_discharge_soc=None).min_discharge_soc == 100
 
     def test_virtual_mode_controller_read_agate_reserve_1_indexed(self, mock_controller):
         """Verify VirtualModeController._read_agate_reserve_soc() maps correctly under 1-indexed modes."""
