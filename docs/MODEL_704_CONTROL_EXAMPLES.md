@@ -40,7 +40,7 @@ To guarantee predictable physical transitions and prevent the battery from becom
 
 1. **Initial Standby Initialization**: Before dispatching charge/discharge power, initialize remote VPP mode with `0W` power flow. This establishes control safely without sudden power spikes.
    ```python
-   model704.WSetMod = 0    # Absolute watts mode
+   model704.WSetMod = 0    # W_MAX_PCT (percent) mode
    model704.WSetPct = 0    # 0% / 0W setpoint
    model704.WSetEna = 1    # Enable remote control last
    ```
@@ -98,12 +98,14 @@ Use these registers to force the battery to charge or discharge at an exact rate
 * **Positive (+) values**: Discharging (exporting power to home/grid).
 * **Negative (-) values**: Charging (importing power from solar/grid).
 
+> **`WSetMod` values** (SunSpec DER Information Model v1.2, Model 704): `0` = `W_MAX_PCT` (active power as a percent of max, using `WSetPct`), `1` = `WATTS` (using `WSet`). Earlier versions of this page had them reversed. The watts path (`WSetMod` = 1) has not been tested on the aGate. On V12R02B60D00, `WSetPct` accepts only raw 0…+100 (#92), so Use Case C is refused there with exception 3.
+
 #### Use Case A: Force Battery Discharge at 1000W (Absolute Mode)
 Force battery discharge at exactly 1000W, reverting to 0W idle after 30 minutes (1800 seconds).
 
 ```python
 # Sequential Write Sequence:
-model704.WSetMod = 0              # 1. Configure mode: 0 = absolute watts mode
+model704.WSetMod = 1              # 1. Configure mode: 1 = WATTS
 model704.WSet = 1000              # 2. Setpoint: 1000W discharge (positive)
 model704.WSetRvrt = 0             # 3. Reversion value: Revert to 0W on timeout
 model704.WSetRvrtTms = 1800       # 4. Timeout: 1800 seconds (30 minutes)
@@ -116,7 +118,7 @@ Force battery charge at exactly 2000W from the grid, reverting to 0W idle after 
 
 ```python
 # Sequential Write Sequence:
-model704.WSetMod = 0              # 1. Configure mode: absolute watts mode
+model704.WSetMod = 1              # 1. Configure mode: 1 = WATTS
 model704.WSet = -2000             # 2. Setpoint: -2000W charge (negative)
 model704.WSetRvrt = 0             # 3. Reversion value: Revert to 0W
 model704.WSetRvrtTms = 7200       # 4. Timeout: 7200 seconds (2 hours)
@@ -129,8 +131,8 @@ Discharge at 50% of rated max capacity using percentage mode, reverting to 0% af
 
 ```python
 # Sequential Write Sequence:
-model704.WSetMod = 1              # 1. Configure mode: 1 = percentage mode
-model704.WSetPct = 50             # 2. Setpoint: 50% of rated capacity
+model704.WSetMod = 0              # 1. Configure mode: 0 = W_MAX_PCT (percent)
+model704.WSetPct = 500            # 2. Setpoint: 50 % (raw 500 at WSetPct_SF = -1)
 model704.WSetPctRvrt = 0          # 3. Reversion value: Revert to 0%
 model704.WSetRvrtTms = 3600       # 4. Timeout: 3600 seconds (1 hour)
 model704.WSetEnaRvrt = 1          # 5. Enable reversion safety
@@ -174,7 +176,7 @@ Charge the battery from the grid during off-peak hours (midnight to 6am at 3kW),
 
 #### 1. Off-Peak Charge Step (Midnight)
 ```python
-model704.WSetMod = 0
+model704.WSetMod = 1              # WATTS
 model704.WSet = -3000             # -3000W charge from grid
 model704.WSetRvrtTms = 21600      # 21600 seconds (6 hours)
 model704.WSetEnaRvrt = 1          # Revert to 0W after off-peak ends
@@ -183,7 +185,7 @@ model704.WSetEna = 1              # Enable
 
 #### 2. Peak Discharge Step (4:00 PM)
 ```python
-model704.WSetMod = 0
+model704.WSetMod = 1              # WATTS
 model704.WSet = 5000              # 5000W discharge to home/grid
 model704.WSetRvrtTms = 18000      # 18000 seconds (5 hours)
 model704.WSetEnaRvrt = 1          # Revert to 0W after peak ends
@@ -207,7 +209,7 @@ model704.WMaxLimPctEna = 1        # Enable the limit
 Stop all battery discharge to preserve capacity for a forecasted grid outage or severe weather emergency.
 
 ```python
-model704.WSetMod = 0
+model704.WSetMod = 1              # WATTS
 model704.WSet = 0                 # Force 0W discharge flow
 model704.WSetRvrtTms = 86400      # Hold for 24 hours (86400 seconds)
 model704.WSetEnaRvrt = 1          # Revert to standard mode after 24h
@@ -226,7 +228,7 @@ model704.WSetEna = 1              # Enable Remote Hold
 | **`WMaxLimPctRvrt`** | `312` | `uint16` | `-2` / `-1` | `0` to `100` (%) | Reversion value for curtailment. |
 | **`WMaxLimPctRvrtTms`**| `314` (32-bit) | `uint32` | — | `0` to `86400` (s) | Reversion timeout duration in seconds. |
 | **`WSetEna`** | `318` | `enum16` | — | `0` = Disabled, `1` = Enabled | Enable remote active power dispatch (VPP). |
-| **`WSetMod`** | `319` | `enum16` | — | `0` = Watts, `1` = Percent | Active power mode. |
+| **`WSetMod`** | `319` | `enum16` | — | `0` = W_MAX_PCT (percent), `1` = WATTS | Active power mode (DER Information Model v1.2). |
 | **`WSet`** | `320` (32-bit) | `int32` | `0` | `-10000` to `10000` (W) | Target active power setpoint (Watts mode). |
 | **`WSetPct`** | `324` | `int16` | `-2` / `-1` | `-100` to `100` (%) | Target active power setpoint (Percent mode). |
 | **`WSetEnaRvrt`** | `328` | `enum16` | — | `0` = Disabled, `1` = Enabled | Enable reversion for dispatch. |

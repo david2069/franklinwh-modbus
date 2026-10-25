@@ -48,7 +48,7 @@ The aGate exposes **17** models in the SunSpec block (starting at address 40000)
 ### Model 704: DER Control AC (SunSpec 700-series)
 *Crucial for Remote Control operations.*
 - **WSetEna**: Control Enable (0=Local, 1=Remote)
-- **WSetMod**: Control Mode (0=Watts, 1=Percentage)
+- **WSetMod**: Control Mode (0 = W_MAX_PCT percent, 1 = WATTS; DER Information Model v1.2)
 - **WSetPct**: Discharge/Charge rate in %
 - **WSetRvrtTms**: **NOW FUNCTIONAL** (Confirmed 2026-05-14). Countdown active.
 
