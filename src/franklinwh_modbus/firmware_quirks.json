@@ -769,6 +769,114 @@
         }
       ],
       "library_handling": {}
+    },
+    "ext_15013_battery_power": {
+      "point": "Extension register 15013 (int16, W)",
+      "description": "Battery power at about 1 W resolution; M714 DCW gives 100 W steps.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "-4998 while DCW read -5000 (charging 5 kW); +500 while DCW read +500 (discharging). Negative = charging, as DCW.",
+          "status": "reported",
+          "date": "2026-10-21",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#345"
+          ],
+          "note": "Bridge grades it unconfirmed, one site. An earlier bridge note (#124) said the charging sign was not established."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
+    },
+    "ext_15016_status": {
+      "point": "Extension register 15016 (uint16)",
+      "description": "Status code; meaning unmapped.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "6 with a WSet dispatch active; 2 on-grid otherwise",
+          "status": "reported",
+          "date": "2026-10-09",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36"
+          ],
+          "note": "Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        },
+        {
+          "firmware": "V10R01B04D00",
+          "value": "3 during an owner-requested off-grid test (2 -> 3 at disconnect, 3 -> 2 at reconnect)",
+          "status": "reported",
+          "date": "2026-10-15",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36",
+            "david2069/franklinwh-modbus-bridge#76"
+          ],
+          "note": "Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "1 during two ~2-minute episodes after the aGate was unreachable; no grid disconnect recorded, so 'off-grid' is not established",
+          "status": "reported",
+          "date": "2026-10-21",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36",
+            "david2069/franklinwh-modbus-bridge#345"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
+    },
+    "ext_15035_soc": {
+      "point": "Extension register 15035 (uint16)",
+      "description": "State of charge x10.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "SoC x10 (0-1000)",
+          "status": "reported",
+          "date": "2026-10-14",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#73",
+            "david2069/franklinwh-modbus-bridge#124"
+          ],
+          "note": "Bridge grades it unconfirmed, one site. Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
     }
   }
 }
