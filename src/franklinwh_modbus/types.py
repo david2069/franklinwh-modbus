@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class ControlMode(IntEnum):
     """Model 704 WSetMod values (SunSpec 2 model_704.json).
 
-    send_command() takes watts, so it accepts only WATTS (#114 A2).
+    WATTS sends BatteryCommand.power_watts through WSet; W_MAX_PCT sends
+    BatteryCommand.power_pct through WSetPct. Neither is converted to the
+    other (#114 B1).
     """
     W_MAX_PCT = 0       # WSetPct: percent of WMax
     WATTS = 1           # WSet: watts
@@ -41,9 +43,11 @@ class BatteryCommand:
     """Battery control command.
     
     Attributes:
-        power_watts: Target power in watts
+        power_watts: Target power in watts (mode WATTS)
                      Positive = charge, negative = discharge, 0 = idle
-        mode: WSetMod for the command; send_command() accepts only WATTS
+        mode: WSetMod for the command: WATTS (default) or W_MAX_PCT
+        power_pct: Target power in percent of WMax (mode W_MAX_PCT),
+                   -100 to 100, same sign convention as power_watts
     
     Note:
         power_watts is clamped to [-DEFAULT_MAX_POWER_W, DEFAULT_MAX_POWER_W]
@@ -51,11 +55,19 @@ class BatteryCommand:
         actual device ratings from M702. The device itself performs NO
         input validation (PICS Issue 5).
     """
-    power_watts: float
+    power_watts: float = 0.0
     mode: ControlMode = ControlMode.WATTS
+    power_pct: Optional[float] = None
     
     def __post_init__(self):
         """Validate and clamp power_watts to safe range."""
+        if self.mode == ControlMode.W_MAX_PCT:
+            if self.power_pct is None:
+                raise ValueError("mode W_MAX_PCT needs power_pct")
+            if not -100 <= self.power_pct <= 100:
+                raise ValueError(f"power_pct {self.power_pct} is outside -100..100")
+        elif self.power_pct is not None:
+            raise ValueError("power_pct is only used with mode W_MAX_PCT")
         limit = DEFAULT_MAX_POWER_W
         if abs(self.power_watts) > limit:
             original = self.power_watts
@@ -63,7 +75,8 @@ class BatteryCommand:
             logger.warning(
                 f"BatteryCommand: {original}W exceeds ±{limit}W limit "
                 f"— clamped to {self.power_watts}W. "
-                f"Device has NO input validation (PICS Issue 5)."
+                f"Device has NO input validation (PICS Issue 5). "
+                f"[approved workaround #114 B3: power clamp]"
             )
 
 

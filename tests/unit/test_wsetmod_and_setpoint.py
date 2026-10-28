@@ -2,6 +2,7 @@
 
 A2/A6: ControlMode had four values (LIMIT_ABS 0 ... SET_IMPORT 3); SunSpec 704
 WSetMod has two (0 W_MAX_PCT, 1 WATTS). send_command ignored the mode.
+B1: percent goes to WSetPct, watts to WSet; neither is converted.
 A3: check_state()['actual_power'] was the setpoint, not measured power, and
 battery_activity under Modbus control was taken from the setpoint.
 """
@@ -46,14 +47,74 @@ def ctrl():
     return c
 
 
-def test_percent_mode_refused_without_writes(ctrl, caplog):
+def _send(ctrl, cmd):
     m704 = MagicMock()
     ctrl.models = {704: m704}
+    ctrl._get_scale_factor = lambda model, name: -1 if name == 'WSetPct_SF' else 0
+    with patch('franklinwh_modbus.controller.time.sleep'):
+        return ctrl.send_command(cmd), m704
+
+
+def test_percent_goes_to_wsetpct(ctrl):
+    # #114 B1: percent is sent as WSetPct with WSetMod=0, not converted to watts.
+    # Hardware sign: positive = discharge, so a 10 % discharge is raw +100.
+    (ok, msg), m704 = _send(ctrl, BatteryCommand(mode=ControlMode.W_MAX_PCT, power_pct=-10))
+    assert ok, msg
+    assert m704.WSetMod.value == 0
+    assert m704.WSetPct.value == 100
+    assert not isinstance(m704.WSet.value, int)  # WSet not written
+
+
+def _refused_pct(ctrl, prev_mod):
+    # WSetMod accepted, WSetPct refused with exception 3 (V12, live 2026-10-24)
+    from franklinwh_modbus.controller import ModbusClientException
+    m704 = MagicMock()
+    m704.WSetMod.value = prev_mod
+    m704.WSetEna.value = 0
+    frames = []
+    m704.WSetMod.write.side_effect = lambda: frames.append(('WSetMod', m704.WSetMod.value))
+
+    def refuse():
+        frames.append(('WSetPct', m704.WSetPct.value))
+        raise ModbusClientException('Modbus exception: 3')
+    m704.WSetPct.write.side_effect = refuse
+    ctrl.models = {704: m704}
+    ctrl._get_scale_factor = lambda model, name: -1 if name == 'WSetPct_SF' else 0
+    with patch('franklinwh_modbus.controller.time.sleep'):
+        ok, msg = ctrl.send_command(BatteryCommand(mode=ControlMode.W_MAX_PCT, power_pct=-50))
+    return ok, m704, frames
+
+
+def test_refused_percent_restores_wsetmod(ctrl, caplog):
     with caplog.at_level(logging.WARNING, logger='franklinwh_modbus.controller'):
-        ok, msg = ctrl.send_command(BatteryCommand(power_watts=500, mode=ControlMode.W_MAX_PCT))
-    assert not ok and 'W_MAX_PCT' in msg
-    assert any('Command not sent' in r.getMessage() for r in caplog.records)
-    m704.write.assert_not_called()
+        ok, m704, frames = _refused_pct(ctrl, prev_mod=1)
+    assert not ok
+    assert frames == [('WSetMod', 0), ('WSetPct', 500), ('WSetMod', 1)]
+    m704.WSetEna.write.assert_not_called()
+    assert any('WSetMod restored from 0 to 1' in r.getMessage() for r in caplog.records)
+
+
+def test_refused_percent_no_restore_when_mode_unchanged(ctrl):
+    ok, m704, frames = _refused_pct(ctrl, prev_mod=0)
+    assert not ok
+    assert frames == [('WSetMod', 0), ('WSetPct', 500)]
+
+
+def test_watts_go_to_wset(ctrl):
+    (ok, msg), m704 = _send(ctrl, BatteryCommand(power_watts=-1000))
+    assert ok, msg
+    assert m704.WSetMod.value == 1
+    assert m704.WSet.value == 1000
+    assert not isinstance(m704.WSetPct.value, int)  # WSetPct not written
+
+
+def test_percent_command_validation():
+    with pytest.raises(ValueError):
+        BatteryCommand(mode=ControlMode.W_MAX_PCT)
+    with pytest.raises(ValueError):
+        BatteryCommand(mode=ControlMode.W_MAX_PCT, power_pct=150)
+    with pytest.raises(ValueError):
+        BatteryCommand(power_watts=500, power_pct=10)
 
 
 def _state(ctrl, wset_ena=1, wset_watts=1000, dcw=400):

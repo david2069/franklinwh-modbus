@@ -1179,29 +1179,24 @@ class FranklinWHController:
         """
         Send battery control command.
 
-        FranklinWH Systematic Test Results (2026-02-18):
-        - WSetPct is the ONLY working control register (WSet accepted but ignored)
-        - Positive WSetPct = discharge, Negative = charge
-        - Scale factor WSetPct_SF = -1, so raw 300 = 30.0% of 5kW = 1500W
-        - M715 registers (ControllerHb, OpCtl) reject all writes (LocRemCtl=LOCAL)
-        - M702 rate limits (WChaRteMax etc.) unimplemented (return None)
-        - WSetRvrtTms unimplemented per PICS SM-000028 — no auto-timeout
-        - WMaxLimPctEna/WMaxLimPct PICS says supported, firmware rejects writes
+        Watts go to WSet with WSetMod=1 (DER v1.2 Model 704). They are not
+        converted to WSetPct (#114 B2): V12R02B60D00 refuses WSetPct above
+        10 % and below 0 (#92), and accepts WSet (5000 W discharge, c8).
+        Hardware WSet: positive = discharge, negative = charge (V12 c3/c8),
+        the opposite of the BatteryCommand convention.
         """
         m704 = self.get_model(704)
-        m715 = self.get_model(715)
         if not m704:
             return False, "Model 704 not available"
 
         # Safety clamp against device ratings
         safe_watts = self._validate_power(command.power_watts)
 
-        # Calculate WSetPct: percentage of rated max
-        pct_sf = self._get_scale_factor(m704, 'WSetPct_SF')
-        pct_raw = int((safe_watts / self.RATED_MAX_W) * 100 / (10 ** pct_sf))
+        w_sf = self._get_scale_factor(m704, 'WSet_SF')
+        wset_raw = int(round(-safe_watts / (10 ** w_sf)))
 
         if dry_run:
-            return True, f"Dry Run: WSetPct={pct_raw} ({command.power_watts}W)"
+            return True, f"Dry Run: WSetMod=1, WSet={wset_raw} ({command.power_watts}W)"
 
         # 1. STOP & CLEAR (Pre-flight reset)
         m704.read()
@@ -1209,13 +1204,10 @@ class FranklinWHController:
         m704.write()
         time.sleep(0.3)
 
-        # 2. CONFIGURE — WSetPct is the ONLY working control for FranklinWH
-        # NOTE: Invert sign - hardware WSetPct: positive=discharge, negative=charge
+        # 2. CONFIGURE - watts mode, WSet setpoint
         m704.read()
-        m704.WSetMod.value = 0  # Absolute W mode
-        m704.WSetPct.value = -pct_raw  # INVERTED for hardware convention
-        # NOTE: Do NOT set WSet - it causes mode flickering (Export↔VPP↔Self-Consumption)
-        # WSetPct is the sole working register for FranklinWH control
+        m704.WSetMod.value = 1
+        m704.WSet.value = wset_raw
         m704.write()
         time.sleep(0.3)
 
@@ -1227,10 +1219,12 @@ class FranklinWHController:
 
         # 4. VERIFY
         m704.read()
-        actual_pct = m704.WSetPct.value * (10 ** pct_sf) if m704.WSetPct.value else 0
-        logger.info(f"Command sent: WSetPct={actual_pct}% (raw={m704.WSetPct.value}), "
-                   f"WSet={m704.WSet.value}, WSetEna={m704.WSetEna.value}")
-        return True, f"Command Sent: {command.power_watts}W ({actual_pct}% of {self.RATED_MAX_W}W)"
+        got = (m704.WSetEna.value, m704.WSetMod.value, m704.WSet.value)
+        logger.info(f"Command sent: WSetEna={got[0]}, WSetMod={got[1]}, WSet={got[2]}")
+        if got != (1, 1, wset_raw):
+            return False, (f"Command not applied: read back WSetEna={got[0]}, "
+                           f"WSetMod={got[1]}, WSet={got[2]} (expected 1, 1, {wset_raw})")
+        return True, f"Command Sent: {command.power_watts}W (WSet={wset_raw})"
 
 
 # ============================================================
@@ -1989,7 +1983,9 @@ class VirtualModeController:
         wset_pct_value = control.get('wset_pct', 0)  # Already scaled
         rated_max = getattr(self.ctrl, 'RATED_MAX_W', 5000)
         
-        if wset_ena == 1:
+        if wset_ena == 1 and control.get('wset_mode') == 1:
+            actual_power = battery_power  # WSet watts (send_command uses WSet, #114 B2)
+        elif wset_ena == 1:
             # Calculate power from percentage (WSetPct is the actual control)
             actual_power = wset_pct_value / 100.0 * rated_max
         else:
@@ -2570,7 +2566,10 @@ def check_startup_state(ctrl, requested_mode: str = None, args=None) -> dict:
         
         # Calculate actual power
         rated_max = getattr(ctrl, 'RATED_MAX_W', 5000)
-        actual_power = (wset_pct / 100.0 * rated_max) if wset_ena == 1 else 0
+        if wset_ena == 1 and ctl.get('wset_mode') == 1:
+            actual_power = ctl.get('wset_watts', 0) or 0  # WSet watts (#114 B2)
+        else:
+            actual_power = (wset_pct / 100.0 * rated_max) if wset_ena == 1 else 0
         result['current_state']['actual_power'] = actual_power
         
         # Determine battery activity

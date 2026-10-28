@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+from franklinwh_modbus import ControlMode
 from franklinwh_modbus import FranklinWHController, VirtualModeController, VirtualMode
 
 class TestNativeExtensions:
@@ -218,12 +219,13 @@ class TestNativeExtensions:
             success, msg = mock_controller.dispatch('charge', power='40%')
             assert success
             cmd = mock_send.call_args[0][0]
-            assert cmd.power_watts == 2000.0  # 40% of 5000W
+            # Sent as a percent (WSetPct), not converted to watts (#114 B1)
+            assert cmd.mode == ControlMode.W_MAX_PCT and cmd.power_pct == 40.0
 
         with patch.object(mock_controller, 'send_command') as mock_send:
             mock_send.return_value = (True, "Command Sent")
             success, msg = mock_controller.dispatch('discharge', power='60%')
             assert success
             cmd = mock_send.call_args[0][0]
-            assert cmd.power_watts == -3000.0  # 60% of 5000W
+            assert cmd.mode == ControlMode.W_MAX_PCT and cmd.power_pct == -60.0
 

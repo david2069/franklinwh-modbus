@@ -198,7 +198,7 @@ ctrl.reset_control_state()   # release control: WSetEna=0, verified by reading i
 High-level alternative with durations and percentages:
 
 ```python
-ctrl.dispatch('discharge', '40%', duration='30m')           # 40% of the rating, for 30 minutes
+ctrl.dispatch('discharge', '40%', duration='30m')           # 40 %, sent as WSetPct (percent), for 30 minutes
 ctrl.dispatch('charge', 'max', target_soc=90, blocking=True)
 ctrl.dispatch('stop')
 ```
