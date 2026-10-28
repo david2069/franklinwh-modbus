@@ -156,8 +156,9 @@
       "observations": [
         {"firmware": "V10R01B04D00", "value": "8, equal to 15508, in Self-Consumption", "status": "measured", "date": "2026-10-18", "site_count": 1,
          "refs": ["david2069/franklinwh-modbus#63"], "note": "Read in one mode only, so SC reserve and active reserve can't be told apart."},
-        {"firmware": "V12R02B60D00", "value": "active reserve: 8 in Self-Consumption, 15 in Time of Use", "status": "measured", "date": "2026-10-22", "site_count": 1,
-         "refs": ["david2069/franklinwh-modbus#63"]}
+        {"firmware": "V12R02B60D00", "value": "active reserve: 8 in Self-Consumption, 15 in Time of Use, 100 in Emergency Backup", "status": "measured", "date": "2026-10-28", "site_count": 1,
+         "refs": ["david2069/franklinwh-modbus#63"],
+         "note": "SC/TOU read 2026-10-22, EB read 2026-10-28. Whether the EB reserve is ever other than 100 is not verified."}
       ],
       "library_handling": {}
     },
