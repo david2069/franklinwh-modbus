@@ -36,9 +36,9 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 
 | Value | Mode | Evidence |
 |---|---|---|
-| 1 | Emergency Backup | Measured on V12R02B60D00 with the app in that mode (2026-10-22) |
+| 1 | Emergency Backup | Measured on V12R02B60D00 with the app in that mode (2026-10-21; again 2026-10-28) |
 | 2 | Self-Consumption | Measured on V12R02B60D00 (2026-10-21) |
-| 3 | TOU | Measured on V12R02B60D00 (2026-10-22) |
+| 3 | TOU | Measured on V12R02B60D00 (2026-10-21) |
 
 No other value has been read from 15507. This matches the library, the 2026-05-14 device scan and the first QUIRKS table. Earlier docs and code also listed **0 = Emergency** and **4 = Manual**, and one QUIRKS revision had 1 = TOU and 3 = Manual. Those were added without a source and have been removed (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping holds for reading only.
 
