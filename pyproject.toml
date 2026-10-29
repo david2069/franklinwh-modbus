@@ -41,3 +41,6 @@ Changelog = "https://github.com/david2069/franklinwh-modbus/blob/develop/CHANGEL
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+franklinwh_modbus = ["firmware_quirks.json"]

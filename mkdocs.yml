@@ -89,6 +89,7 @@ nav:
   - Hardware & Standards:
     - SunSpec Interop Guide: SUNSPEC_700_INTEROP_GUIDE.md
     - SunSpec Quirks: FRANKLINWH_SUNSPEC_QUIRKS.md
+    - Firmware Quirks Record: FIRMWARE_QUIRKS.md
     - PICS Conformance: PICS_CONFORMANCE_CROSS_REFERENCE.md
     - FranklinWH Extension Registers: FRANKLINWH_MODBUS_EXTENSIONS.md
     - Extensions Manifest (raw scans): FRANKLINWH_EXTENSIONS_MANIFEST.md
