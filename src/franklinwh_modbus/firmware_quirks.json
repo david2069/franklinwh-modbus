@@ -375,7 +375,7 @@
             "david2069/franklinwh-modbus#63",
             "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
           ],
-          "note": "SC/TOU read 2026-10-21/22; EB read 2026-10-22 and again 2026-10-28. Whether the EB reserve is ever other than 100 is not verified."
+          "note": "SC, TOU and EB read 2026-10-21 AEDT (#63); EB read again 2026-10-28 with the same result. Whether the EB reserve is ever other than 100 is not verified."
         }
       ],
       "library_handling": {}
@@ -404,9 +404,9 @@
         },
         {
           "firmware": "V12R02B60D00",
-          "value": "20 in Self-Consumption and Time of Use",
+          "value": "20 in Self-Consumption, Time of Use and Emergency Backup",
           "status": "measured",
-          "date": "2026-10-22",
+          "date": "2026-10-21",
           "site_count": 1,
           "refs": [
             "david2069/franklinwh-modbus#63"
@@ -584,7 +584,7 @@
           "firmware": "V12R02B60D00",
           "value": "1 = Emergency Backup, 2 = Self-Consumption, 3 = TOU; no other value read",
           "status": "measured",
-          "date": "2026-10-22",
+          "date": "2026-10-21",
           "site_count": 1,
           "refs": [
             "david2069/franklinwh-modbus#75",
@@ -623,7 +623,7 @@
           "firmware": "V12R02B60D00",
           "value": "Self-Consumption reserve (8) in Self-Consumption, TOU and Emergency Backup",
           "status": "measured",
-          "date": "2026-10-22",
+          "date": "2026-10-21",
           "site_count": 1,
           "refs": [
             "david2069/franklinwh-modbus#63"
