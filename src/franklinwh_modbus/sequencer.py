@@ -7,8 +7,9 @@ import logging
 import time
 import re
 import struct
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Callable, Dict, List, Any, Optional, Tuple
 from .constants import EXTENSION_REGISTRY
+from . import write_trace as _wt
 
 try:
     from sunspec2.modbus.modbus import ModbusClientError, ModbusClientException, ModbusClientTimeout
@@ -54,7 +55,8 @@ class TransitionValidationError(Exception):
 class SunSpecSequencer:
     """Orchestrates multi-step SunSpec operations."""
     
-    def __init__(self, device: Any, base_address: int = 0):
+    def __init__(self, device: Any, base_address: int = 0,
+                 write_trace: Optional[Callable[['_wt.WriteRecord'], None]] = None):
         """
         Initialize with a sunspec2 device object.
         
@@ -62,8 +64,12 @@ class SunSpecSequencer:
             device: An instance of SunSpecModbusClientDeviceTCP (or similar)
                    that has already been scanned.
             base_address: The starting Modbus address used for scanning.
+            write_trace: Optional callback for every raw write (#124). Model
+                   writes are recorded by the controller that owns the device.
         """
         self.device = device
+        self.write_trace = write_trace
+        self.write_source: Optional[str] = None
         self.base_address = base_address
         self.verbose = False
         self.last_raw_error: Optional[int] = None
@@ -95,8 +101,15 @@ class SunSpecSequencer:
         else:
             req = struct.pack('>HHHBBHH', 0, 0, 6, unit_id, 6, addr, int(raw_val))
             func = 6
-        sock.sendall(req)
-        resp = sock.recv(256)
+        values = _wt.regs_from_bytes(req[13:] if func == 16 else req[10:12])
+        try:
+            sock.sendall(req)
+            resp = sock.recv(256)
+        except Exception as e:
+            _wt.emit(self.write_trace, addr, func, values, False, error=str(e), source=self.write_source)
+            raise
+        ok, code, err = _wt.reply_from_response(resp, func)
+        _wt.emit(self.write_trace, addr, func, values, ok, code, err, source=self.write_source)
         if len(resp) < 12 or resp[7] != func:
             code = resp[8] if len(resp) >= 9 and resp[7] == (func | 0x80) else None
             logger.error(f"  ✗ Raw write to {addr} failed (Response: {resp.hex()})")

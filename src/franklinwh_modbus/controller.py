@@ -10,8 +10,9 @@ import time
 import struct
 import threading
 import warnings
-from typing import Dict, Any, Optional, Tuple, List, Union
+from typing import Callable, Dict, Any, Optional, Tuple, List, Union
 
+from . import write_trace as _wt
 from .types import BatteryCommand, ControlMode, HealthStatus, ONGRID_MODES
 from .constants import DISCLAIMER, get_pics_enum_desc
 
@@ -114,6 +115,7 @@ class FranklinWHController:
         auto_release_orphan: bool = False,  # Release orphaned VPP on connect
         max_charge_w: Optional[float] = None,
         max_discharge_w: Optional[float] = None,
+        write_trace: Optional[Callable[['_wt.WriteRecord'], None]] = None,
     ):
         if not SUNSPEC_AVAILABLE:
             raise ImportError("sunspec2 package is required. Install with: pip install sunspec2")
@@ -135,6 +137,11 @@ class FranklinWHController:
         self.models: dict = {}
         # The last write that raised, so a refusal can be logged with its frame (#114 A4)
         self._failed_write: Optional[Tuple[int, bytes]] = None
+        # Opt-in record of every write and the aGate's reply (#124).
+        # write_source is passed through unchanged; the caller decides what it means.
+        self.write_trace = write_trace
+        self.write_source: Optional[str] = None
+        self._point_map: Optional[Dict[int, str]] = None
         
         # I/O health: lets callers tell stale data from an empty read.
         # Read methods return {} on failure; these record why and since when.
@@ -293,9 +300,7 @@ class FranklinWHController:
                 if not sock:
                     return False
                 # Modbus TCP write request
-                req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, addr, value)
-                sock.sendall(req)
-                resp = sock.recv(256)
+                resp = self._fc06(sock, addr, value)
                 return len(resp) >= 12
             except Exception:
                 return False
@@ -515,15 +520,62 @@ class FranklinWHController:
         _log_refusal() name the register and values that were refused.
         """
         dev_write = self.dev.write
+        self._point_map = None
 
         def write(addr, data):
+            func = 6 if len(data) == 2 else 16
             try:
-                return dev_write(addr, data)
-            except Exception:
+                result = dev_write(addr, data)
+            except Exception as e:
                 self._failed_write = (addr, data)
+                code = _wt.exception_code_from(e)
+                self._emit_write(addr, func, _wt.regs_from_bytes(data), False, code,
+                                 None if code is not None else str(e))
                 raise
+            self._emit_write(addr, func, _wt.regs_from_bytes(data), True)
+            return result
 
         self.dev.write = write
+
+    def _point_name(self, addr: int) -> Optional[str]:
+        """'<model>.<point>' for a PDU address, from the scanned models; None if unknown."""
+        if self._point_map is None:
+            pmap = {}
+            for mid, models in (self.models or {}).items():
+                if not isinstance(mid, int):
+                    continue
+                for m in (models if isinstance(models, list) else [models]):
+                    base = getattr(m, 'model_addr', None)
+                    if base is None:
+                        continue
+                    for name, pt in getattr(m, 'points', {}).items():
+                        pmap.setdefault(base + pt.offset, f"{mid}.{name}")
+            self._point_map = pmap
+        return self._point_map.get(addr)
+
+    def _emit_write(self, addr: int, func: int, values, ok: bool,
+                    exception_code: Optional[int] = None, error: Optional[str] = None):
+        """Pass one write to the write_trace hook and the DEBUG writes log (#124)."""
+        try:
+            fw = self._firmware_suffix()[len(', firmware '):] or None
+            point = self._point_name(addr)
+        except Exception:
+            fw, point = None, None
+        _wt.emit(self.write_trace, addr, func, values, ok, exception_code, error,
+                 point, fw, self.write_source)
+
+    def _fc06(self, sock, addr: int, value: int) -> bytes:
+        """Raw FC06 write of one register; recorded for write_trace. Returns the response."""
+        req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, addr, value)
+        try:
+            sock.sendall(req)
+            resp = sock.recv(256)
+        except Exception as e:
+            self._emit_write(addr, 6, [value], False, error=str(e))
+            raise
+        ok, code, err = _wt.reply_from_response(resp, 6)
+        self._emit_write(addr, 6, [value], ok, code, err)
+        return resp
 
     def _firmware_suffix(self) -> str:
         """', firmware <Vr>' for log lines, or '' when M1 hasn't been read."""
@@ -1156,9 +1208,7 @@ class FranklinWHController:
             
             # Modbus TCP write request (FC06)
             # transaction_id(2), protocol(2), length(2), unit(1), function(1), addr(2), value(2)
-            req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, self.EXT_ONGRID_MODE, mode)
-            sock.sendall(req)
-            resp = sock.recv(256)
+            resp = self._fc06(sock, self.EXT_ONGRID_MODE, mode)
             
             if len(resp) >= 9:
                 fc = resp[7]
@@ -1228,9 +1278,7 @@ class FranklinWHController:
                 return False, "No active Modbus TCP connection"
                 
             # Modbus TCP write request (FC06)
-            req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, self.EXT_SELF_RESERVE, pct)
-            sock.sendall(req)
-            resp = sock.recv(256)
+            resp = self._fc06(sock, self.EXT_SELF_RESERVE, pct)
             
             if len(resp) >= 9:
                 fc = resp[7]
@@ -1297,9 +1345,7 @@ class FranklinWHController:
                 return False, "No active Modbus TCP connection"
                 
             # Modbus TCP write request (FC06)
-            req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, self.EXT_TOU_RESERVE, pct)
-            sock.sendall(req)
-            resp = sock.recv(256)
+            resp = self._fc06(sock, self.EXT_TOU_RESERVE, pct)
             
             if len(resp) >= 9:
                 fc = resp[7]
@@ -2317,18 +2363,14 @@ class FranklinWHController:
                 return False, "No active Modbus TCP connection"
             
             # Write 1 to AlarmReset (PDU address 1094)
-            req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, 1094, 1)
-            sock.sendall(req)
-            resp = sock.recv(256)
+            resp = self._fc06(sock, 1094, 1)
             if len(resp) < 12:
                 return False, "AlarmReset write failed (short response)"
             
             time.sleep(0.5)
             
             # Write 0 to clear reset bit
-            req = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 6, 1094, 0)
-            sock.sendall(req)
-            resp = sock.recv(256)
+            resp = self._fc06(sock, 1094, 0)
             
             logger.info("Alarm reset command sent (wrote 1 then 0 to reg 1094)")
             return True, "Alarm reset command sent"
