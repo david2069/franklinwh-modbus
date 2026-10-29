@@ -5,7 +5,7 @@ how the controller talks to the aGate.
 """
 import json
 from importlib import resources
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 ACTIONABLE = ('documented', 'measured')
 
@@ -21,8 +21,11 @@ def load_firmware_quirks() -> Dict[str, Any]:
     return _cache
 
 
-def quirks_for(firmware: Optional[str], actionable_only: bool = False) -> Optional[Dict[str, Dict[str, Any]]]:
+def quirks_for(firmware: Optional[str], actionable_only: bool = False) -> Optional[Dict[str, List[Dict[str, Any]]]]:
     """Observations for one firmware (M1 ``Vr``), keyed by behaviour id.
+
+    Each value is a list of every observation for that firmware, in file order;
+    a behaviour can have more than one (e.g. different dates or conditions).
 
     Returns None for an unknown or empty firmware: unknown is not "no quirks".
     With ``actionable_only``, only 'documented' and 'measured' observations.
@@ -34,6 +37,6 @@ def quirks_for(firmware: Optional[str], actionable_only: bool = False) -> Option
     for bid, b in load_firmware_quirks()['behaviours'].items():
         for obs in b['observations']:
             if obs['firmware'] == vr and (not actionable_only or obs['status'] in ACTIONABLE):
-                out[bid] = obs
+                out.setdefault(bid, []).append(obs)
     known = {o['firmware'] for b in load_firmware_quirks()['behaviours'].values() for o in b['observations']}
     return out if vr in known else None

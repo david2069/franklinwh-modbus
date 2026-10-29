@@ -50,7 +50,9 @@ def test_public_only():
 
 def test_quirks_for():
     v12 = quirks_for('V12R02B60D00')
-    assert v12['m704_wset_sign']['value'] == 'positive = discharge'
+    assert v12['m704_wset_sign'][0]['value'] == 'positive = discharge'
+    # every observation for a firmware is kept, not just the last
+    assert len(quirks_for('V10R01B04D00')['ext_15016_status']) == 2
     assert quirks_for(' V12R02B60D00 ') == v12
     assert quirks_for('V99R00B00D00') is None    # unknown is not "no quirks"
     assert quirks_for('') is None and quirks_for(None) is None
