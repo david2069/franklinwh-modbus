@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-29
+
 ### ⚠️ Breaking changes
 - **Enum descriptions change** (`get_pics_enum_desc` / `get_enum_desc`): 17 `PICS_ENUMS` entries were one higher than SunSpec. For example, `WSetEna` 1 returned DISABLED, and `InvSt` 3 returned STARTING instead of RUNNING. They now follow the SunSpec 2 model JSON (0 DISABLED, 1 ENABLED; `InvSt` 0 OFF … 7 STANDBY). This affects 701 `ACType`, `St`, `InvSt`, `ConnSt`, `DERMode`; 703 `ES`; and the 704 `*Ena` / `*EnaRvrt` points (#114 A1).
 - **`ControlMode` has the two SunSpec `WSetMod` values:** `W_MAX_PCT` (0) and `WATTS` (1). `LIMIT_ABS`, `LIMIT_PCT`, `SET_EXPORT` and `SET_IMPORT` are removed; use `ControlMode.WATTS` where code used `LIMIT_ABS`. `BatteryCommand.mode` defaults to `WATTS`. `send_command` used to ignore the mode; it now sends `WATTS` through `WSet` and `W_MAX_PCT` through `WSetPct` (#114 A2, A6, B1).
@@ -232,7 +234,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...v0.10.0
 [0.9.6]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.5...v0.9.6
