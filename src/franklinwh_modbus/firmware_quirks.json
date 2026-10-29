@@ -1,0 +1,882 @@
+{
+  "schema_version": 1,
+  "about": "Per-firmware record of aGate Modbus behaviour (david2069/franklinwh-modbus#91). Keyed by behaviour id; each behaviour carries one observation per firmware (M1 Vr). Public facts only. Entries are never deleted: a firmware change adds an observation. Code and emulator profiles act only on status 'documented' or 'measured'.",
+  "values": {
+    "status": [
+      "documented",
+      "measured",
+      "reported",
+      "inferred",
+      "speculation"
+    ],
+    "our_assessment": [
+      "defect",
+      "non_compliant",
+      "quirk",
+      "undocumented",
+      "as_specified"
+    ],
+    "vendor_position": [
+      "unknown",
+      "not_reported",
+      "reported",
+      "acknowledged",
+      "intended",
+      "fixed_in:<Vr>",
+      "wont_fix"
+    ]
+  },
+  "behaviours": {
+    "m704_wset_sign": {
+      "point": "M704 WSet (int32, WSet_SF 0, PDU 320-321 at base 0)",
+      "description": "Sign of M704 WSet: which direction a positive value drives the battery.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "FranklinWH documents no sign for WSet; known only by measurement."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "positive = discharge",
+          "status": "measured",
+          "date": "2026-10-23",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#104"
+          ],
+          "note": "c8: WSetMod=1, WSet=+5000 -> M714 DCW +4900 to +5000 W, M701 W about -4710 W, 3 of 3 runs (docs/SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md)."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "0.10.1: send_command negates BatteryCommand.power_watts (positive = charge) into WSet (positive = discharge)."
+      }
+    },
+    "m704_wsetpct_sign": {
+      "point": "M704 WSetPct (int16, WSetPct_SF -1, PDU 324 at base 0)",
+      "description": "Sign of M704 WSetPct: which direction a positive value drives the battery.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "FranklinWH documents no sign for WSetPct; known only by measurement."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "positive = discharge",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#104"
+          ],
+          "note": "c1: WSetPct raw +100 (10.0 %) -> M714 DCW 500 W discharge, 3 of 3 runs."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "send_command negates BatteryCommand.power_pct (positive = charge) into WSetPct (positive = discharge)."
+      }
+    },
+    "m704_wsetpct_accepted_range": {
+      "point": "M704 WSetPct (int16, WSetPct_SF -1, PDU 324 at base 0)",
+      "description": "Raw WSetPct values the aGate accepts on write. Raw values; percent = raw x 10^WSetPct_SF.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "V10R01B04D00 acknowledged out-of-range values instead of exception 3 (SunSpec #12041, docs/NON_COMPLIANCE_ASSESSMENT.md). V12R02B60D00 limit is not documented; FranklinWH PICS SM-000028 gives WSetPct 0-100 and whether that is raw or percent is open (david2069/franklinwh-modbus#92)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 1500 acknowledged (no exception 3)",
+          "status": "measured",
+          "date": "2026-05-14",
+          "site_count": 1,
+          "refs": [
+            "docs/NON_COMPLIANCE_ASSESSMENT.md"
+          ],
+          "note": "Raw 1000 (100 %) delivered about 4.8 kW discharge on 2026-10-20 (reported, david2069/franklinwh-modbus#92)."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0 to +100 accepted (0-10.0 %); above +100 and every negative value refused with exception 3",
+          "status": "measured",
+          "date": "2026-10-24",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#92",
+            "david2069/franklinwh-modbus#104"
+          ],
+          "note": "+101 refused 3 of 3; negatives refused (c5 -50 raw, 3 of 3). WSet positive control accepted in the same runs."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "A refused write is logged with register, value and firmware (#114 A4, unreleased)."
+      }
+    },
+    "m704_wset_negative_refused": {
+      "point": "M704 WSet (int32, WSet_SF 0, PDU 320-321 at base 0)",
+      "description": "Whether a negative WSet (charge, given m704_wset_sign) is accepted on write.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "No documented limit; a refusal is exception 3 (Illegal Data Value)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "refused with exception 3",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#104"
+          ],
+          "note": "c6: WSetMod=1, WSet=-500 W (FC16 0xFFFF 0xFE0C) while WSetEna=0, 3 of 3 runs, SoC 88-90 %. Other magnitudes and a write while enabled not tested."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "0.10.1: a charge command returns the refusal (\"Rejected by the aGate (...)\"), no resend."
+      }
+    },
+    "m702_wmax_write": {
+      "point": "M702 WMax",
+      "description": "Whether a write to M702 WMax changes the WSetPct reference.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Writes acknowledged and not applied."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "acknowledged, WMax stays 0; WSetPct reference stays 5000 W",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#104"
+          ],
+          "note": "c2, 3 of 3 runs: 10 % stays 500 W."
+        }
+      ],
+      "library_handling": {}
+    },
+    "m704_wsetrvrttms_reversion": {
+      "point": "M704 WSetRvrtTms, WSetPctRvrt",
+      "description": "What the aGate does when the WSetRvrtTms reversion timer runs and expires.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "DER Information Model v1.2: on expiry the controller reverts to the reversion values."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "countdown runs; power not reverted at expiry",
+          "status": "measured",
+          "date": "2026-03-13",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "inverted: reversion value applies during the countdown, setpoint after expiry; WSetEna stays 1",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#104",
+            "david2069/franklinwh-modbus#107"
+          ],
+          "note": "c4/c4b, 3 of 3 runs. Countdown starts when WSetRvrtTms is written."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Software timeout (duration_s) instead of WSetRvrtTms."
+      }
+    },
+    "m715_controller_heartbeat": {
+      "point": "M715 ControllerHb (PDU 1092 at base 0)",
+      "description": "Whether ControllerHb writes are kept and DERHb advances.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "Write acknowledged, read back 0."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "write acknowledged, read back 0",
+          "status": "reported",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md"
+          ],
+          "note": "Undated; firmware taken from the QUIRKS test report header."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "write acknowledged, read back 0; DERHb stays 0",
+          "status": "measured",
+          "date": "2026-10-23",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#107"
+          ],
+          "note": "24 FC16 writes; positive control WSetPctRvrt=50 read back."
+        }
+      ],
+      "library_handling": {}
+    },
+    "sunspec_map_at_pdu_40000": {
+      "point": "SunSpec map, PDU 40000+",
+      "description": "Whether the SunSpec map is also served at PDU 40000 (the map starts at PDU 0).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Map base 0 is the documented start; the mirror is not documented."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "detectable_by_read": "read 'SunS' at PDU 40000",
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "not served: PDU 40000+ returned exception 2",
+          "status": "measured",
+          "date": "2026-03-15",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md",
+            "david2069/franklinwh-modbus#84"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "served: full SunSpec map mirrored at PDU 40000",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#84",
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Open: connect()/reconnect() ignore base_address and bind to 40000 on V12 (#84)."
+      }
+    },
+    "pdu_40000_write_response_address": {
+      "point": "Write responses at PDU 40000+",
+      "description": "Address echoed in the response to a write sent to the 40000 mirror.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "Modbus FC06/FC16 responses echo the request address."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "write applied; response echoes the base-0 address (40319 -> 319, 41092 -> 1092)",
+          "status": "measured",
+          "date": "2026-10-23",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#107"
+          ]
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_15509_tou_reserve": {
+      "point": "Extension register 15509 (uint16, %)",
+      "description": "What extension register 15509 (documented as the TOU reserve) reads.",
+      "our_assessment": {
+        "value": "defect",
+        "basis": "V10 returned the 15508 value, not the TOU reserve."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "detectable_by_read": "compare 15509 with 15508 when the app's SC and TOU reserves differ",
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "same as 15508 (SC 8, TOU 15 in the app; 15509 read 8)",
+          "status": "measured",
+          "date": "2026-10-18",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "TOU reserve (read 15, app TOU 15)",
+          "status": "measured",
+          "date": "2026-10-21",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ]
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_16001_reserve": {
+      "point": "Extension register 16001 (uint16, %)",
+      "description": "Which reserve extension register 16001 reads.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented by FranklinWH."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "8, equal to 15508, in Self-Consumption",
+          "status": "measured",
+          "date": "2026-10-18",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ],
+          "note": "Read in one mode only, so SC reserve and active reserve can't be told apart."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "active reserve: 8 in Self-Consumption, 15 in Time of Use, 100 in Emergency Backup",
+          "status": "measured",
+          "date": "2026-10-28",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63",
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ],
+          "note": "SC/TOU read 2026-10-21/22; EB read 2026-10-22 and again 2026-10-28. Whether the EB reserve is ever other than 100 is not verified."
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_16002_value": {
+      "point": "Extension register 16002 (uint16, %)",
+      "description": "What extension register 16002 reads (older docs: mirrors 15509).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented by FranklinWH."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "20, equal to local API BBBackupSoc, not the TOU reserve (15)",
+          "status": "inferred",
+          "date": "2026-10-17",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ],
+          "note": "Match to BBBackupSoc unconfirmed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "20 in Self-Consumption and Time of Use",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ],
+          "note": "Meaning unconfirmed."
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_15507_15509_writes": {
+      "point": "Extension registers 15507-15509",
+      "description": "Effect of writes to the mode and reserve extension registers. FranklinWH has not documented any extension register as writable.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "No documented write mechanism."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "acknowledged, not applied (mode and reserves unchanged)",
+          "status": "measured",
+          "date": "2026-10-23",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#107"
+          ],
+          "note": "Two independent tools; values restored."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Treated as read-only; each write's read-back is reported."
+      }
+    },
+    "m714_dcv_tmp": {
+      "point": "M714 DCV, Tmp (port block)",
+      "description": "Whether M714 DC voltage and battery temperature carry values.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Points present but read 0."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "detectable_by_read": "DCV and Tmp both 0 while DCW is non-zero",
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "listed as working",
+          "status": "reported",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md"
+          ],
+          "note": "Undated."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "read 0 (port block all zero)",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md",
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_15500_15501_pv_installed": {
+      "point": "Extension registers 15500 PVUse, 15501 apBoxPVUse (uint16 flags)",
+      "description": "Flags for proximal (aGate) and remote (aPbox/aHub) PV installed.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15500 = 1, 15501 = 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ],
+          "note": "The V10 baseline recorded 15500-15501 as not actively used."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Read, not returned."
+      }
+    },
+    "ext_15502_15505_pv_power": {
+      "point": "Extension registers 15502 PVOutputP, 15503-15505 (uint16, W)",
+      "description": "PV power: total (15502), proximal (15503), remote 1 and 2 (15504, 15505).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "populated: 15502 = 300 W, 15503 = 300 W, 15504 = 0, 15505 = 0 at the time of the snapshot",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_solar_status()['extension'] pv_total, pv_proximal, pv_remote1, pv_remote2."
+      }
+    },
+    "ext_15506_home_load": {
+      "point": "Extension register 15506 LoadActiveP (uint16, W)",
+      "description": "Home load, in about 100 W steps.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "populated, about 100 W steps",
+          "status": "measured",
+          "date": "2026-03-15",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_MODBUS_EXTENSIONS.md"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "185 W, equal to 16000 at the time of the snapshot",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_solar_status()['extension']['home_load_ext_quantized']; fallback when the 16000 read fails."
+      }
+    },
+    "ext_15507_mode_values": {
+      "point": "Extension register 15507 OnGridMode (uint16 enum)",
+      "description": "Operating mode values read from 15507.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public). Values confirmed only by reading."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "detectable_by_read": "read 15507",
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "1 = Emergency Backup, 2 = Self-Consumption, 3 = TOU; no other value read",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#75",
+            "david2069/franklinwh-modbus#63",
+            "docs/FRANKLINWH_MODBUS_EXTENSIONS.md"
+          ],
+          "note": "Read with the app in each mode. Earlier 0 = Emergency and 4 = Manual had no source and were removed (#75)."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_native_mode()['mode_raw'], ['mode_name']."
+      }
+    },
+    "ext_15508_self_reserve": {
+      "point": "Extension register 15508 SelfReserve (uint16, %)",
+      "description": "What 15508 (Self-Consumption reserve) reads.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "Self-Consumption reserve (8, app SC 8)",
+          "status": "measured",
+          "date": "2026-10-18",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "Self-Consumption reserve (8) in Self-Consumption, TOU and Emergency Backup",
+          "status": "measured",
+          "date": "2026-10-22",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#63"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_native_mode()['self_reserve_pct']."
+      }
+    },
+    "ext_15510_15513_pv_energy": {
+      "point": "Extension registers 15510-15511 PVOutputWh, 15512-15513 proxOutputWh (uint32 high/low, Wh)",
+      "description": "Lifetime PV energy, total and proximal.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Listed on the SPAN tab of FranklinWH's PICS (proprietary, not public)."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "equal to M502 OutWh",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "docs/FRANKLINWH_MODBUS_EXTENSIONS.md"
+          ],
+          "note": "Scan date not recorded."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15510 = 15512 = 15882870 Wh, equal to M502 OutWh",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Read, not returned."
+      }
+    },
+    "ext_16000_home_load_hires": {
+      "point": "Extension register 16000 (uint16, W)",
+      "description": "Home load at about 1 W resolution.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "populated, about 1 W resolution",
+          "status": "measured",
+          "date": "2026-03-15",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_MODBUS_EXTENSIONS.md"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "185 W, equal to 15506 at the time of the snapshot",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_solar_status()['extension']['home_load_ext']; logged on every read as an approved workaround (#114 B4, unreleased)."
+      }
+    },
+    "ext_15000_15043_block": {
+      "point": "Extension registers 15000-15043 (various)",
+      "description": "Undocumented block; several values match SunSpec points.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "populated; 15020 = 13600 (= M713 WHRtg), 15025 matches M701 LNV raw, 15036 matches M713 SoH raw; scan stopped at 15039",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "docs/FRANKLINWH_MODBUS_EXTENSIONS.md"
+          ],
+          "note": "Matching values to SunSpec points is speculation (manifest). Writes accepted but discarded in a probe on 2026-03-08 (firmware not recorded)."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "populated; 15020 = 13600, 15018 = 15019 = 5000, 15035 = 323 with M713 SoC 32.0 %, 15040 = 826, 15043 = 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ],
+          "note": "Meanings are inferred from matching values, except where noted."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by the controller."
+      }
+    },
+    "ext_unpopulated_ranges": {
+      "point": "Extension ranges 15044-15099, 15514-15599, 16003-16099",
+      "description": "Whether these ranges hold data.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "read without exceptions, nothing populated",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+          ],
+          "note": "Swept in 10-register chunks."
+        }
+      ],
+      "library_handling": {}
+    },
+    "ext_15013_battery_power": {
+      "point": "Extension register 15013 (int16, W)",
+      "description": "Battery power at about 1 W resolution; M714 DCW gives 100 W steps.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "-4998 while DCW read -5000 (charging 5 kW); +500 while DCW read +500 (discharging). Negative = charging, as DCW.",
+          "status": "reported",
+          "date": "2026-10-21",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#345"
+          ],
+          "note": "Bridge grades it unconfirmed, one site. An earlier bridge note (#124) said the charging sign was not established."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
+    },
+    "ext_15016_status": {
+      "point": "Extension register 15016 (uint16)",
+      "description": "Status code; meaning unmapped.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "6 with a WSet dispatch active; 2 on-grid otherwise",
+          "status": "reported",
+          "date": "2026-10-09",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36"
+          ],
+          "note": "Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        },
+        {
+          "firmware": "V10R01B04D00",
+          "value": "3 during an owner-requested off-grid test (2 -> 3 at disconnect, 3 -> 2 at reconnect)",
+          "status": "reported",
+          "date": "2026-10-15",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36",
+            "david2069/franklinwh-modbus-bridge#76"
+          ],
+          "note": "Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "1 during two ~2-minute episodes after the aGate was unreachable; no grid disconnect recorded, so 'off-grid' is not established",
+          "status": "reported",
+          "date": "2026-10-21",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#36",
+            "david2069/franklinwh-modbus-bridge#345"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
+    },
+    "ext_15035_soc": {
+      "point": "Extension register 15035 (uint16)",
+      "description": "State of charge x10.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "SoC x10 (0-1000)",
+          "status": "reported",
+          "date": "2026-10-14",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus-bridge#73",
+            "david2069/franklinwh-modbus-bridge#124"
+          ],
+          "note": "Bridge grades it unconfirmed, one site. Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library.",
+        "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
+      }
+    }
+  }
+}
