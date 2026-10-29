@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Percent is sent as percent** (#114 B1). `dispatch(..., '40%')` used to convert the percentage to watts of the rating, without logging it. It now sends `WSetPct` with `WSetMod=0`. `BatteryCommand(mode=ControlMode.W_MAX_PCT, power_pct=N)` is the new percent command, and `send_command` sends it through `WSetPct`. Watts still go through `WSet`; neither is converted to the other. On V12R02B60D00, percent commands above 10 % or below 0 are refused (exception 3, #92), and the refusal is logged. If the `WSetPct` write is refused after `WSetMod` was changed, `WSetMod` is written back to its previous value and that is logged (tested live, 3 runs).
 
 ### Added
-- `firmware_quirks.json`, shipped as package data: a per-firmware record of aGate Modbus behaviour (WSet/WSetPct sign and accepted range, charge refusal, reversion, heartbeat, 40000 mirror, reserve registers), with `quirks_for(firmware)` to read it. Public facts only; the controller does not act on it yet (#91).
+- `firmware_quirks.json`, shipped as package data: a per-firmware record of aGate Modbus behaviour (WSet/WSetPct sign and accepted range, charge refusal, reversion, heartbeat, 40000 mirror, reserve registers), with `quirks_for(firmware)` to read it (behaviour id → list of observations for that firmware). Public facts only; the controller does not act on it yet (#91).
 
 ### Fixed
 - `tools/franklinwh_control_standalone.py` converted watts to `WSetPct`. It now sends watts through `WSet` with `WSetMod=1` and verifies the read-back (#114 B2).

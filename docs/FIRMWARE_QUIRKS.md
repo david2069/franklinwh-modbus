@@ -28,7 +28,8 @@
 from franklinwh_modbus.firmware_quirks import quirks_for
 
 q = quirks_for("V12R02B60D00", actionable_only=True)
-q["m704_wset_sign"]["value"]        # 'positive = discharge'
+q["m704_wset_sign"][0]["value"]     # 'positive = discharge'
+# each behaviour maps to a list: every observation for that firmware
 quirks_for("V99R00B00D00")          # None: unknown firmware
 ```
 
