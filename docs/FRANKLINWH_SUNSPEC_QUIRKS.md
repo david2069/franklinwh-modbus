@@ -45,7 +45,7 @@ else:
 **Issue:** The DCA register in Model 714 returns 0 or is not implemented.
 
 **Standard SunSpec Model 714 Fields:**
-- `DCW` - DC Power (W) ✅ **Working** — positive=charging (into battery), negative=discharging (out of battery)
+- `DCW` - DC Power (W) ✅ **Working** — positive = discharging (out of battery), negative = charging (into battery); V12R02B60D00 c8, 2026-10-23 (#104). An earlier version of this line had the sign reversed (#114 C2).
 - `DCV` - DC Voltage (V): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (port block 1062–1086 all zero, 2026-10-20) 
 - `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
 - `Tmp` - Battery Temperature (°C): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (2026-10-20)
@@ -229,7 +229,7 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | LocRemCtl handoff | Remote (0) enables writes | Always Local (1), read-only; yet M704 writes work | None needed — power writes accepted despite Local | Report as spec deviation |
 | Controller heartbeat | Client writes ControllerHb; DER monitors | ❌ Confirmed non-functional (write accepted, readback=0) | Not implemented — no alternative | Report as defect |
 | Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | V10 (2026-03-13): countdown runs (59→55→52) but power was not reverted at expiry (see "Hardware Reversion is Cosmetic" below). V12R02B60D00: the reverse of the spec — the reversion value applies **during** the countdown, the setpoint after; see [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md) | Software `threading.Timer` via `duration_s` | Report as defect |
-| Reversion enable (WSetEnaRvrt) | Enables reversion behavior | ✅ **WORKS!** Readback=1 after write | N/A | N/A — working correctly |
+| Reversion enable (WSetEnaRvrt) | Enables reversion behavior | Read back 1 after write (V10, undated). A read-back only: it doesn't show that reversion works; see the reversion timer row above | N/A | See the reversion timer row |
 | Battery state (M713.Sta) | Sta is a status (0 OK, 1 WARNING, 2 ERROR), not a battery state | Read 0 (OK) while charging | Battery state derived from M714.DCW ±50W deadband | N/A — not a defect |
 | DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
@@ -484,7 +484,7 @@ XXXXXXXXXXXXXXXXXXXX
 
 Logs: `tests/results/heartbeat/` (local, gitignored).
 
-**Issue:** WSetRvrtTms (327) countdown works (30→0), but **does NOT revert power** at expiry. WSetEna and WSetPct are unchanged 186 seconds post-expiry. The SunSpec dead-man switch is non-functional.
+**Issue (V10R01B04D00, 2026-03):** WSetRvrtTms (327) countdown works (30→0), but **does NOT revert power** at expiry. WSetEna and WSetPct are unchanged 186 seconds post-expiry. The SunSpec dead-man switch is non-functional.
 
 **Evidence:** 186s extended observation, WSetRvrtTms=1 (1s edge case) also non-functional. Corroborated by FranklinWH app ("VPP Mode" persisted), MQTT, and Home Assistant.
 

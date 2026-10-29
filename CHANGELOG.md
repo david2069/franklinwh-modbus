@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `set_native_mode`, `set_self_consumption_reserve` and `set_tou_reserve` now log at WARNING when the aGate refuses the write, when the read-back differs from the value written, or when the read-back fails. For example: `Extension write not applied: register 15508 wrote 20, read back 8, firmware V12R02B60D00`. Before, they only returned the message. No claim is made that these registers can be written (#114 A5).
+
+### Docs
+- QUIRKS: M714 `DCW` sign corrected to positive = discharging; `WSetEnaRvrt` read-back no longer called "works"; the V10 reversion section names its firmware (#114 C2, C3).
+
 ## [0.11.0] - 2026-10-29
 
 ### ⚠️ Breaking changes

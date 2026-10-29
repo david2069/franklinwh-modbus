@@ -525,13 +525,32 @@ class FranklinWHController:
 
         self.dev.write = write
 
-    def _log_refusal(self, e: Exception):
-        """Log a Modbus exception response from the aGate (#114 A4)."""
-        firmware = ''
+    def _firmware_suffix(self) -> str:
+        """', firmware <Vr>' for log lines, or '' when M1 hasn't been read."""
         m1 = self.get_model(1)
         vr = getattr(getattr(m1, 'Vr', None), 'value', None) if m1 else None
-        if vr:
-            firmware = f", firmware {str(vr).strip()}"
+        return f", firmware {str(vr).strip()}" if vr else ''
+
+    def _log_ext_write(self, reg: int, written: int, read_back: Optional[int] = None,
+                       exc_code: Optional[int] = None, resp_len: Optional[int] = None):
+        """Log an extension-register write that was refused or didn't read back (#114 A5).
+
+        Records only what the write did; makes no claim about writability.
+        """
+        fw = self._firmware_suffix()
+        if exc_code is not None:
+            logger.warning(f"Refused by the aGate: write to register {reg} "
+                           f"[0x{written:04X}] -> Modbus exception: {exc_code}{fw}")
+        elif read_back is None:
+            logger.warning(f"Extension write to register {reg} ({written}): "
+                           f"read-back failed (len={resp_len}){fw}")
+        elif read_back != written:
+            logger.warning(f"Extension write not applied: register {reg} "
+                           f"wrote {written}, read back {read_back}{fw}")
+
+    def _log_refusal(self, e: Exception):
+        """Log a Modbus exception response from the aGate (#114 A4)."""
+        firmware = self._firmware_suffix()
         if self._failed_write:
             addr, data = self._failed_write
             regs = struct.unpack(f'>{len(data) // 2}H', data[:len(data) // 2 * 2])
@@ -1147,6 +1166,7 @@ class FranklinWHController:
                     err_code = resp[8]
                     errors = {1: "Illegal Function", 2: "Illegal Data Address", 3: "Illegal Data Value", 4: "Server Failure"}
                     err_msg = errors.get(err_code, f"Unknown error {err_code}")
+                    self._log_ext_write(self.EXT_ONGRID_MODE, mode, exc_code=err_code)
                     return False, f"Modbus Exception: {err_msg} (0x86, {err_code})"
                 
                 if len(resp) >= 12 and fc == 6:
@@ -1163,6 +1183,7 @@ class FranklinWHController:
                     
                     if len(verify_resp) >= 11:
                         actual_val = struct.unpack('>H', verify_resp[9:11])[0]
+                        self._log_ext_write(self.EXT_ONGRID_MODE, mode, read_back=actual_val)
                         if actual_val == mode:
                             logger.info(f"Native mode verified: {mode_name} (index {mode})")
                             return True, f"Native mode changed to {mode_name}"
@@ -1173,6 +1194,8 @@ class FranklinWHController:
                                 "Extension register writes are accepted but not applied "
                                 "on this firmware."
                             )
+                    else:
+                        self._log_ext_write(self.EXT_ONGRID_MODE, mode, resp_len=len(verify_resp))
             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
                 
@@ -1215,6 +1238,7 @@ class FranklinWHController:
                     err_code = resp[8]
                     errors = {1: "Illegal Function", 2: "Illegal Data Address", 3: "Illegal Data Value", 4: "Server Failure"}
                     err_msg = errors.get(err_code, f"Unknown error {err_code}")
+                    self._log_ext_write(self.EXT_SELF_RESERVE, pct, exc_code=err_code)
                     return False, f"Modbus Exception: {err_msg} (0x86, {err_code})"
                     
                 if len(resp) >= 12 and fc == 6:
@@ -1228,6 +1252,7 @@ class FranklinWHController:
                     
                     if len(verify_resp) >= 11:
                         actual_val = struct.unpack('>H', verify_resp[9:11])[0]
+                        self._log_ext_write(self.EXT_SELF_RESERVE, pct, read_back=actual_val)
                         if actual_val == pct:
                             logger.info(f"Self-Consumption reserve verified: {pct}%")
                             return True, f"Self-Consumption reserve changed to {pct}%"
@@ -1238,6 +1263,8 @@ class FranklinWHController:
                                 "Extension register writes are accepted but not applied "
                                 "on this firmware."
                             )
+                    else:
+                        self._log_ext_write(self.EXT_SELF_RESERVE, pct, resp_len=len(verify_resp))
                             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
             
@@ -1280,6 +1307,7 @@ class FranklinWHController:
                     err_code = resp[8]
                     errors = {1: "Illegal Function", 2: "Illegal Data Address", 3: "Illegal Data Value", 4: "Server Failure"}
                     err_msg = errors.get(err_code, f"Unknown error {err_code}")
+                    self._log_ext_write(self.EXT_TOU_RESERVE, pct, exc_code=err_code)
                     return False, f"Modbus Exception: {err_msg} (0x86, {err_code})"
                     
                 if len(resp) >= 12 and fc == 6:
@@ -1293,6 +1321,7 @@ class FranklinWHController:
                     
                     if len(verify_resp) >= 11:
                         actual_val = struct.unpack('>H', verify_resp[9:11])[0]
+                        self._log_ext_write(self.EXT_TOU_RESERVE, pct, read_back=actual_val)
                         if actual_val == pct:
                             logger.info(f"TOU reserve verified: {pct}%")
                             return True, f"TOU reserve changed to {pct}%"
@@ -1303,6 +1332,8 @@ class FranklinWHController:
                                 "Extension register writes are accepted but not applied "
                                 "on this firmware."
                             )
+                    else:
+                        self._log_ext_write(self.EXT_TOU_RESERVE, pct, resp_len=len(verify_resp))
                             
             return False, f"Invalid or short response from aGate (len={len(resp)})"
             
