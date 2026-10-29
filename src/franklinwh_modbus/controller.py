@@ -962,7 +962,9 @@ class FranklinWHController:
             tou_reserve = regs[9] if len(regs) > 9 else 0
             
             # Read high-res home load from undocumented register 16000 (~1W precision)
+            # [approved workaround #114 B4: 16000 instead of 15506]
             home_load = home_load_quantized  # fallback
+            source = 15506
             try:
                 req2 = struct.pack('>HHHBBHH', 0, 0, 6, self.unit_id, 3, self.EXT_HOME_LOAD_HIRES, 1)
                 sock.sendall(req2)
@@ -971,8 +973,12 @@ class FranklinWHController:
                     hires = struct.unpack('>H', resp2[9:11])[0]
                     if hires > 0 or home_load_quantized == 0:
                         home_load = hires  # Use high-res value
-            except Exception:
-                pass  # Fall back to quantized value
+                        source = 16000
+            except Exception as e:
+                logger.warning(f"Home load: 16000 read failed ({e}); using 15506 "
+                               f"[approved workaround #114 B4: 16000 instead of 15506]")
+            logger.info(f"Home load {home_load}W from {source} (15506 read {home_load_quantized}W) "
+                        f"[approved workaround #114 B4: 16000 instead of 15506]")
             
             individual_sum = pv_proximal + pv_remote1 + pv_remote2
             if pv_total > 0 and abs(pv_total - individual_sum) < 100:
@@ -1518,7 +1524,8 @@ class FranklinWHController:
 
         m702 = self.get_model(702)
         if not m702:
-            logger.warning("Model 702 not found; using default 5000W ratings")
+            logger.warning("Model 702 not found; using default 5000W ratings "
+                           "[approved workaround #114 B3: rating fallback]")
             return
         try:
             m702.read()
@@ -1527,6 +1534,9 @@ class FranklinWHController:
             def read_rating(attr, default):
                 pt = getattr(m702, attr, None)
                 if pt is None or pt.value is None or pt.value == 0:
+                    raw = None if pt is None else pt.value
+                    logger.warning(f"M702 {attr} reads {raw}; using {default}W "
+                                   f"[approved workaround #114 B3: rating fallback]")
                     return default
                 return int(pt.value * (10 ** sf))
             
@@ -1543,7 +1553,8 @@ class FranklinWHController:
             
             logger.debug(f"Device ratings: Max={self.RATED_MAX_W}W, Charge={self.RATED_MAX_CHARGE_W}W, Discharge={self.RATED_MAX_DISCHARGE_W}W")
         except Exception as e:
-            logger.warning(f"Failed to read M702 ratings: {e}; using defaults")
+            logger.warning(f"Failed to read M702 ratings: {e}; using defaults "
+                           f"[approved workaround #114 B3: rating fallback]")
 
     def load_capability_schema(self) -> dict:
         """Load the modbus capability schema JSON."""
@@ -1576,7 +1587,8 @@ class FranklinWHController:
         if abs(power_watts) > limit:
             clamped = limit if is_charge else -limit  # keep the requested direction
             logger.warning(f"SAFETY CLAMP: {power_watts}W exceeds {'charge' if is_charge else 'discharge'} "
-                          f"limit {limit}W — clamped to {clamped}W")
+                          f"limit {limit}W — clamped to {clamped}W "
+                          f"[approved workaround #114 B3: power clamp]")
             return clamped
         return power_watts
     
@@ -1629,43 +1641,59 @@ class FranklinWHController:
                 and release from your own watchdog under your own lock.
             dry_run: If True, report what would happen without writing
         """
-        if command.mode != ControlMode.WATTS:
-            # Watts are never sent as a percentage (#114 A2/A6).
-            msg = (f"Command not sent: send_command takes watts (mode WATTS); "
-                   f"got mode {ControlMode(command.mode).name}")
-            logger.warning(msg)
-            return False, msg
+        percent = command.mode == ControlMode.W_MAX_PCT
 
         def _do_send():
             m704 = self.get_model(704)
             if not m704:
                 raise ConnectionError("Model 704 not available")
             
-            safe_watts = self._validate_power(command.power_watts)
-            
-            # Watts go to WSet with WSetMod=1 (Active Power as Watts, DER v1.2 704).
-            # V12R02B60D00 refuses WSetPct above 10 % (exception 3), so the old
-            # watts -> WSetPct conversion could not dispatch more than 500 W.
-            # Hardware WSet: positive = discharge, negative = charge (V12 c3/c8),
+            # Watts go to WSet with WSetMod=1; percent goes to WSetPct with
+            # WSetMod=0 (DER v1.2 704). Neither is converted to the other
+            # (#114 B1). V12R02B60D00 refuses WSetPct above 10 % and below 0
+            # (exception 3, #92).
+            # Hardware sign: positive = discharge, negative = charge (V12 c3/c8),
             # the opposite of the BatteryCommand convention.
-            w_sf = self._get_scale_factor(m704, 'WSet_SF')
-            wset_raw = int(round(-safe_watts / (10 ** w_sf)))
+            if percent:
+                sf = self._get_scale_factor(m704, 'WSetPct_SF')
+                mod, point, raw = 0, 'WSetPct', int(round(-command.power_pct / (10 ** sf)))
+                requested = f"{command.power_pct}%"
+            else:
+                safe_watts = self._validate_power(command.power_watts)
+                sf = self._get_scale_factor(m704, 'WSet_SF')
+                mod, point, raw = 1, 'WSet', int(round(-safe_watts / (10 ** sf)))
+                requested = f"{command.power_watts}W"
             
             if dry_run:
-                return True, f"Dry Run: WSetMod=1, WSet={wset_raw} ({command.power_watts}W)"
+                return True, f"Dry Run: WSetMod={mod}, {point}={raw} ({requested})"
             
             # Cancel any existing timer before sending new command
             self.cancel_command_timer()
             
-            # 1. SETPOINT - WSetMod and WSet are contiguous (319-321), so this is
-            # one FC16; a refusal rejects both. No WSetEna=0 first: DER v1.2 §3.3
-            # says the enable need not be rewritten, and V12 applies changes
-            # while enabled (c1, c3).
+            # 1. SETPOINT - WSetMod and WSet are contiguous (319-321), so the
+            # watts route is one FC16; a refusal rejects both. WSetPct (324) is
+            # not contiguous with WSetMod, so the percent route is two frames.
+            # No WSetEna=0 first: DER v1.2 §3.3 says the enable need not be
+            # rewritten, and V12 applies changes while enabled (c1, c3).
             m704.read()
             was_enabled = m704.WSetEna.value == 1
-            m704.WSetMod.value = 1
-            m704.WSet.value = wset_raw
-            m704.write()
+            prev_mod = m704.WSetMod.value
+            m704.WSetMod.value = mod
+            getattr(m704, point).value = raw
+            if percent:
+                # Two frames: if WSetPct is refused after WSetMod was accepted,
+                # put WSetMod back so a refused command changes nothing (#114).
+                m704.WSetMod.write()
+                try:
+                    m704.WSetPct.write()
+                except Exception:
+                    if prev_mod != mod:
+                        m704.WSetMod.value = prev_mod
+                        m704.WSetMod.write()
+                        logger.warning(f"WSetPct={raw} refused: WSetMod restored from {mod} to {prev_mod}")
+                    raise
+            else:
+                m704.write()
             
             # 2. ENABLE only if not already enabled
             if not was_enabled:
@@ -1676,16 +1704,17 @@ class FranklinWHController:
             
             # 3. VERIFY - the device must read back what was written
             m704.read()
-            got = (m704.WSetEna.value, m704.WSetMod.value, m704.WSet.value)
-            if got != (1, 1, wset_raw):
+            got = (m704.WSetEna.value, m704.WSetMod.value, getattr(m704, point).value)
+            if got != (1, mod, raw):
                 return False, (f"Command not applied: read back WSetEna={got[0]}, "
-                               f"WSetMod={got[1]}, WSet={got[2]} (expected 1, 1, {wset_raw})")
-            logger.debug(f"Command sent: WSetMod=1, WSet={wset_raw}, WSetEna=1")
+                               f"WSetMod={got[1]}, {point}={got[2]} (expected 1, {mod}, {raw})")
+            logger.debug(f"Command sent: WSetMod={mod}, {point}={raw}, WSetEna=1")
             
             # 5. START SOFTWARE TIMEOUT if requested
             if duration_s and duration_s > 0:
                 def _on_timeout():
-                    logger.warning(f"Software timeout ({duration_s}s) expired — resetting control")
+                    logger.warning(f"Software timeout ({duration_s}s) expired — resetting control "
+                                   f"[approved workaround #114 B3: software timeout]")
                     try:
                         self.reset_control_state()
                     except Exception as e:
@@ -1695,10 +1724,11 @@ class FranklinWHController:
                     self._command_timer = threading.Timer(duration_s, _on_timeout)
                     self._command_timer.daemon = True  # Don't block exit
                     self._command_timer.start()
-                logger.info(f"Software timeout set: {duration_s}s")
-                return True, f"Command Sent: {command.power_watts}W (WSet={wset_raw}) [timeout: {duration_s}s]"
+                logger.info(f"Software timeout set: {duration_s}s "
+                            f"[approved workaround #114 B3: software timeout]")
+                return True, f"Command Sent: {requested} ({point}={raw}) [timeout: {duration_s}s]"
             
-            return True, f"Command Sent: {command.power_watts}W (WSet={wset_raw})"
+            return True, f"Command Sent: {requested} ({point}={raw})"
         
         try:
             return self._with_retry(_do_send, max_retries=2)
@@ -1897,8 +1927,10 @@ class FranklinWHController:
             except Exception as e:
                 return False, f"Failed to parse duration: {e}"
                 
-        # 3. Resolve Power Level
+        # 3. Resolve Power Level. "N%" is sent as a percent (WSetPct), never
+        # converted to watts (#114 B1). "max" is the rated maximum in watts.
         resolved_power = 0.0
+        resolved_pct = None
         if action in ('charge', 'discharge'):
             if power is None:
                 raise ValueError(f"Power parameter is required for action '{action}'")
@@ -1912,13 +1944,9 @@ class FranklinWHController:
                         else:
                             resolved_power = self.RATED_MAX_DISCHARGE_W
                     elif power_str.endswith('%'):
-                        pct = float(power_str[:-1]) / 100.0
-                        if pct < 0 or pct > 1.0:
+                        resolved_pct = float(power_str[:-1])
+                        if resolved_pct < 0 or resolved_pct > 100:
                             raise ValueError("Power percentage must be between 0% and 100%")
-                        if action == 'charge':
-                            resolved_power = pct * self.RATED_MAX_CHARGE_W
-                        else:
-                            resolved_power = pct * self.RATED_MAX_DISCHARGE_W
                     else:
                         resolved_power = float(power_str)
                 else:
@@ -1930,14 +1958,22 @@ class FranklinWHController:
             resolved_power = abs(resolved_power)
             if action == 'discharge':
                 resolved_power = -resolved_power
+                if resolved_pct is not None:
+                    resolved_pct = -resolved_pct
                 
         # 4. Construct Command
-        cmd = BatteryCommand(power_watts=resolved_power, mode=ControlMode.WATTS)
+        if resolved_pct is not None:
+            cmd = BatteryCommand(mode=ControlMode.W_MAX_PCT, power_pct=resolved_pct)
+            resolved_power = resolved_pct  # only its sign is used below
+            amount = f"{abs(resolved_pct)}%"
+        else:
+            cmd = BatteryCommand(power_watts=resolved_power, mode=ControlMode.WATTS)
+            amount = f"{abs(resolved_power)}W"
         
         # 5. Handle Target SOC Check and Loops (if Blocking is requested)
         if blocking:
             if dry_run:
-                msg = f"Dry Run: Would start blocking loop for {action} at {abs(resolved_power)}W"
+                msg = f"Dry Run: Would start blocking loop for {action} at {amount}"
                 if target_soc is not None:
                     msg += f" targeting {target_soc}%"
                 if duration_s is not None:
@@ -2056,7 +2092,8 @@ class FranklinWHController:
             
             # Standby Handshake: If remote control is active, force 0W and wait for handoff
             if m704.WSetEna.value == 1 and handshake_wait_s > 0:
-                logger.info(f"Performing standby handshake: forcing 0W and waiting {handshake_wait_s}s...")
+                logger.info(f"Performing standby handshake: forcing 0W and waiting {handshake_wait_s}s... "
+                            f"[approved workaround #114 B3: standby handshake]")
                 m704.WSetPct.value = 0
                 m704.WSet.value = 0
                 m704.write()
