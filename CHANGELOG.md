@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-30
+
 ### Added
 - Opt-in write trace: `FranklinWHController(..., write_trace=callback)` gets one `WriteRecord` for every Modbus write the library sends. Each record has the register, function code, raw values, the aGate's reply (OK, the exception code, or an error), the point name, the firmware and a caller-set `write_source`. It covers model writes, the extension setters, `clear_alarms` and `SunSpecSequencer` raw writes. The same records go to the `franklinwh_modbus.writes` logger at DEBUG (#124).
 
@@ -243,7 +245,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.9.6...v0.10.0
