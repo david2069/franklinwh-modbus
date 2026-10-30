@@ -8,6 +8,8 @@ This document records the discovered proprietary Modbus registers outside the Su
 
 ## 1. Discovered Correlation Table
 
+> **Superseded** by the [SunSpec Point Reference](SUNSPEC_POINT_REFERENCE.md) and [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md) (#127). Kept as a historical record.
+
 Several proprietary registers map directly to standard SunSpec Info Points. This correlation suggests FranklinWH uses this internal memory space to mirror or aggregate data for their own cloud/UI services.
 
 | Proprietary Addr | FranklinWH Name | SunSpec M | Map | Units | SF | Notes |

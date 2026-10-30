@@ -89,6 +89,7 @@ nav:
   - Hardware & Standards:
     - SunSpec Interop Guide: SUNSPEC_700_INTEROP_GUIDE.md
     - SunSpec Quirks: FRANKLINWH_SUNSPEC_QUIRKS.md
+    - SunSpec Point Reference: SUNSPEC_POINT_REFERENCE.md
     - Approved Workarounds: APPROVED_WORKAROUNDS.md
     - Firmware Quirks Record: FIRMWARE_QUIRKS.md
     - PICS Conformance: PICS_CONFORMANCE_CROSS_REFERENCE.md
