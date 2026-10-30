@@ -32,6 +32,7 @@ from .types import (
 from .schedule import TOUSchedule, DEFAULT_SCHEDULE
 
 from .controller import FranklinWHController
+from .write_trace import WriteRecord
 
 from .modes import VirtualModeController, run_with_signal_handling
 
@@ -59,6 +60,7 @@ __all__ = [
     'DEFAULT_SCHEDULE',
     # Controller
     'FranklinWHController',
+    'WriteRecord',
     # Modes
     'VirtualModeController',
     'run_with_signal_handling',

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Opt-in write trace: `FranklinWHController(..., write_trace=callback)` gets one `WriteRecord` for every Modbus write the library sends. Each record has the register, function code, raw values, the aGate's reply (OK, the exception code, or an error), the point name, the firmware and a caller-set `write_source`. It covers model writes, the extension setters, `clear_alarms` and `SunSpecSequencer` raw writes. The same records go to the `franklinwh_modbus.writes` logger at DEBUG (#124).
+
 ### Fixed
 - `set_native_mode`, `set_self_consumption_reserve` and `set_tou_reserve` now log at WARNING when the aGate refuses the write, when the read-back differs from the value written, or when the read-back fails. For example: `Extension write not applied: register 15508 wrote 20, read back 8, firmware V12R02B60D00`. Before, they only returned the message. No claim is made that these registers can be written (#114 A5).
 

@@ -207,6 +207,37 @@ ctrl.dispatch('stop')
 - **Release control yourself.** The aGate's own revert timer (`WSetRvrtTms`) counts down but doesn't release. `duration_s` and `--revert` run a software timer on a background thread, **without your lock** (#54). If you share the controller across threads, release from your own watchdog instead.
 - **Releasing control on exit:** in 0.10.0, stopping a virtual mode could skip the release (#71). Upgrade to the release that fixes #71, or call `reset_control_state()` yourself.
 
+### 5.1 Recording every write
+
+Pass `write_trace` to get one `WriteRecord` for every Modbus write the library sends, with the aGate's reply. It covers model writes (`send_command`, `reset_control_state`, …), the extension setters and `clear_alarms`. It is off by default.
+
+```python
+from franklinwh_modbus import FranklinWHController, WriteRecord
+
+writes: list[WriteRecord] = []
+ctrl = FranklinWHController("192.0.2.110", unit_id=1, write_trace=writes.append)
+ctrl.write_source = "schedule:evening"   # passed through unchanged; you decide what it means
+
+for w in writes:
+    print(w.describe())
+# e.g. for a refused percent write:
+# Modbus write FC06 40324 704.WSetPct [0xFF9C] -> exception 3, firmware V12R02B60D00, source schedule:evening
+```
+
+| Field | Meaning |
+|---|---|
+| `timestamp` | Epoch seconds (UTC) |
+| `address`, `function` | PDU address; 6 for one register, 16 for several |
+| `values` | Raw uint16 register values as sent |
+| `ok` | True only for a normal write response |
+| `exception_code` | The Modbus exception code when the aGate refuses, e.g. 3 |
+| `error` | Any other failure: short response, socket error |
+| `point` | `'<model>.<point>'` when the address is a scanned SunSpec point, else `None` |
+| `firmware` | M1 `Vr` when known |
+| `source` | `ctrl.write_source` at the time of the write |
+
+A callback that raises is logged and never affects the write. Without a callback, the same records go to the `franklinwh_modbus.writes` logger at DEBUG. Storing, showing and exporting them is up to your application. `SunSpecSequencer(..., write_trace=...)` records the sequencer's raw writes the same way.
+
 ---
 
 ## 6. Virtual modes ⚠️

@@ -866,7 +866,7 @@ def main():
         if args.brief:
             logging.getLogger("franklinwh_modbus.sequencer").setLevel(logging.WARNING)
             
-        sequencer = SunSpecSequencer(ctrl.dev, base_address=args.base_address)
+        sequencer = SunSpecSequencer(ctrl.dev, base_address=args.base_address, write_trace=ctrl.write_trace)
         sequencer.verbose = args.verbose
         
         try:
