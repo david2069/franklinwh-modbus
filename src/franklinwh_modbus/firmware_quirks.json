@@ -341,7 +341,8 @@
           ]
         }
       ],
-      "library_handling": {}
+      "library_handling": {},
+      "mapped": true
     },
     "ext_16001_reserve": {
       "point": "Extension register 16001 (uint16, %)",
@@ -378,7 +379,8 @@
           "note": "SC, TOU and EB read 2026-10-21 AEDT (#63); EB read again 2026-10-28 with the same result. Whether the EB reserve is ever other than 100 is not verified."
         }
       ],
-      "library_handling": {}
+      "library_handling": {},
+      "mapped": true
     },
     "ext_16002_value": {
       "point": "Extension register 16002 (uint16, %)",
@@ -414,7 +416,8 @@
           "note": "Meaning unconfirmed."
         }
       ],
-      "library_handling": {}
+      "library_handling": {},
+      "mapped": false
     },
     "ext_15507_15509_writes": {
       "point": "Extension registers 15507-15509",
@@ -441,7 +444,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "Treated as read-only; each write's read-back is reported."
-      }
+      },
+      "mapped": true
     },
     "m714_dcv_tmp": {
       "point": "M714 Prt.1.DCV (1073, uint16, DCV_SF), Prt.1.Tmp (1083, int16, Tmp_SF)",
@@ -576,7 +580,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "Read, not returned."
-      }
+      },
+      "mapped": true
     },
     "ext_15502_15505_pv_power": {
       "point": "Extension registers 15502 PVOutputP, 15503-15505 (uint16, W)",
@@ -602,7 +607,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "read_solar_status()['extension'] pv_total, pv_proximal, pv_remote1, pv_remote2."
-      }
+      },
+      "mapped": true
     },
     "ext_15506_home_load": {
       "point": "Extension register 15506 LoadActiveP (uint16, W)",
@@ -638,7 +644,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "read_solar_status()['extension']['home_load_ext_quantized']; fallback when the 16000 read fails."
-      }
+      },
+      "mapped": true
     },
     "ext_15507_mode_values": {
       "point": "Extension register 15507 OnGridMode (uint16 enum)",
@@ -668,7 +675,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "read_native_mode()['mode_raw'], ['mode_name']."
-      }
+      },
+      "mapped": true
     },
     "ext_15508_self_reserve": {
       "point": "Extension register 15508 SelfReserve (uint16, %)",
@@ -704,7 +712,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "read_native_mode()['self_reserve_pct']."
-      }
+      },
+      "mapped": true
     },
     "ext_15510_15513_pv_energy": {
       "point": "Extension registers 15510-15511 PVOutputWh, 15512-15513 proxOutputWh (uint32 high/low, Wh)",
@@ -741,7 +750,8 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "Read, not returned."
-      }
+      },
+      "mapped": true
     },
     "ext_16000_home_load_hires": {
       "point": "Extension register 16000 (uint16, W)",
@@ -777,11 +787,12 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "read_solar_status()['extension']['home_load_ext']; logged on every read as an approved workaround (#114 B4, unreleased)."
-      }
+      },
+      "mapped": true
     },
     "ext_15000_15043_block": {
       "point": "Extension registers 15000-15043 (various)",
-      "description": "Undocumented block; several values match SunSpec points.",
+      "description": "Undocumented block. Each register has its own entry (ext_15000 ... ext_15043; 15013, 15016 and 15035 use their earlier ids).",
       "our_assessment": {
         "value": "undocumented",
         "basis": "Not documented publicly by FranklinWH."
@@ -815,6 +826,2054 @@
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by the controller."
+      },
+      "mapped": false
+    },
+    "ext_15000": {
+      "point": "Extension register 15000 (uint16 raw)",
+      "description": "Meaning unknown: 1 on V12, 0 on V10.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15001": {
+      "point": "Extension register 15001 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15002": {
+      "point": "Extension register 15002 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15003": {
+      "point": "Extension register 15003 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): PV power, equal to 15502 (800 = 800 on 2026-10-20; 200 = 200 on 2026-10-31).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 800",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 200",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15004": {
+      "point": "Extension register 15004 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15005": {
+      "point": "Extension register 15005 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15006": {
+      "point": "Extension register 15006 (uint16 raw)",
+      "description": "Meaning unknown: high word of a signed pair with 15007 (65535 on V12).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15007": {
+      "point": "Extension register 15007 (uint16 raw)",
+      "description": "Meaning unknown: low word of a signed pair with 15006 (-161 on 2026-10-20, -233 on 2026-10-31).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 257",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65375",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65303",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15008": {
+      "point": "Extension register 15008 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15009": {
+      "point": "Extension register 15009 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15010": {
+      "point": "Extension register 15010 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15011": {
+      "point": "Extension register 15011 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): home load, equal to 15506 and 16000 on 2026-10-20 (195); 198 vs 189/190 on 2026-10-31 (separate reads).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 583",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 195",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 198",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15012": {
+      "point": "Extension register 15012 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): high word of a signed 32-bit battery power with 15013: -629 vs M714 DCW -600 on 2026-10-20.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15014": {
+      "point": "Extension register 15014 (uint16 raw)",
+      "description": "Meaning unknown: high word of a signed pair with 15015 (65535 on V12).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15015": {
+      "point": "Extension register 15015 (uint16 raw)",
+      "description": "Meaning unknown: low word of a signed pair with 15014 (-25 on 2026-10-20, -24 on 2026-10-31).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 61",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65511",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65512",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15017": {
+      "point": "Extension register 15017 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): same value as 16002 (20) on every read.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 20",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 20",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 20",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15018": {
+      "point": "Extension register 15018 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): M702 WChaRteMaxRtg (5000 on V12); 65535 on V10.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 5000",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 5000",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15019": {
+      "point": "Extension register 15019 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): M702 WDisChaRteMaxRtg (5000 on V12); 65535 on V10.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 65535",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 5000",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 5000",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15020": {
+      "point": "Extension register 15020 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): M713 WHRtg (13600 on every read).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 13600",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 13600",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 13600",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15021": {
+      "point": "Extension register 15021 (uint16 raw)",
+      "description": "Meaning unknown: 1 on every read.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 1",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15022": {
+      "point": "Extension register 15022 (uint16 raw)",
+      "description": "Meaning unknown: varies (5581 on V10; 65533, 65475 on V12).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 5581",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65533",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65475",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15023": {
+      "point": "Extension register 15023 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15024": {
+      "point": "Extension register 15024 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): grid frequency x 1000 (49969, 50010, 50030).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 49969",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 50010",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 50030",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15025": {
+      "point": "Extension register 15025 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): grid voltage x 10, near M701 LNV (2422 vs 2423 on 2026-10-20).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 2380",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 2422",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 2416",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15026": {
+      "point": "Extension register 15026 (uint16 raw)",
+      "description": "Meaning unknown: 1 on every read.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 1",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15027": {
+      "point": "Extension register 15027 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15028": {
+      "point": "Extension register 15028 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15029": {
+      "point": "Extension register 15029 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): high word of M701 TotWhInj as uint32 with 15030 (5964768 = 5964768 on 2026-10-20).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 70",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 91",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 94",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15030": {
+      "point": "Extension register 15030 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): low word of M701 TotWhInj as uint32 with 15029.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 30761",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 993",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 18367",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15031": {
+      "point": "Extension register 15031 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15032": {
+      "point": "Extension register 15032 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15033": {
+      "point": "Extension register 15033 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): high word of M701 TotWhAbs as uint32 with 15034 (1918874 = 1918874 on 2026-10-20).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 22",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 29",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 29",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15034": {
+      "point": "Extension register 15034 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): low word of M701 TotWhAbs as uint32 with 15033.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 22637",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 18330",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 19910",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15036": {
+      "point": "Extension register 15036 (uint16 raw)",
+      "description": "Candidate (inferred, not measured): M713 SoH raw (948 = 948 on 2026-10-20).",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 956",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 948",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 948",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15037": {
+      "point": "Extension register 15037 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15038": {
+      "point": "Extension register 15038 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15039": {
+      "point": "Extension register 15039 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15040": {
+      "point": "Extension register 15040 (uint16 raw)",
+      "description": "Meaning unknown: 65527 on V10, 826 on V12.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 65527",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 826",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15041": {
+      "point": "Extension register 15041 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15042": {
+      "point": "Extension register 15042 (uint16 raw)",
+      "description": "Meaning unknown; read 0 on every capture.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 0",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 0",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
+      }
+    },
+    "ext_15043": {
+      "point": "Extension register 15043 (uint16 raw)",
+      "description": "Meaning unknown: 1 on every read.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Not documented publicly by FranklinWH; one site's readings."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "mapped": false,
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 1",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read by this library."
       }
     },
     "ext_unpopulated_ranges": {
@@ -840,7 +2899,8 @@
           "note": "Swept in 10-register chunks."
         }
       ],
-      "library_handling": {}
+      "library_handling": {},
+      "mapped": false
     },
     "ext_15013_battery_power": {
       "point": "Extension register 15013 (int16, W)",
@@ -863,12 +2923,47 @@
             "david2069/franklinwh-modbus-bridge#345"
           ],
           "note": "Bridge grades it unconfirmed, one site. An earlier bridge note (#124) said the charging sign was not established."
+        },
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 60538",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 64907",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 65507",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
         }
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by this library.",
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
-      }
+      },
+      "mapped": false
     },
     "ext_15016_status": {
       "point": "Extension register 15016 (uint16)",
@@ -914,12 +3009,47 @@
             "david2069/franklinwh-modbus-bridge#36",
             "david2069/franklinwh-modbus-bridge#345"
           ]
+        },
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 2",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 2",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 2",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
         }
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by this library.",
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
-      }
+      },
+      "mapped": false
     },
     "ext_15035_soc": {
       "point": "Extension register 15035 (uint16)",
@@ -943,12 +3073,47 @@
             "david2069/franklinwh-modbus-bridge#124"
           ],
           "note": "Bridge grades it unconfirmed, one site. Firmware inferred from the site's timeline in this file (V10 through 2026-10-18, V12 from 2026-10-20)."
+        },
+        {
+          "firmware": "V10R01B04D00",
+          "value": "raw 268",
+          "status": "measured",
+          "site_count": 1,
+          "refs": [
+            "docs/FRANKLINWH_EXTENSIONS_MANIFEST.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Undated scan (manifest added 2026-05-15); scanned with --nz, so 0 means not listed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 325",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "raw 994",
+          "status": "measured",
+          "date": "2026-10-31",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Owner read; 15000-15039 in one request."
         }
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by this library.",
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
-      }
+      },
+      "mapped": false
     }
   }
 }

@@ -28,9 +28,62 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 16000 | — | R | uint16, W (~1 W) | Home load, high resolution | `…['home_load_ext']` (falls back to 15506) | Undocumented; measured 2026-03-15 |
 | 16001 | — | R | uint16, % | **Reserve for the active mode:** 100 in Emergency Backup, 15508's value in Self-Consumption (8), 15509's in TOU (15) | — | Undocumented; measured on V12R02B60D00, one read per mode, 2026-10-21/22 (#63) |
 | 16002 | — | R | uint16 | 20 in both Self-Consumption and TOU on the reference site; matches the local API's `BBBackupSoc` | — | Undocumented; **meaning unconfirmed** (#63) |
-| 15000–15043 | — | R | various | Mirrors of SunSpec values (e.g. 15020 = M713 `WHRtg`, 15036 = M713 `SoH` raw, 15025 ≈ M701 `LNV`, 15024 ≈ grid frequency) | — | Undocumented; measured. Writes accepted but discarded (probe 2026-03-08) |
+| 15000–15043 | — | R | uint16 raw; some pairs look like 32-bit values | Undocumented. Several match SunSpec values; see [register by register](#1500015043-register-by-register) | — | Undocumented; raw values measured; meanings inferred. Writes accepted but discarded (probe 2026-03-08) |
 
 `…` = `read_solar_status()['extension']`. The raw scans behind the measured rows are in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md) (V10R01B04D00) and the [V12R02B60D00 snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md).
+
+### 15000–15043, register by register
+
+Raw uint16 values from one site (#132). V10R01B04D00: the undated scan in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md). V12R02B60D00: the 2026-10-20 re-scan and an owner read on 2026-10-31 (15000–15039 only). **Candidates are inferred from equal or near values in the same capture, not measured meanings**; none is used by the library. Each register has an entry in `firmware_quirks.json` (`ext_15000` … `ext_15043`; 15013, 15016 and 15035 keep their earlier ids), all with `mapped: false`.
+
+| PDU | V10 | V12 10-20 | V12 10-31 | Meaning |
+|---|---|---|---|---|
+| 15000 | 0 | 1 | 1 | Meaning unknown: 1 on V12, 0 on V10. |
+| 15001 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15002 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15003 | 0 | 800 | 200 | Candidate: PV power, equal to 15502 (800 = 800 on 2026-10-20; 200 = 200 on 2026-10-31). |
+| 15004 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15005 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15006 | 0 | 65535 | 65535 | Meaning unknown: high word of a signed pair with 15007 (65535 on V12). |
+| 15007 | 257 | 65375 | 65303 | Meaning unknown: low word of a signed pair with 15006 (-161 on 2026-10-20, -233 on 2026-10-31). |
+| 15008 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15009 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15010 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15011 | 583 | 195 | 198 | Candidate: home load, equal to 15506 and 16000 on 2026-10-20 (195); 198 vs 189/190 on 2026-10-31 (separate reads). |
+| 15012 | 65535 | 65535 | 65535 | Candidate: high word of a signed 32-bit battery power with 15013: -629 vs M714 DCW -600 on 2026-10-20. |
+| 15013 | 60538 | 64907 | 65507 | Candidate: low word of a signed 32-bit battery power with 15012 (−629 vs M714 DCW −600, 2026-10-20); bridge #345 saw −4998 at DCW −5000 |
+| 15014 | 0 | 65535 | 65535 | Meaning unknown: high word of a signed pair with 15015 (65535 on V12). |
+| 15015 | 61 | 65511 | 65512 | Meaning unknown: low word of a signed pair with 15014 (-25 on 2026-10-20, -24 on 2026-10-31). |
+| 15016 | 2 | 2 | 2 | Candidate: status code. 2 on-grid on every read; 6 during a WSet dispatch, 3 off-grid (V10, bridge reports) |
+| 15017 | 20 | 20 | 20 | Candidate: same value as 16002 (20) on every read. |
+| 15018 | 65535 | 5000 | 5000 | Candidate: M702 WChaRteMaxRtg (5000 on V12); 65535 on V10. |
+| 15019 | 65535 | 5000 | 5000 | Candidate: M702 WDisChaRteMaxRtg (5000 on V12); 65535 on V10. |
+| 15020 | 13600 | 13600 | 13600 | Candidate: M713 WHRtg (13600 on every read). |
+| 15021 | 1 | 1 | 1 | Meaning unknown: 1 on every read. |
+| 15022 | 5581 | 65533 | 65475 | Meaning unknown: varies (5581 on V10; 65533, 65475 on V12). |
+| 15023 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15024 | 49969 | 50010 | 50030 | Candidate: grid frequency x 1000 (49969, 50010, 50030). |
+| 15025 | 2380 | 2422 | 2416 | Candidate: grid voltage x 10, near M701 LNV (2422 vs 2423 on 2026-10-20). |
+| 15026 | 1 | 1 | 1 | Meaning unknown: 1 on every read. |
+| 15027 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15028 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15029 | 70 | 91 | 94 | Candidate: high word of M701 TotWhInj as uint32 with 15030 (5964768 = 5964768 on 2026-10-20). |
+| 15030 | 30761 | 993 | 18367 | Candidate: low word of M701 TotWhInj as uint32 with 15029. |
+| 15031 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15032 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15033 | 22 | 29 | 29 | Candidate: high word of M701 TotWhAbs as uint32 with 15034 (1918874 = 1918874 on 2026-10-20). |
+| 15034 | 22637 | 18330 | 19910 | Candidate: low word of M701 TotWhAbs as uint32 with 15033. |
+| 15035 | 268 | 325 | 994 | Candidate: SoC × 10 (325 vs M713 SoC 33.0 %, 2026-10-20) |
+| 15036 | 956 | 948 | 948 | Candidate: M713 SoH raw (948 = 948 on 2026-10-20). |
+| 15037 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15038 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15039 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
+| 15040 | 65527 | 826 | — | Meaning unknown: 65527 on V10, 826 on V12. |
+| 15041 | 0 | 0 | — | Meaning unknown; read 0 on every capture. |
+| 15042 | 0 | 0 | — | Meaning unknown; read 0 on every capture. |
+| 15043 | 1 | 1 | — | Meaning unknown: 1 on every read. |
+
+The 15000–15043 rows become measured only after a read-only correlation run (all three blocks and the SunSpec chain in one pass, charging, discharging and idle, 3 runs each; #132).
 
 ### 15507 operating mode values
 
