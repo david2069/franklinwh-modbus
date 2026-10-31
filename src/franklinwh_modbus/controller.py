@@ -688,6 +688,12 @@ class FranklinWHController:
                 logger.warning(f"Corrupt scale factor {sf_name}={val}, using 0")
         return 0
     
+    @staticmethod
+    def _m714_total_dcw(m714, sf_w: int) -> float:
+        """Total battery DC power from the M714 model-level DCW (0 if not reported)."""
+        dcw = getattr(getattr(m714, 'DCW', None), 'value', None)
+        return dcw * (10 ** sf_w) if dcw is not None else 0
+
     def read_battery_status(self) -> dict:
         """Read current battery status from Model 713 and 714.
         
@@ -695,7 +701,13 @@ class FranklinWHController:
             soc, soh, wh_rating, wh_available (from M713)
             status_raw: M713.Sta raw value (SunSpec 2: 0 OK, 1 WARNING, 2 ERROR; not a battery state)
             battery_state: Derived from M714 DCW power direction (CHARGING/DISCHARGING/IDLE)
-            battery_power_w, battery_current_a, battery_temp_c (from M714)
+            battery_power_w (model DCW), battery_current_a, battery_temp_c (from M714)
+            individual_batteries: one entry per M714 port (Prt group) with
+                power_w, voltage_v, current_a, temp_c
+            A value the aGate doesn't report is None, not 0: SunSpec's
+            not-implemented value, or a port whose DCV reads 0 (V12R02B60D00
+            returns 0 for the whole port block, #129). battery_current_a is model
+            DCA, else DCW / mean port voltage, else None (#130).
             partial: list of models that failed to read (e.g. ['714']); present
                 only when some data is missing. Their keys are left out.
         """
@@ -730,14 +742,7 @@ class FranklinWHController:
                     sf_v = self._get_scale_factor(m714, 'DCV_SF')
                     sf_tmp = self._get_scale_factor(m714, 'Tmp_SF')
                     
-                    blocks = m714.blocks[1:] if hasattr(m714, 'blocks') and len(m714.blocks) > 1 else [m714]
-                    
-                    # Aggregate values across repeating blocks (ports/batteries)
-                    total_dc_power = sum(
-                        block.DCW.value * (10 ** sf_w)
-                        for block in blocks
-                        if hasattr(block, 'DCW') and block.DCW.value is not None
-                    )
+                    total_dc_power = self._m714_total_dcw(m714, sf_w)
                     result['battery_power_w'] = total_dc_power
                     
                     # Derive battery state from total DC power direction (±50W deadband)
@@ -749,49 +754,47 @@ class FranklinWHController:
                     else:
                         result['battery_state'] = 'Idle'
                     
-                    # DC current (read or calculate from P/V)
-                    has_dca = any(
-                        hasattr(block, 'DCA') and block.DCA.value is not None and block.DCA.value != 0
-                        for block in blocks
-                    )
+                    # Per-port values come from the M714 Prt repeating group (#130).
+                    # Unreported values are None, not 0: pysunspec2 gives None for
+                    # SunSpec's not-implemented value, and a port whose DCV is 0 is
+                    # not populated (V12R02B60D00 returns plain 0 for the whole
+                    # port block while model DCW is non-zero, #129).
+                    def scaled(point, sf):
+                        v = getattr(point, 'value', None)
+                        return None if v is None else v * (10 ** sf)
                     
-                    if has_dca:
-                        total_current = sum(
-                            block.DCA.value * (10 ** sf_a)
-                            for block in blocks
-                            if hasattr(block, 'DCA') and block.DCA.value is not None
-                        )
-                    else:
-                        # Workaround: average DCV across active blocks and divide total power by it
-                        voltages = [
-                            block.DCV.value * (10 ** sf_v)
-                            for block in blocks
-                            if hasattr(block, 'DCV') and block.DCV.value is not None and block.DCV.value > 0
-                        ]
-                        avg_voltage = sum(voltages) / len(voltages) if voltages else 0
-                        total_current = round(total_dc_power / avg_voltage, 2) if avg_voltage > 0 else 0
-                        
-                    result['battery_current_a'] = total_current
-                    
-                    # Battery temperature from M714 (take peak temperature across all ports)
-                    temps = [
-                        block.Tmp.value * (10 ** sf_tmp)
-                        for block in blocks
-                        if hasattr(block, 'Tmp') and block.Tmp.value is not None
-                    ]
-                    result['battery_temp_c'] = round(max(temps), 1) if temps else 0
-                    
-                    # Expose granular per-battery telemetry
-                    result['individual_batteries'] = [
-                        {
+                    batteries = []
+                    for idx, port in enumerate(getattr(m714, 'Prt', None) or []):
+                        voltage = scaled(getattr(port, 'DCV', None), sf_v)
+                        populated = voltage is not None and voltage > 0
+                        power = scaled(getattr(port, 'DCW', None), sf_w) if populated else None
+                        current = scaled(getattr(port, 'DCA', None), sf_a) if populated else None
+                        if populated and not current and power is not None:
+                            current = round(power / voltage, 2)   # DCA not populated: I = P / V
+                        temp = scaled(getattr(port, 'Tmp', None), sf_tmp) if populated else None
+                        batteries.append({
                             'port': idx + 1,
-                            'power_w': block.DCW.value * (10 ** sf_w) if hasattr(block, 'DCW') and block.DCW.value is not None else 0,
-                            'voltage_v': block.DCV.value * (10 ** sf_v) if hasattr(block, 'DCV') and block.DCV.value is not None else 0,
-                            'current_a': block.DCA.value * (10 ** sf_a) if hasattr(block, 'DCA') and block.DCA.value is not None else 0,
-                            'temp_c': round(block.Tmp.value * (10 ** sf_tmp), 1) if hasattr(block, 'Tmp') and block.Tmp.value is not None else 0
-                        }
-                        for idx, block in enumerate(blocks)
-                    ]
+                            'power_w': power,
+                            'voltage_v': voltage if populated else None,
+                            'current_a': current,
+                            'temp_c': round(temp, 1) if temp is not None else None,
+                        })
+                    result['individual_batteries'] = batteries
+                    
+                    # DC current: model DCA when non-zero; otherwise model DCW over
+                    # the mean voltage of populated ports; otherwise not reported.
+                    model_dca = scaled(getattr(m714, 'DCA', None), sf_a)
+                    voltages = [b['voltage_v'] for b in batteries if b['voltage_v']]
+                    if model_dca:
+                        result['battery_current_a'] = model_dca
+                    elif voltages:
+                        result['battery_current_a'] = round(total_dc_power / (sum(voltages) / len(voltages)), 2)
+                    else:
+                        result['battery_current_a'] = None
+                    
+                    # Battery temperature: the hottest populated port, else not reported
+                    temps = [b['temp_c'] for b in batteries if b['temp_c'] is not None]
+                    result['battery_temp_c'] = max(temps) if temps else None
                     self._record_partial_success('714')
                 except Exception as e:
                     for key in ('battery_power_w', 'battery_state', 'battery_current_a',
@@ -951,12 +954,7 @@ class FranklinWHController:
                 try:
                     m714.read()
                     sf_w = self._get_scale_factor(m714, 'DCW_SF')
-                    blocks = m714.blocks[1:] if hasattr(m714, 'blocks') and len(m714.blocks) > 1 else [m714]
-                    battery_dc_power = sum(
-                        block.DCW.value * (10 ** sf_w)
-                        for block in blocks
-                        if hasattr(block, 'DCW') and block.DCW.value is not None
-                    )
+                    battery_dc_power = self._m714_total_dcw(m714, sf_w)
                     self._record_partial_success('714')
                 except Exception as e:
                     partial.append('714')
@@ -1839,13 +1837,8 @@ class FranklinWHController:
                 raise ConnectionError("Model 714 not available")
             m714.read()
             sf_w = self._get_scale_factor(m714, 'DCW_SF')
-            blocks = m714.blocks[1:] if hasattr(m714, 'blocks') and len(m714.blocks) > 1 else [m714]
             # M714.DCW: positive = out of battery (discharge)
-            dcw = sum(
-                block.DCW.value * (10 ** sf_w)
-                for block in blocks
-                if hasattr(block, 'DCW') and block.DCW.value is not None
-            )
+            dcw = self._m714_total_dcw(m714, sf_w)
             return {
                 'enabled': m704.WSetEna.value == 1,
                 'wset_pct': hw_pct,

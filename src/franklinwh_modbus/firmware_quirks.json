@@ -483,7 +483,7 @@
         }
       ],
       "library_handling": {
-        "franklinwh-modbus": "read_battery_status() never reads the port block (it looks for a 'blocks' attribute pysunspec2 models lack), so battery_temp_c and per-port voltage_v/temp_c are a library default 0 on any firmware (#130)."
+        "franklinwh-modbus": "read_battery_status() reads ports from the M714 Prt group; a port whose DCV is 0 or not implemented is not populated, so battery_temp_c and per-port voltage_v/temp_c are None (#130). Before #130 they were a library default 0."
       }
     },
     "m714_dca": {
@@ -523,7 +523,7 @@
         }
       ],
       "library_handling": {
-        "franklinwh-modbus": "read_battery_status() uses model DCA, else model DCW / port DCV; it never reads port DCV (#130), so battery_current_a is 0 whenever DCA is 0."
+        "franklinwh-modbus": "read_battery_status(): model DCA when non-zero, else model DCW / mean voltage of populated ports, else None (#130)."
       }
     },
     "m714_port_block": {
@@ -552,7 +552,7 @@
         }
       ],
       "library_handling": {
-        "franklinwh-modbus": "read_battery_status() never reads the port block (it looks for a 'blocks' attribute pysunspec2 models lack); individual_batteries[0] carries the model-level DCW (#130)."
+        "franklinwh-modbus": "read_battery_status() returns one individual_batteries entry per Prt instance; on V12R02B60D00 every value is None (#130). Totals come from model DCW."
       }
     },
     "ext_15500_15501_pv_installed": {
