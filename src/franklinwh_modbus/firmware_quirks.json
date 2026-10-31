@@ -448,40 +448,112 @@
       "mapped": true
     },
     "m714_dcv_tmp": {
-      "point": "M714 DCV, Tmp (port block)",
+      "point": "M714 Prt.1.DCV (1073, uint16, DCV_SF), Prt.1.Tmp (1083, int16, Tmp_SF)",
       "description": "Whether M714 DC voltage and battery temperature carry values.",
       "our_assessment": {
-        "value": "undocumented",
-        "basis": "Points present but read 0."
+        "value": "non_compliant",
+        "basis": "FranklinWH PICS (SunSpec certificate SM-000028) declares the point supported R; it returns 0, not the not-implemented value (DCV 0xFFFF, Tmp 0x8000), so 0 V / 0 °C cannot be told from a reading."
       },
       "vendor_position": {
-        "value": "unknown"
+        "value": "not_reported"
       },
       "detectable_by_read": "DCV and Tmp both 0 while DCW is non-zero",
       "observations": [
         {
           "firmware": "V10R01B04D00",
-          "value": "listed as working",
+          "value": "listed as working in our docs; no raw read on record (the 2026-05-14 scan did not read the port block)",
           "status": "reported",
           "site_count": 1,
           "refs": [
-            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md"
+            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md",
+            "david2069/franklinwh-modbus#129"
           ],
-          "note": "Undated."
+          "note": "Undated and unsourced; kept as reported, not measured."
         },
         {
           "firmware": "V12R02B60D00",
-          "value": "read 0 (port block all zero)",
+          "value": "DCV 0, Tmp 0 (not the not-implemented values) while model DCW was -600 W",
           "status": "measured",
           "date": "2026-10-20",
           "site_count": 1,
           "refs": [
-            "docs/FRANKLINWH_SUNSPEC_QUIRKS.md",
-            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#129"
           ]
         }
       ],
-      "library_handling": {}
+      "library_handling": {
+        "franklinwh-modbus": "read_battery_status() never reads the port block (it looks for a 'blocks' attribute pysunspec2 models lack), so battery_temp_c and per-port voltage_v/temp_c are a library default 0 on any firmware (#130)."
+      }
+    },
+    "m714_dca": {
+      "point": "M714 DCA (1047) and Prt.1.DCA (1072), int16, DCA_SF",
+      "description": "Whether M714 reports battery DC current.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "FranklinWH PICS (SunSpec certificate SM-000028) declares the point supported R; it returns 0, not 0x8000, while DCW is non-zero."
+      },
+      "vendor_position": {
+        "value": "not_reported"
+      },
+      "detectable_by_read": "DCA 0 while DCW is non-zero",
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "model DCA 0 while DCW was +500 W",
+          "status": "measured",
+          "date": "2026-05-14",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#129"
+          ],
+          "note": "Single read. Port block not read."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "model DCA 0 and Prt.1.DCA 0 while model DCW was -600 W",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#129"
+          ],
+          "note": "Single read."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_battery_status() uses model DCA, else model DCW / port DCV; it never reads port DCV (#130), so battery_current_a is 0 whenever DCA is 0."
+      }
+    },
+    "m714_port_block": {
+      "point": "M714 port 1 block (1062-1086): PrtTyp, IDStr, DCW, DCWhInj, DCWhAbs, DCSta, DCAlrm",
+      "description": "Whether the M714 port 1 block describes the battery.",
+      "our_assessment": {
+        "value": "non_compliant",
+        "basis": "FranklinWH PICS (SunSpec certificate SM-000028) declares the point supported R for each of these; it returns 0 (PrtTyp 0 = PV, DCSta 0 = OFF) and a placeholder IDStr, and port DCW and energy disagree with the model totals."
+      },
+      "vendor_position": {
+        "value": "not_reported"
+      },
+      "detectable_by_read": "Prt.1.DCW 0 while model DCW is non-zero",
+      "observations": [
+        {
+          "firmware": "V12R02B60D00",
+          "value": "PrtTyp 0 (PV), IDStr 'ID_String', DCW 0, DCWhInj 0, DCWhAbs 0, DCSta 0 (OFF), DCAlrm 0; model DCW -600 W, model DCWhInj/DCWhAbs non-zero; NPrt 1",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md",
+            "david2069/franklinwh-modbus#129"
+          ],
+          "note": "Single read. V10 port block never read."
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_battery_status() never reads the port block (it looks for a 'blocks' attribute pysunspec2 models lack); individual_batteries[0] carries the model-level DCW (#130)."
+      }
     },
     "ext_15500_15501_pv_installed": {
       "point": "Extension registers 15500 PVUse, 15501 apBoxPVUse (uint16 flags)",
