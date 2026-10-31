@@ -3114,6 +3114,123 @@
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
       },
       "mapped": false
+    },
+    "m701_mnalrminfo": {
+      "point": "M701 MnAlrmInfo (PDU 193, string, 16 registers)",
+      "description": "Manufacturer alarm text.",
+      "our_assessment": {
+        "value": "quirk",
+        "basis": "Always the fixed text 'Manufacturer custom error info' (the point's SunSpec label), never alarm data; PICS SM-000028 declares it supported."
+      },
+      "vendor_position": {
+        "value": "not_reported"
+      },
+      "detectable_by_read": "value equals 'Manufacturer custom error info'",
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "'Manufacturer custom error info'",
+          "status": "measured",
+          "date": "2026-05-14",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md",
+            "docs/PICS_CONFORMANCE_CROSS_REFERENCE.md"
+          ],
+          "note": "Also seen 2026-03-13."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "'Manufacturer custom error info'",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md",
+            "david2069/franklinwh-modbus#136"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_alarms() returns it as vendor_info, so the placeholder looks like an alarm (#136)."
+      }
+    },
+    "m701_throttle_points": {
+      "point": "M701 ThrotPct (PDU 180, uint16), ThrotSrc (PDU 181, bitfield32)",
+      "description": "Whether throttling is reported.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "Both read as not implemented."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "ThrotPct and ThrotSrc not implemented",
+          "status": "measured",
+          "date": "2026-05-14",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md"
+          ],
+          "note": "An undated QUIRKS row said ThrotPct read 0 %; no raw read backs it."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "ThrotPct and ThrotSrc not implemented",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md",
+            "david2069/franklinwh-modbus#136"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "Not read."
+      }
+    },
+    "alarm_points_quiet": {
+      "point": "M701 Alrm, M713 Sta, M714 PrtAlrms/DCAlrm, M502 Evt/EvtVend",
+      "description": "Whether any alarm or status point has been seen in a fault state.",
+      "our_assessment": {
+        "value": "undocumented",
+        "basis": "All captures are from normal operation; whether the aGate raises any alarm over Modbus is unknown."
+      },
+      "vendor_position": {
+        "value": "unknown"
+      },
+      "observations": [
+        {
+          "firmware": "V10R01B04D00",
+          "value": "all 0, including under out-of-range writes (2026-03-13 probe)",
+          "status": "measured",
+          "date": "2026-05-14",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md",
+            "docs/PICS_CONFORMANCE_CROSS_REFERENCE.md"
+          ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "all 0; M714 Prt.1.DCSta 0 (OFF) while the battery moved 600 W",
+          "status": "measured",
+          "date": "2026-10-20",
+          "site_count": 1,
+          "refs": [
+            "docs/ALARMS_AND_ERRORS.md",
+            "david2069/franklinwh-modbus#136",
+            "david2069/franklinwh-modbus#129"
+          ]
+        }
+      ],
+      "library_handling": {
+        "franklinwh-modbus": "read_alarms() reports them raw and names active bits in 'decoded'."
+      }
     }
   }
 }
