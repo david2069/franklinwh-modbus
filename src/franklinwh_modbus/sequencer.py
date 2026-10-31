@@ -160,9 +160,15 @@ class SunSpecSequencer:
                 
         # Resolve the point object
         point = None
-        if has_suffix and hasattr(model, 'blocks') and block_idx < len(model.blocks):
-            point = getattr(model.blocks[block_idx], base_point_name, None)
-        else:
+        if has_suffix:
+            # _N = the Nth instance (from 1) of a repeating group, e.g. 714.DCW_2
+            # is port 2's DCW in the Prt group (#130)
+            for group in (getattr(model, 'groups', None) or {}).values():
+                if isinstance(group, list) and 1 <= block_idx <= len(group):
+                    point = getattr(group[block_idx - 1], base_point_name, None)
+                    if point is not None:
+                        break
+        if point is None:
             point = getattr(model, point_name, None)
             
         if point is None:

@@ -257,8 +257,8 @@ class SystemData:
     tou_reserve_soc: float = 20.0
     target_soc: float = 100.0
     dc_power: float = 0.0
-    dc_current: float = 0.0
-    battery_temp: float = 0.0
+    dc_current: Optional[float] = 0.0   # None: not reported by the aGate (#130)
+    battery_temp: Optional[float] = 0.0
     available_wh: float = 0.0
     rated_wh: float = 0.0
     
@@ -472,8 +472,8 @@ class CLIMonitor:
             self.data.soc = battery.get('soc', self.data.soc)
             self.data.soh = battery.get('soh', self.data.soh)
             self.data.dc_power = battery_dc
-            self.data.dc_current = battery.get('battery_current_a', 0)
-            self.data.battery_temp = battery.get('battery_temp_c', 0)
+            self.data.dc_current = battery.get('battery_current_a')
+            self.data.battery_temp = battery.get('battery_temp_c')
             self.data.available_wh = battery.get('wh_available', 0)
             self.data.rated_wh = battery.get('wh_rating', 0)
             
@@ -541,19 +541,11 @@ class CLIMonitor:
                     if sf_wh is None:
                         sf_wh = 0
                     
-                    blocks = m714_energy.blocks[1:] if hasattr(m714_energy, 'blocks') and len(m714_energy.blocks) > 1 else [m714_energy]
-                    
-                    self.data.lifetime_discharged = sum(
-                        block.DCWhInj.value * (10 ** sf_wh)
-                        for block in blocks
-                        if hasattr(block, 'DCWhInj') and block.DCWhInj.value is not None
-                    )
-                    
-                    self.data.lifetime_charged = sum(
-                        block.DCWhAbs.value * (10 ** sf_wh)
-                        for block in blocks
-                        if hasattr(block, 'DCWhAbs') and block.DCWhAbs.value is not None
-                    )
+                    # Model-level totals; the port block reads 0 on V12R02B60D00 (#129)
+                    inj = getattr(getattr(m714_energy, 'DCWhInj', None), 'value', None)
+                    abs_ = getattr(getattr(m714_energy, 'DCWhAbs', None), 'value', None)
+                    self.data.lifetime_discharged = inj * (10 ** sf_wh) if inj is not None else 0
+                    self.data.lifetime_charged = abs_ * (10 ** sf_wh) if abs_ is not None else 0
                 except Exception as e:
                     logger.debug(f"Could not read Model 714 lifetime energy in monitor: {e}")
             
@@ -773,7 +765,7 @@ class CLIMonitor:
         table.add_column("Unit", style="dim")
         
         table.add_row("Power", f"{self.data.dc_power:,.0f}", "W")
-        table.add_row("Current", f"{self.data.dc_current:.1f}", "A")
+        table.add_row("Current", "—" if self.data.dc_current is None else f"{self.data.dc_current:.1f}", "A")
         table.add_row("SoC", f"{self.data.soc:.1f}", "%")
         table.add_row("SoH", f"{self.data.soh:.1f}", "%")
         table.add_row("Ambient Temp", f"{self.data.ambient_temp:.1f}", "°C")
