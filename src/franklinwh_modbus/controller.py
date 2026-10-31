@@ -34,6 +34,10 @@ except ImportError:
 # Cloud API availability flag
 CLOUD_API_AVAILABLE = False
 
+# What M701 MnAlrmInfo always reads on V10R01B04D00 and V12R02B60D00: a fixed
+# placeholder, not alarm text (#136, firmware_quirks.json m701_mnalrminfo).
+MNALRMINFO_PLACEHOLDER = "Manufacturer custom error info"
+
 
 def _sunspec_symbols(model_id: int, point: str, group: Optional[str] = None) -> Dict[int, str]:
     """Symbol names for a point, from the SunSpec model definitions in pysunspec2.
@@ -410,10 +414,13 @@ class FranklinWHController:
     def disconnect(self):
         """Close connection."""
         if self.dev:
-            try:
-                self.dev.close()
-            except Exception:
-                pass
+            # pysunspec2's TCP close() is a no-op; disconnect() closes the socket.
+            # Without it a raw-socket read leaves the aGate's one session held (#138).
+            for close in (self.dev.disconnect, self.dev.close):
+                try:
+                    close()
+                except Exception:
+                    pass
             self.dev = None
             logger.debug("Disconnected")
     
@@ -2205,7 +2212,9 @@ class FranklinWHController:
         Returns dict with the raw values (system_alrm = M701.Alrm,
         dc_port_alrm = M714.PrtAlrms, battery_sta = M713.Sta,
         solar_evt = M502.Evt, vendor_info = M701.MnAlrmInfo) and 'decoded',
-        which names every active alarm (see _decode_alarms).
+        which names every active alarm (see _decode_alarms). vendor_info is ''
+        when MnAlrmInfo holds the fixed placeholder text the aGate always
+        returns; vendor_info_raw keeps the string as read (#136).
         
         If the read fails, 'error' holds the reason and the values are not
         meaningful: no alarms reported is not the same as no alarms.
@@ -2216,6 +2225,7 @@ class FranklinWHController:
             'battery_sta': 0,
             'solar_evt': 0,
             'vendor_info': '',
+            'vendor_info_raw': '',
             'decoded': {},
         }
         
@@ -2230,7 +2240,10 @@ class FranklinWHController:
             if m701 and hasattr(m701, 'Alrm'):
                 alarms['system_alrm'] = m701.Alrm.value if m701.Alrm.value else 0
                 if hasattr(m701, 'MnAlrmInfo') and m701.MnAlrmInfo.value:
-                    alarms['vendor_info'] = str(m701.MnAlrmInfo.value).strip()
+                    text = str(m701.MnAlrmInfo.value).strip('\x00 \t\r\n')
+                    alarms['vendor_info_raw'] = text
+                    if text != MNALRMINFO_PLACEHOLDER:
+                        alarms['vendor_info'] = text
             
             if m714 and hasattr(m714, 'PrtAlrms'):
                 alarms['dc_port_alrm'] = m714.PrtAlrms.value if m714.PrtAlrms.value else 0

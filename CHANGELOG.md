@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `read_battery_status()` never read the M714 port block. It looked for a `blocks` attribute that pysunspec2 models don't have, so temperature, voltage and current were always 0 on any firmware. Ports are now read from the `Prt` repeating group (#130).
 - `SunSpecSequencer.get_point('714.DCW_2')`: the `_N` suffix now resolves the Nth instance of a repeating group. Before, it raised "Point not found" on real pysunspec2 models (#130).
 - The CLI monitor shows "—" for battery current when it isn't reported (#130).
+- `disconnect()` now closes the TCP socket. It called pysunspec2's `close()`, which does nothing for TCP, so after a raw-socket read (`read_solar_status()`, `read_native_mode()`, the extension helpers) the socket stayed open and held the aGate's single Modbus session until garbage collection (#138).
+- `read_alarms()`: `vendor_info` is now empty when M701 `MnAlrmInfo` holds the fixed placeholder "Manufacturer custom error info", which is all it has read on V10R01B04D00 and V12R02B60D00. The CLI no longer prints it as vendor alarm info. The string as read is in the new `vendor_info_raw` (#136).
 
 ### Docs
 - New [Alarms, Errors and Exceptions](docs/ALARMS_AND_ERRORS.md): each alarm and status point, Modbus exception and silently discarded write, per firmware (V10R01B04D00, V12R02B60D00), with sources and library handling. `firmware_quirks.json` adds `m701_mnalrminfo`, `m701_throttle_points` and `alarm_points_quiet`. The QUIRKS ThrotPct row is corrected: not implemented on both firmwares (#136).

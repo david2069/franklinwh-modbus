@@ -21,7 +21,7 @@ No alarm or status point has ever been seen in a fault state, so whether the aGa
 | M701 `DERMode` (78) | DER mode bitfield | 1 (2026-05-14) | 1 (2026-10-20) | — |
 | M701 `ThrotPct` (180) | Throttle % | not implemented (2026-05-14 scan). An undated QUIRKS row says "readable, always 0 %"; it conflicts with the scan and has no raw read behind it | not implemented (2026-10-20) | — |
 | M701 `ThrotSrc` (181) | Throttle source bitfield | not implemented (0xFFFFFFFF) | not implemented (2026-10-20) | — |
-| M701 `MnAlrmInfo` (193) | Manufacturer alarm text | **"Manufacturer custom error info"**, a fixed placeholder (2026-03-13; 2026-05-14) | same placeholder (2026-10-20) | `read_alarms()['vendor_info']`: reports the placeholder as if it were alarm text ([#136](https://github.com/david2069/franklinwh-modbus/issues/136)) |
+| M701 `MnAlrmInfo` (193) | Manufacturer alarm text | **"Manufacturer custom error info"**, a fixed placeholder (2026-03-13; 2026-05-14) | same placeholder (2026-10-20) | `read_alarms()['vendor_info']`: empty when the value is the placeholder; `vendor_info_raw` has the string as read ([#136](https://github.com/david2069/franklinwh-modbus/issues/136)) |
 | M713 `Sta` (1039) | Storage status: 0 OK, 1 WARNING, 2 ERROR | 0, including while charging at 400 W (2026-03-10) | 0 (2026-10-20) | `read_alarms()['battery_sta']`; also `read_battery_status()['status_raw']` |
 | M714 `PrtAlrms` (1044) | Which DC ports have an alarm | 0 (2026-03-13 probe; 2026-05-14) | 0 (2026-10-20) | `read_alarms()['dc_port_alrm']` |
 | M714 `Prt.1.DCAlrm` (1085) | Port alarm bitfield | — (port block not read) | 0, with the whole port block 0 ([#129](https://github.com/david2069/franklinwh-modbus/issues/129)) | named in `read_alarms()['decoded']` |
@@ -70,5 +70,4 @@ Model 714 `DCA` and the whole port 1 block read plain 0 on V12. The PICS declare
 ## Open
 
 - No alarm has been observed in a fault state. Reading the alarm points during a real event (grid outage, over-temperature, battery fault) would show whether any of them is wired up. Record the date, firmware and every point above.
-- `MnAlrmInfo` placeholder reported as alarm text: [#136](https://github.com/david2069/franklinwh-modbus/issues/136).
 - The V10 rows from 2026-03-13 have no raw capture on record except where a scan is cited.

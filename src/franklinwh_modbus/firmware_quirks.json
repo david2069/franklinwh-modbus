@@ -3152,7 +3152,7 @@
         }
       ],
       "library_handling": {
-        "franklinwh-modbus": "read_alarms() returns it as vendor_info, so the placeholder looks like an alarm (#136)."
+        "franklinwh-modbus": "read_alarms() reports vendor_info as '' when the value is the placeholder; vendor_info_raw keeps the string as read (#136)."
       }
     },
     "m701_throttle_points": {
