@@ -12,6 +12,7 @@
   - `vendor_position`;
   - `library_handling`, keyed by repo. Each repo adds its own text by PR to this repo.
   - Behaviours that a read can tell apart also have `detectable_by_read`.
+  - Extension register behaviours (`ext_…`) have `mapped`: `true` when [FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md) gives the register a meaning backed by a measurement or the PICS SPAN tab; `false` when the meaning is a candidate or unknown. Every register 15000–15043 has its own entry (#132), so an emulator can reproduce the raw values per firmware.
 - Each behaviour lists **observations**, one per firmware. Each observation gives the value, `status`, `date`, `site_count` and full `refs`. A firmware change adds an observation; old ones stay.
 
 ## Rules
