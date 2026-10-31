@@ -68,7 +68,7 @@ FranklinWH's PICS (SunSpec certificate SM-000028) declares every Model 714 point
 
 **Battery current:** with `DCA` 0, current can only be derived as I = DCW / DCV, which needs a non-zero port `DCV`. No firmware on record provides one.
 
-**Library:** `read_battery_status()` never reads the port block. It looks for a `blocks` attribute that pysunspec2 models don't have, so `battery_temp_c`, `battery_current_a` (when `DCA` is 0) and each port's `voltage_v`/`temp_c` are a library default 0 on any firmware ([#130](https://github.com/david2069/franklinwh-modbus/issues/130)). `battery_power_w` and `battery_state` come from model `DCW` and are correct.
+**Library:** `read_battery_status()` reads each port from the M714 `Prt` group. A value the aGate doesn't report is `None`, not 0: SunSpec's not-implemented value, or any value on a port whose `DCV` reads 0. On V12R02B60D00, `battery_temp_c`, `battery_current_a` and every port value are `None`; `battery_power_w` and `battery_state` come from model `DCW` ([#130](https://github.com/david2069/franklinwh-modbus/issues/130)). Before #130 the library never read the port block and reported 0.
 
 **Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` (M714 section)
 

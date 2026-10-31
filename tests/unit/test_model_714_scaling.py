@@ -1,272 +1,124 @@
+"""Model 714 per-port reading, DCA workaround and repeating groups (#130).
+
+Models are real pysunspec2 objects built from raw registers
+(tests/unit/sunspec_raw.py), so the code under test sees pysunspec2's own
+structure: ports are the ``Prt`` repeating group, not a ``blocks`` list.
+"""
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from franklinwh_modbus import FranklinWHController, VirtualModeController, BatteryCommand
+from unittest.mock import MagicMock, patch
+from franklinwh_modbus import FranklinWHController, VirtualModeController
 from franklinwh_modbus.sequencer import SunSpecSequencer
-from franklinwh_modbus.monitor import CLIMonitor, MonitorConfig
+from tests.unit.sunspec_raw import m714, m714_v12, NI16, NU16
 
-class TestModel714Scaling:
-    """Unit tests for Model 714 multi-port scaling, DCA workaround, and repeating blocks."""
 
-    @pytest.fixture
-    def mock_controller(self):
-        """Create an unconnected FranklinWHController for testing."""
-        with patch('franklinwh_modbus.controller.SUNSPEC_AVAILABLE', True):
-            ctrl = FranklinWHController(ip_address='127.0.0.1')
-            ctrl.dev = MagicMock()
-            return ctrl
+def _m713(soc=550, soh=956, rtg=13600, avail=7500):
+    m = MagicMock()
+    m.SoC.value, m.SoH.value, m.WHRtg.value, m.WHAvail.value, m.Sta.value = soc, soh, rtg, avail, 0
+    m.Pct_SF = MagicMock(value=-1)
+    m.WH_SF = MagicMock(value=0)
+    return m
 
-    def create_mock_block(self, dcw=None, dcv=None, dca=None, tmp=None, dcwh_inj=None, dcwh_abs=None):
-        """Helper to create a mocked repeating block."""
-        block = MagicMock()
-        
-        # Set up DCW (DC Power)
-        if dcw is not None:
-            block.DCW = MagicMock()
-            block.DCW.value = dcw
-            block.has_dcw = True
-        else:
-            block.has_dcw = False
-            if hasattr(block, 'DCW'):
-                delattr(block, 'DCW')
-                
-        # Set up DCV (DC Voltage)
-        if dcv is not None:
-            block.DCV = MagicMock()
-            block.DCV.value = dcv
-            block.has_dcv = True
-        else:
-            block.has_dcv = False
-            if hasattr(block, 'DCV'):
-                delattr(block, 'DCV')
 
-        # Set up DCA (DC Current)
-        if dca is not None:
-            block.DCA = MagicMock()
-            block.DCA.value = dca
-            block.has_dca = True
-        else:
-            block.has_dca = False
-            if hasattr(block, 'DCA'):
-                delattr(block, 'DCA')
+@pytest.fixture
+def ctrl():
+    with patch('franklinwh_modbus.controller.SUNSPEC_AVAILABLE', True):
+        c = FranklinWHController(ip_address='127.0.0.1')
+    c.dev = MagicMock()
+    return c
 
-        # Set up Tmp (Temperature)
-        if tmp is not None:
-            block.Tmp = MagicMock()
-            block.Tmp.value = tmp
-            block.has_tmp = True
-        else:
-            block.has_tmp = False
-            if hasattr(block, 'Tmp'):
-                delattr(block, 'Tmp')
 
-        # Set up DCWhInj / DCWhAbs (Energy)
-        if dcwh_inj is not None:
-            block.DCWhInj = MagicMock()
-            block.DCWhInj.value = dcwh_inj
-        if dcwh_abs is not None:
-            block.DCWhAbs = MagicMock()
-            block.DCWhAbs.value = dcwh_abs
+def _status(ctrl, model714, m713=None):
+    models = {713: m713 or _m713(), 714: model714}
+    with patch.object(ctrl, 'get_model', side_effect=models.get):
+        return ctrl.read_battery_status()
 
-        # Standard SunSpec model point validation checks hasattr
-        def mock_hasattr(name):
-            if name == 'DCW': return dcw is not None
-            if name == 'DCV': return dcv is not None
-            if name == 'DCA': return dca is not None
-            if name == 'Tmp': return tmp is not None
-            if name == 'DCWhInj': return dcwh_inj is not None
-            if name == 'DCWhAbs': return dcwh_abs is not None
-            return False
-        block.__class__.__hasattr__ = mock_hasattr
-        
-        return block
 
-    def test_single_battery_scaling(self, mock_controller):
-        """Verify that NPrt = 1 reads and calculates DCA correctly."""
-        m713 = MagicMock()
-        m713.SoC.value = 550  # 55.0%
-        m713.SoH.value = 956  # 95.6%
-        m713.WHRtg.value = 13600
-        m713.WHAvail.value = 7500
-        m713.Sta.value = 0
-        
-        m714 = MagicMock()
-        
-        # Scale factors
-        sf_pct = MagicMock(value=-1)
-        sf_wh = MagicMock(value=0)
-        sf_w = MagicMock(value=0)
-        sf_a = MagicMock(value=0)
-        sf_v = MagicMock(value=0)
-        sf_tmp = MagicMock(value=0)
-        
-        # Attach SF attributes
-        m713.Pct_SF = sf_pct
-        m713.WH_SF = sf_wh
-        m714.DCW_SF = sf_w
-        m714.DCA_SF = sf_a
-        m714.DCV_SF = sf_v
-        m714.Tmp_SF = sf_tmp
-        
-        # Single repeating block (NPrt = 1)
-        # Block 0 is fixed block. Block 1 is the repeating block.
-        fixed_block = MagicMock()
-        fixed_block.NPrt.value = 1
-        port1 = self.create_mock_block(dcw=3000, dcv=240, dca=0, tmp=25)
-        
-        m714.blocks = [fixed_block, port1]
-        
-        def mock_get_model(model_id):
-            if model_id == 713: return m713
-            if model_id == 714: return m714
-            return None
-            
-        with patch.object(mock_controller, 'get_model', side_effect=mock_get_model):
-            # Probe extension read results
-            mock_controller._extension_write_results = {'tested': True}
-            
-            status = mock_controller.read_battery_status()
-            
-            # Assertions
-            assert status['soc'] == 55.0
-            assert status['soh'] == 95.6
-            assert status['battery_power_w'] == 3000
-            assert status['battery_state'] == 'Discharging'  # positive DCW = discharging
-            assert status['battery_current_a'] == 12.5      # 3000 / 240 = 12.5A
-            assert status['battery_temp_c'] == 25.0
-            
-            # Validate individual battery array
-            assert len(status['individual_batteries']) == 1
-            assert status['individual_batteries'][0]['port'] == 1
-            assert status['individual_batteries'][0]['power_w'] == 3000
-            assert status['individual_batteries'][0]['voltage_v'] == 240
-            assert status['individual_batteries'][0]['current_a'] == 0
-            assert status['individual_batteries'][0]['temp_c'] == 25.0
+class TestModel714Ports:
 
-    def test_multi_battery_scaling(self, mock_controller):
-        """Verify aggregation logic for NPrt = 2 configurations."""
-        m713 = MagicMock()
-        m713.SoC.value = 800  # 80.0%
-        m713.SoH.value = 980  # 98.0%
-        m713.WHRtg.value = 27200
-        m713.WHAvail.value = 21760
-        m713.Sta.value = 0
-        
-        m714 = MagicMock()
-        
-        # Scale factors
-        sf_pct = MagicMock(value=-1)
-        sf_wh = MagicMock(value=0)
-        sf_w = MagicMock(value=0)
-        sf_a = MagicMock(value=0)
-        sf_v = MagicMock(value=0)
-        sf_tmp = MagicMock(value=0)
-        
-        m713.Pct_SF = sf_pct
-        m713.WH_SF = sf_wh
-        m714.DCW_SF = sf_w
-        m714.DCA_SF = sf_a
-        m714.DCV_SF = sf_v
-        m714.Tmp_SF = sf_tmp
-        
-        # Parallel batteries (NPrt = 2)
-        fixed_block = MagicMock()
-        fixed_block.NPrt.value = 2
-        port1 = self.create_mock_block(dcw=-2000, dcv=238, dca=0, tmp=24) # Charging
-        port2 = self.create_mock_block(dcw=-2500, dcv=242, dca=0, tmp=28) # Charging
-        
-        m714.blocks = [fixed_block, port1, port2]
-        
-        def mock_get_model(model_id):
-            if model_id == 713: return m713
-            if model_id == 714: return m714
-            return None
-            
-        with patch.object(mock_controller, 'get_model', side_effect=mock_get_model):
-            status = mock_controller.read_battery_status()
-            
-            # Assertions
-            assert status['soc'] == 80.0
-            # Power sum: -2000 + -2500 = -4500W
-            assert status['battery_power_w'] == -4500
-            assert status['battery_state'] == 'Charging'  # negative DCW = charging
-            # Voltage average: (238 + 242) / 2 = 240V
-            # Current calculation: -4500 / 240 = -18.75A
-            assert status['battery_current_a'] == -18.75
-            # Max temperature: max(24, 28) = 28.0C
-            assert status['battery_temp_c'] == 28.0
-            
-            # Individual battery entries
-            assert len(status['individual_batteries']) == 2
-            assert status['individual_batteries'][0]['port'] == 1
-            assert status['individual_batteries'][0]['power_w'] == -2000
-            assert status['individual_batteries'][0]['voltage_v'] == 238
-            assert status['individual_batteries'][0]['temp_c'] == 24.0
-            
-            assert status['individual_batteries'][1]['port'] == 2
-            assert status['individual_batteries'][1]['power_w'] == -2500
-            assert status['individual_batteries'][1]['voltage_v'] == 242
-            assert status['individual_batteries'][1]['temp_c'] == 28.0
+    def test_single_battery(self, ctrl):
+        """NPrt = 1, DCA not populated: current = DCW / DCV."""
+        s = _status(ctrl, m714(dcw=3000, ports=[{'dcv': 240, 'dcw': 3000, 'tmp': 25}]))
+        assert s['soc'] == 55.0 and s['soh'] == 95.6
+        assert s['battery_power_w'] == 3000
+        assert s['battery_state'] == 'Discharging'      # positive DCW = discharging
+        assert s['battery_current_a'] == 12.5            # 3000 / 240
+        assert s['battery_temp_c'] == 25.0
+        assert s['individual_batteries'] == [
+            {'port': 1, 'power_w': 3000, 'voltage_v': 240, 'current_a': 12.5, 'temp_c': 25.0}]
 
-    def test_modes_verify_command_execution(self, mock_controller):
-        """Verify command execution checks correctly sum multi-battery DC power."""
-        m714 = MagicMock()
-        m714.DCW_SF = MagicMock(value=0)
-        
-        # Setpoint read back from WSetPct (WSet is never written):
-        # hardware +80% = discharge 4000W of a 5000W rating
+    def test_multi_battery(self, ctrl):
+        """NPrt = 2: total from model DCW, voltage averaged, hottest port."""
+        s = _status(ctrl, m714(dcw=-4500, ports=[{'dcv': 238, 'dcw': -2000, 'tmp': 24},
+                                                 {'dcv': 242, 'dcw': -2500, 'tmp': 28}]))
+        assert s['battery_power_w'] == -4500
+        assert s['battery_state'] == 'Charging'
+        assert s['battery_current_a'] == -18.75          # -4500 / 240
+        assert s['battery_temp_c'] == 28.0
+        assert [b['port'] for b in s['individual_batteries']] == [1, 2]
+        assert s['individual_batteries'][1]['voltage_v'] == 242
+        assert s['individual_batteries'][1]['power_w'] == -2500
+
+    def test_model_dca_used_when_populated(self, ctrl):
+        s = _status(ctrl, m714(dcw=-1000, dca=-21, ports=[{'dcv': 48, 'dcw': -1000, 'dca': -21}]))
+        assert s['battery_current_a'] == -21
+        assert s['individual_batteries'][0]['current_a'] == -21
+
+    def test_scale_factors(self, ctrl):
+        # DCA_SF -1, DCV_SF -1, DCW_SF 0, DCWH_SF 0, Tmp_SF -1
+        s = _status(ctrl, m714(dcw=500, ports=[{'dcv': 2500, 'dcw': 500, 'tmp': 315}],
+                               sf=(-1, -1, 0, 0, -1)))
+        assert s['individual_batteries'][0]['voltage_v'] == 250.0
+        assert s['individual_batteries'][0]['temp_c'] == 31.5
+        assert s['battery_current_a'] == 2.0
+
+    def test_v12_zero_port_block_is_not_reported(self, ctrl):
+        """V12R02B60D00 (#129): DCA 0 and the port block all 0 while DCW -600.
+        Temperature, current and port values are None, not 0 °C / 0 A."""
+        s = _status(ctrl, m714_v12(dcw=-600))
+        assert s['battery_power_w'] == -600              # model DCW is real
+        assert s['battery_state'] == 'Charging'
+        assert s['battery_current_a'] is None
+        assert s['battery_temp_c'] is None
+        assert s['individual_batteries'] == [
+            {'port': 1, 'power_w': None, 'voltage_v': None, 'current_a': None, 'temp_c': None}]
+
+    def test_not_implemented_values_are_not_reported(self, ctrl):
+        s = _status(ctrl, m714(dcw=0, dca=NI16, ports=[{'dcv': NU16, 'dca': NI16, 'dcw': NI16, 'tmp': NI16}]))
+        assert s['battery_current_a'] is None
+        assert s['battery_temp_c'] is None
+        assert s['individual_batteries'][0]['voltage_v'] is None
+
+    def test_no_ports(self, ctrl):
+        s = _status(ctrl, m714(dcw=200))
+        assert s['battery_power_w'] == 200
+        assert s['individual_batteries'] == []
+        assert s['battery_current_a'] is None and s['battery_temp_c'] is None
+
+
+class TestModel714Totals:
+
+    def test_verify_command_execution_uses_model_dcw(self, ctrl):
         m704 = MagicMock()
         m704.WSetPct_SF = MagicMock(value=0)
-        m704.WSetPct.value = 80
+        m704.WSetPct.value = 80        # hardware +80 % = discharge 4000 W of 5000 W
         m704.WSetEna.value = 1
-        
-        # Parallel batteries discharging 3950W in total (within 5% of 4000W)
-        fixed_block = MagicMock()
-        port1 = self.create_mock_block(dcw=2000)
-        port2 = self.create_mock_block(dcw=1950)
-        m714.blocks = [fixed_block, port1, port2]
-        
-        models = {704: m704, 714: m714}
-        with patch.object(mock_controller, 'get_model', side_effect=models.get):
-            vmc = VirtualModeController(mock_controller, min_discharge_soc=20)
-            vmc._last_commanded_power = -4000  # discharge, BatteryCommand convention
+        models = {704: m704, 714: m714(dcw=3950, ports=[{'dcv': 50, 'dcw': 2000}, {'dcv': 50, 'dcw': 1950}])}
+        with patch.object(ctrl, 'get_model', side_effect=models.get):
+            vmc = VirtualModeController(ctrl, min_discharge_soc=20)
+            vmc._last_commanded_power = -4000
             ok, commanded, actual, diff = vmc.verify_command_execution(tolerance_percent=5.0)
-            
-            assert ok
-            assert commanded == -4000
-            assert actual == -3950
-            assert diff == 1.25  # (4000 - 3950) / 4000 = 1.25%
+        assert ok and commanded == -4000 and actual == -3950 and diff == 1.25
 
-    def test_sequencer_repeating_block_resolution(self):
-        """Verify sequencer resolves repeating block suffixes correctly."""
+
+class TestSequencerRepeatingGroup:
+
+    def test_suffix_resolves_port_points(self):
+        model = m714(dcw=-4500, ports=[{'dcv': 238, 'dcw': -2000}, {'dcv': 242, 'dcw': -2500}])
         device = MagicMock()
-        m714 = MagicMock()
-        
-        # Setup blocks
-        fixed_block = MagicMock()
-        port1 = MagicMock()
-        port2 = MagicMock()
-        
-        # Add dummy attributes so getattr resolves them naturally
-        m714.DCW = MagicMock()
-        port1.DCW = MagicMock()
-        port2.DCW = MagicMock()
-        
-        m714.blocks = [fixed_block, port1, port2]
-        device.models = {714: m714}
-        
+        device.models = {714: model}
         seq = SunSpecSequencer(device)
-        
-        # Test default (first repeating block / root lookup)
-        model_res, point_res = seq.get_point("714.DCW")
-        assert model_res == m714
-        assert point_res == m714.DCW
-        
-        # Test suffix index (first repeating block: _1)
-        model_res, point_res = seq.get_point("714.DCW_1")
-        assert model_res == m714
-        assert point_res == port1.DCW
-        
-        # Test suffix index (second repeating block: _2)
-        model_res, point_res = seq.get_point("714.DCW_2")
-        assert model_res == m714
-        assert point_res == port2.DCW
+        assert seq.get_point('714.DCW') == (model, model.DCW)
+        assert seq.get_point('714.DCW_1') == (model, model.Prt[0].DCW)
+        assert seq.get_point('714.DCV_2')[1].value == 242
+        with pytest.raises(ValueError):
+            seq.get_point('714.DCV_3')

@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from franklinwh_modbus import FranklinWHController
+from tests.unit.sunspec_raw import m714 as raw_m714
 
 
 @pytest.fixture
@@ -35,16 +36,7 @@ def _m713():
 
 
 def _m714(dcw=-1200):
-    m = MagicMock()
-    for sf in ('DCW_SF', 'DCA_SF', 'DCV_SF', 'Tmp_SF'):
-        setattr(m, sf, MagicMock(value=0))
-    block = MagicMock()
-    block.DCW.value = dcw
-    block.DCA.value = 25
-    block.DCV.value = 48
-    block.Tmp.value = 30
-    m.blocks = [MagicMock(), block]
-    return m
+    return raw_m714(dcw=dcw, ports=[{'dcv': 48, 'dca': 25, 'dcw': dcw, 'tmp': 30}])
 
 
 def _m502(out_w=3000):

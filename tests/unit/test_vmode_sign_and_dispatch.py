@@ -15,6 +15,7 @@ from unittest.mock import Mock, MagicMock, patch
 import pytest
 
 from franklinwh_modbus import FranklinWHController, VirtualModeController
+from tests.unit.sunspec_raw import m714 as raw_m714
 from franklinwh_modbus.schedule import TOUSchedule
 
 
@@ -50,14 +51,8 @@ def _models(wset_pct, wset_ena, dcw_per_port):
     m704.WSetPct_SF = MagicMock(value=0)
     m704.WSetPct.value = wset_pct
     m704.WSetEna.value = wset_ena
-    m714 = MagicMock()
-    m714.DCW_SF = MagicMock(value=0)
-    blocks = [MagicMock()]
-    for w in dcw_per_port:
-        b = MagicMock()
-        b.DCW.value = w
-        blocks.append(b)
-    m714.blocks = blocks
+    # Total battery power is the model-level DCW (#130)
+    m714 = raw_m714(dcw=sum(dcw_per_port), ports=[{'dcv': 50, 'dcw': w} for w in dcw_per_port])
     return {704: m704, 714: m714}
 
 
