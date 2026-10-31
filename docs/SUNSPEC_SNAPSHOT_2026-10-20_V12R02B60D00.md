@@ -19,7 +19,7 @@ A read-only capture of the reference aGate X after a FranklinWH firmware update,
 | Scale factors | as in the baseline | **Unchanged** for every scale factor compared |
 | M1 `Mn` | "FranklinWH Technologies Co., Ltd" | "FranklinWH" |
 | **Map at PDU 40000** | Exception 2 (2026-03-15) | **Mirrored:** "SunS" at 40000, and 40070–40071 equal 70–71. PDU 50000 still returns exception 2. Clients that probe 40000 first (pysunspec2's default) bind to the mirror, and so does this library (#84). Writes to the mirror are unverified. See [Register Addressing](FRANKLINWH_SUNSPEC_QUIRKS.md#register-addressing-pdu-addresses-modbus-and-the-sunspec-map) |
-| M714 port block (1062–1086) | Not captured; QUIRKS listed `DCV`/`Tmp` as working | **All zero** except an "ID_String" placeholder in `IDStr`. Port `DCV` (1073) and `Tmp` (1083) read 0 |
+| M714 port block (1062–1086) | Not captured; QUIRKS listed `DCV`/`Tmp` as working | **All zero** except an "ID_String" placeholder in `IDStr`. Port `DCV` (1073) and `Tmp` (1083) read 0, `PrtTyp` 0 (PV), `DCSta` 0 (OFF), port `DCW` 0 while model `DCW` read −600. The PICS declares all of them supported (#129) |
 | 15500 PVUse / 15501 apBoxPVUse | 15500–15501 "not actively used" | 1 / 0 |
 | 15040, 15043 | Not captured (scan stopped at 15039) | 826 / 1 (meaning unknown) |
 
@@ -75,6 +75,7 @@ Lengths for 705–712 are from the re-scan. The bridge export returned their poi
 | M713 `SoC` (1037) / `SoH` (1038), `Pct_SF` −1 | 320 / 948 | 32.0 % / 94.8 % | SoH was 95.6 % on 2026-05-14 |
 | M713 `WHRtg` (1035) / `WHAvail` (1036) | 13600 / 4394 | Wh | |
 | M714 `DCW` (1048) | −100 | −100 W (charging) | |
+| M714 `DCA` (1047), `DCA_SF` 0 | 0 | 0 A | In the re-scan (20:17:37Z) `DCA` read 0 while `DCW` read −600: not populated, and not the not-implemented value 0x8000 (#129) |
 | M714 `DCWhInj` (1049) / `DCWhAbs` (1053) | 7861360 / 8039960 | Wh, lifetime | |
 | M715 `LocRemCtl` (1089) | 1 | Local | |
 | M502 `OutPw` (1119) / `OutWh` (1117) | 300 / 15882870 | W / Wh | `OutWh` equals extension 15510 |
