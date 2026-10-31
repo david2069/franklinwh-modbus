@@ -41,28 +41,34 @@ else:
 
 ## Model 714 - Battery DC Measurements
 
-### DCA (DC Current) Register Not Populated
-**Issue:** The DCA register in Model 714 returns 0 or is not implemented.
+### Points that read 0 instead of "not implemented" (#129)
 
-**Standard SunSpec Model 714 Fields:**
-- `DCW` - DC Power (W) ✅ **Working** — positive = discharging (out of battery), negative = charging (into battery); V12R02B60D00 c8, 2026-10-23 (#104). An earlier version of this line had the sign reversed (#114 C2).
-- `DCV` - DC Voltage (V): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (port block 1062–1086 all zero, 2026-10-20) 
-- `DCA` - DC Current (A) ❌ **Not populated (returns 0)**
-- `Tmp` - Battery Temperature (°C): listed as working (undated, V10). **Reads 0 on V12R02B60D00** (2026-10-20)
-- `DCWhInj` - DC Energy Injected (Wh) ✅ **Working** — lifetime discharged
-- `DCWhAbs` - DC Energy Absorbed (Wh) ✅ **Working** — lifetime charged
+FranklinWH's PICS (SunSpec certificate SM-000028) declares every Model 714 point below **supported**, read-only. A point a device doesn't implement should return SunSpec's not-implemented value (int16 `0x8000`, uint16/enum16 `0xFFFF`, bitfield32 `0xFFFFFFFF`, uint64 all ones). The aGate returns plain **0** for the points it doesn't populate. A client can't tell that 0 from a real reading of 0 A, 0 V or 0 °C. Against the PICS that is non-compliant.
 
-**Workaround:** Calculate current from Power/Voltage:
-- **Single-Battery System (`NPrt = 1`)**:
-  ```python
-  dc_current = dc_power / dc_voltage  # Ohm's Law: I = P/V
-  ```
-- **Multi-Battery System (`NPrt > 1`)**:
-  For systems with multiple batteries connected in parallel, the library sums the DC Power (`DCW`) and averages the DC Voltage (`DCV`) across all active repeating blocks (ports) first, then divides to get total system DC current:
-  ```python
-  avg_voltage = sum(voltages) / len(voltages)
-  total_current = total_dc_power / avg_voltage
-  ```
+| Point (PDU) | V10R01B04D00 (2026-05-14) | V12R02B60D00 (2026-10-20) | PICS SM-000028 |
+|---|---|---|---|
+| `DCW` (1048), DC power | ✅ +500 W | ✅ −600 W | supported R |
+| `DCWhInj` / `DCWhAbs` (1049 / 1053), lifetime discharged / charged | ✅ non-zero | ✅ non-zero | supported R |
+| `DCA` (1047), DC current | ❌ **0** while DCW +500 W | ❌ **0** while DCW −600 W | supported R |
+| `NPrt` (1046) | 1 | 1 | 1 R |
+| Scale factors (1057–1061) | all 0 | all 0 | 0 R |
+| `Prt.1.PrtTyp` (1062) | not read | ❌ **0 = PV** (the port is a battery, ESS = 1) | supported R |
+| `Prt.1.IDStr` (1064–1071) | not read | ❌ "ID_String" (placeholder) | supported R |
+| `Prt.1.DCA` (1072) | not read | ❌ **0** | supported R |
+| `Prt.1.DCV` (1073), DC voltage | not read | ❌ **0** | supported R |
+| `Prt.1.DCW` (1074) | not read | ❌ **0** while model DCW −600 W | supported R |
+| `Prt.1.DCWhInj` / `DCWhAbs` (1075 / 1079) | not read | ❌ **0** while the model totals are non-zero | supported R |
+| `Prt.1.Tmp` (1083), battery temperature | not read | ❌ **0** (decodes as 0 °C) | supported R |
+| `Prt.1.DCSta` (1084) | not read | ❌ **0 = OFF** while the battery moves 600 W | supported R |
+| `Prt.1.DCAlrm` (1085) | not read | 0 | supported R |
+
+- **Sources:** V10, `docs/AGATE_FULL_SCAN_2026-05-14.txt` (Model 714; that scan did not read the port block). V12, the re-scan in [SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md). Each is a single read at one site. The record is in `firmware_quirks.json` (`m714_dca`, `m714_dcv_tmp`, `m714_port_block`).
+- **Correction (#129):** earlier versions of this page listed `DCV` and `Tmp` as working on V10. No raw read supports that; the port block was never read on V10. They also called the DCA workaround robust. On V12, DCV is 0, so I = P/V can't be computed.
+- **DCW sign:** positive = discharging (out of the battery), negative = charging (into it). Source: V12R02B60D00 c8, 2026-10-23 (#104). An earlier version of this page had the sign reversed (#114 C2).
+
+**Battery current:** with `DCA` 0, current can only be derived as I = DCW / DCV, which needs a non-zero port `DCV`. No firmware on record provides one.
+
+**Library:** `read_battery_status()` never reads the port block. It looks for a `blocks` attribute that pysunspec2 models don't have, so `battery_temp_c`, `battery_current_a` (when `DCA` is 0) and each port's `voltage_v`/`temp_c` are a library default 0 on any firmware ([#130](https://github.com/david2069/franklinwh-modbus/issues/130)). `battery_power_w` and `battery_state` come from model `DCW` and are correct.
 
 **Code Location:** `src/franklinwh_modbus/controller.py:read_battery_status()` (M714 section)
 
@@ -231,7 +237,8 @@ See [VPP_MODE_REFERENCE.md](VPP_MODE_REFERENCE.md) for the Remote Control visual
 | Reversion timer (WSetRvrtTms) | DER counts down, auto-reverts power | V10 (2026-03-13): countdown runs (59→55→52) but power was not reverted at expiry (see "Hardware Reversion is Cosmetic" below). V12R02B60D00: the reverse of the spec — the reversion value applies **during** the countdown, the setpoint after; see [M704 conformance results](SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md) | Software `threading.Timer` via `duration_s` | Report as defect |
 | Reversion enable (WSetEnaRvrt) | Enables reversion behavior | Read back 1 after write (V10, undated). A read-back only: it doesn't show that reversion works; see the reversion timer row above | N/A | See the reversion timer row |
 | Battery state (M713.Sta) | Sta is a status (0 OK, 1 WARNING, 2 ERROR), not a battery state | Read 0 (OK) while charging | Battery state derived from M714.DCW ±50W deadband | N/A — not a defect |
-| DC Current (M714.DCA) | Reports battery DC current | Always 0 | Calculated: I = P/V from DCW/DCV | Report; workaround is robust |
+| DC Current (M714.DCA) | Reports battery DC current | 0, not the not-implemented value (V10, V12) | I = P/V needs port DCV, which reads 0 on V12, so no workaround on V12 (#129) | Report: PICS declares it supported |
+| Battery temperature, port data (M714 port block) | Port type, voltage, temperature, status per battery | All 0 on V12 (PrtTyp = PV, DCSta = OFF, Tmp 0) | None | Report: PICS declares them supported (#129) |
 | Ramp rate (WRmp) | Smooths power transitions | Returns None (unimplemented) | Software SoC ramp via `--soc-ramp-window` | Report; software ramp is different concept |
 | Extension register writes | N/A (vendor-specific) | Read-only; writes undocumented and not applied (V12R02B60D00, 2026-10-21) | Cloud API bypass (Tier 2) for mode changes | Unknown; FranklinWH has not documented any write mechanism |
 | Remote Control activation | WSetEna=1 starts remote DER control | ✅ Works — activates Remote Control (exclusive) | None needed — works as intended | N/A — working correctly |

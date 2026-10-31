@@ -84,6 +84,33 @@ WMaxLimPctEna (310) and VarSetEna (331) silently discard all writes (0/160 tests
 
 ---
 
+## M714 — DER DC Measurement
+
+PICS statuses for this table are from *UPDATED_FranklinWH_Modbus_PICS_SM-000028.xlsx* (SunSpec certificate SM-000028, issued 1 May 2023). Test results are from V12R02B60D00, 2026-10-20 re-scan, single read at one site ([#129](https://github.com/david2069/franklinwh-modbus/issues/129)).
+
+| Addr | Point | PICS Status | PICS R/W | Our Test Result | Match? |
+|:----:|-------|:-----------:|:--------:|:---------------:|:------:|
+| 1046 | NPrt | 1 | R | 1 | ✅ |
+| **1047** | **DCA** | **supported** | **R** | **0 while DCW −600 W** (V10, 2026-05-14: 0 while DCW +500 W) | **⚠️ VIOLATION** |
+| 1048 | DCW | supported | R | −600 W | ✅ |
+| 1049 / 1053 | DCWhInj / DCWhAbs | supported | R | non-zero lifetime totals | ✅ |
+| 1057–1061 | DCA_SF … Tmp_SF | 0 | R | 0 | ✅ |
+| **1062** | **Prt.1.PrtTyp** | **supported** | **R** | **0 = PV (battery port; ESS = 1)** | **⚠️ VIOLATION** |
+| **1064** | **Prt.1.IDStr** | **supported** | **R** | **"ID_String" (placeholder)** | **⚠️ VIOLATION** |
+| **1072** | **Prt.1.DCA** | **supported** | **R** | **0** | **⚠️ VIOLATION** |
+| **1073** | **Prt.1.DCV** | **supported** | **R** | **0** | **⚠️ VIOLATION** |
+| **1074** | **Prt.1.DCW** | **supported** | **R** | **0 while model DCW −600 W** | **⚠️ VIOLATION** |
+| **1075 / 1079** | **Prt.1.DCWhInj / DCWhAbs** | **supported** | **R** | **0 while model totals non-zero** | **⚠️ VIOLATION** |
+| **1083** | **Prt.1.Tmp** | **supported** | **R** | **0 (decodes as 0 °C)** | **⚠️ VIOLATION** |
+| **1084** | **Prt.1.DCSta** | **supported** | **R** | **0 = OFF while the battery moves 600 W** | **⚠️ VIOLATION** |
+| 1085 | Prt.1.DCAlrm | supported | R | 0 | — (can't tell from a read) |
+
+### M714 Takeaway
+
+**Model DCA and the whole port 1 block are declared "supported" but return plain 0.** A point that isn't implemented should return SunSpec's not-implemented value (int16 `0x8000`, uint16/enum16 `0xFFFF`, bitfield32 `0xFFFFFFFF`). Plain 0 is a valid reading, so clients show 0 A, 0 V and 0 °C as if they had been measured. Either the PICS should mark these points unimplemented, or the firmware should populate them.
+
+---
+
 ## Failed Tests Against PICS Claims
 
 The following registers are declared "supported RW" in the PICS but **fail to persist writes.**
