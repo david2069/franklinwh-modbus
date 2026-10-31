@@ -152,3 +152,34 @@ def test_successful_read_has_no_error(ctrl):
     models = _models()
     with patch.object(ctrl, 'get_model', side_effect=models.get):
         assert 'error' not in ctrl.read_alarms()
+
+
+def _real_m701(text):
+    """A real pysunspec2 model 701 with MnAlrmInfo set from raw registers (#136)."""
+    import struct
+    import sunspec2.device as dev
+    points = dev.get_model_def(701)['group']['points']
+    off = 2 + sum(p['size'] for p in points[2:[p['name'] for p in points].index('MnAlrmInfo')])
+    regs = [701, dev.Model(model_id=701).len] + [0] * dev.Model(model_id=701).len
+    raw = text.encode().ljust(32, b'\0')
+    regs[off:off + 16] = struct.unpack('>16H', raw)
+    m = dev.Model(model_id=701, model_addr=0, model_len=regs[1],
+                  data=struct.pack(f'>{len(regs)}H', *regs))
+    m.read = MagicMock()
+    return m
+
+
+@pytest.mark.parametrize('text, info', [
+    ('Manufacturer custom error info', ''),     # V10R01B04D00 and V12R02B60D00, always
+    ('E042 relay', 'E042 relay'),
+])
+def test_placeholder_vendor_text_is_not_reported(ctrl, text, info):
+    models = _models()
+    models[701] = _real_m701(text)
+    assert models[701].MnAlrmInfo.value == text
+    with patch.object(ctrl, 'get_model', side_effect=models.get):
+        alarms = ctrl.read_alarms()
+    assert alarms['vendor_info'] == info
+    assert alarms['decoded']['vendor_info'] == info
+    assert alarms['vendor_info_raw'] == text
+    assert ctrl.active_alarms(alarms) == []

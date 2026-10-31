@@ -76,7 +76,7 @@ For a daily figure, store a lifetime reading at midnight and subtract it from th
 | `read_native_mode()` | `mode_raw`, `mode_name`, `self_reserve_pct`, `tou_reserve_pct` |
 | `read_control_status()` | `wset_enabled`, `wset_pct`, `wset_pct_raw`, `wset_watts`, `wset_mode`, `loc_rem_ctl`, `loc_rem_ctl_name`, `wset_revert_watts`, `wset_revert_time_s`, `wset_revert_remain_s` |
 | `read_nameplate()` | `manufacturer`, `model`, `serial`, `version` |
-| `read_alarms()` | `system_alrm`, `dc_port_alrm`, `battery_sta`, `solar_evt`, `vendor_info`, `decoded`, `error` |
+| `read_alarms()` | `system_alrm`, `dc_port_alrm`, `battery_sta`, `solar_evt`, `vendor_info`, `vendor_info_raw`, `decoded`, `error` |
 
 A failed read returns `{}`, or a result with `partial`/`error`, and is logged at warning level. Check `partial` and `error` before trusting a zero.
 
