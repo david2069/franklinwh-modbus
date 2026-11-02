@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+- Extension Registers has an Extension → SunSpec mapping. It lists every register in 15000–15043, 15500–15513 and 16000–16002 with its type, scale, units, sign and SunSpec equivalent (or none). Each row has a status (confirmed, inferred or unknown) with evidence, and says whether a client should prefer the extension value. All 150xx rows stay inferred until a correlation run (#132).
+
 ## [0.13.0] - 2026-11-02
 
 ### ⚠️ Breaking changes
