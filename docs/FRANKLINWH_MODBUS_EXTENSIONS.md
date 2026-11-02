@@ -28,7 +28,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 16000 | — | R | uint16, W (~1 W) | Home load, high resolution | `…['home_load_ext']` (falls back to 15506) | Undocumented; measured 2026-03-15 |
 | 16001 | — | R | uint16, % | **Reserve for the active mode:** 100 in Emergency Backup, 15508's value in Self-Consumption (8), 15509's in TOU (15) | — | Undocumented; measured on V12R02B60D00, one read per mode, 2026-10-21/22 (#63) |
 | 16002 | — | R | uint16 | 20 in both Self-Consumption and TOU on the reference site; matches the local API's `BBBackupSoc` | — | Undocumented; **meaning unconfirmed** (#63) |
-| 15000–15043 | — | R | uint16 raw; some pairs look like 32-bit values | Undocumented. Several match SunSpec values; see [register by register](#1500015043-register-by-register) | — | Undocumented; raw values measured; meanings inferred. Writes accepted but discarded (probe 2026-03-08) |
+| 15000–15043 | — | R | uint16 raw; some pairs look like 32-bit values | Undocumented. Several match SunSpec values; see [register by register](#1500015043-register-by-register) and the [mapping](#extension-sunspec-mapping) | — | Undocumented; raw values measured; meanings inferred. Writes accepted but discarded (probe 2026-03-08) |
 
 `…` = `read_solar_status()['extension']`. The raw scans behind the measured rows are in the [Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md) (V10R01B04D00) and the [V12R02B60D00 snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md).
 
@@ -94,6 +94,67 @@ The 15000–15043 rows become measured only after a read-only correlation run (a
 | 3 | TOU | Measured on V12R02B60D00 (2026-10-21) |
 
 No other value has been read from 15507. This matches the library, the 2026-05-14 device scan and the first QUIRKS table. Earlier docs and code also listed **0 = Emergency** and **4 = Manual**, and one QUIRKS revision had 1 = TOU and 3 = Manual. Those were added without a source and have been removed (#75). Writing 15507 did not take effect on V12R02B60D00 (owner observation, 2026-10-21), so the mapping holds for reading only.
+
+## Extension → SunSpec mapping
+
+One row per register. For each register: the SunSpec point that carries the same quantity, or **none (non-SunSpec)**, and whether a client should prefer the extension value. Non-SunSpec registers are vendor quirks: no SunSpec model holds them.
+
+**Status:**
+- **Confirmed:** named in FranklinWH's register list and/or read with a known device state, and equal to the SunSpec point where there is one.
+- **Inferred:** equal or near the SunSpec value in a capture, but not read in the same pass as the SunSpec chain under controlled conditions. Equal values are leads, not proof (#132).
+- **Unknown:** no candidate, or a lead from a value match only.
+
+Captures: V10 = V10R01B04D00, undated scan ([Extensions Manifest](FRANKLINWH_EXTENSIONS_MANIFEST.md)). V12 = V12R02B60D00: the 2026-10-20 [snapshot](SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md) (export and re-scan), and owner reads on 2026-10-31 and 2026-11-03 (unit 1, extensions only, no SunSpec read). All from one site. Type is the uint16/int16 reading of the raw register; pairs are (high, low).
+
+### 15000–15043
+
+| PDU | Type, scale, units, sign | SunSpec equivalent | Status and evidence | Prefer the extension? |
+|---|---|---|---|---|
+| 15000 | uint16 | none (non-SunSpec) | Unknown. 1 on V12 (10-20, 10-31, 11-03), 0 on V10 | — |
+| 15001, 15002, 15004, 15005, 15008–15010, 15023, 15027, 15028, 15031, 15032, 15037–15039, 15041, 15042 | uint16 | none known | Unknown. 0 on every capture | — |
+| 15003 | uint16, W | M502 `OutPw` | Inferred. Equal to 15502 (PV total) in the same read: 800 = 800 (V12, 10-20), 200 = 200 (10-31). 5300 on 11-03 (no SunSpec read). V10: 0 | No: same value |
+| 15006–15007 | int32 pair, sign unknown | none known | Unknown. −161 (10-20), −233 (10-31), −594 (11-03); V10 15007 = 257 | — |
+| 15011 | uint16, W | none (SunSpec has no home load point) | Inferred: home load. Equal to 15506 and 16000 (195, V12 10-20); 198 vs 189/190 in separate reads (10-31). 657 on 11-03 | Use 16000 (see below) |
+| 15012–15013 | int16 (15013) or int32 pair, W, negative = charging | M714 `DCW` | Inferred. −629 vs `DCW` −600 (V12 10-20, separate reads); −139 vs `DCW` −100 (snapshot); bridge report −4998 at `DCW` −5000; −4755 on 11-03. 15012 has read 65535 on every capture, so int16 and int32 give the same value so far | No: `DCW` is populated on V10 and V12 |
+| 15014–15015 | int32 pair, sign unknown | none known | Unknown. −25 (10-20), −24 (10-31), −22 (11-03); V10 15015 = 61 | — |
+| 15016 | uint16 enum | none (non-SunSpec) | Inferred: status code. 2 on-grid on every read; 6 during a WSet dispatch and 3 off-grid (V10, bridge reports); 1 for ~2 min after the aGate was unreachable (V12, bridge report). See [Alarms](ALARMS_AND_ERRORS.md) | Yes, as a vendor status. SunSpec has no equivalent |
+| 15017 | uint16 | none known | Unknown. 20 on every read, equal to 16002. An ambient-temperature lead comes from a value match only | — |
+| 15018 | uint16, W | M702 `WChaRteMaxRtg` | Inferred. 5000 = 5000 (V12 snapshot). V10: 65535 | No: same value |
+| 15019 | uint16, W | M702 `WDisChaRteMaxRtg` | Inferred. 5000 = 5000 (V12 snapshot). V10: 65535 | No: same value |
+| 15020 | uint16, Wh | M713 `WHRtg` | Inferred. 13600 = 13600 on every capture (V10 and V12) | No: same value |
+| 15021 | uint16 | none known | Unknown. 1 on every read | — |
+| 15022 | int16 | none known | Unknown. V10 5581; V12 −3, −61, −295 (10-20, 10-31, 11-03). A 705 `NPt` lead comes from a value match only | — |
+| 15024 | uint16, × 0.001, Hz | M701 `Hz` (`Hz_SF` −3, same scale) | Inferred. 49969 (V10), 50010, 50030, 50020 (V12); M701 `Hz` 49980 in the snapshot (separate read) | No: same scale |
+| 15025 | uint16, × 0.1, V | M701 `LNV` (`V_SF` −1) | Inferred. 2422 vs 2423 (V12 10-20); 2425 = 2425 (snapshot). 2424 on 11-03 | No: same scale |
+| 15026 | uint16 | none known | Unknown. 1 on every read | — |
+| 15029–15030 | uint32 pair, Wh | M701 `TotWhInj` | Inferred. 5964768 = 5964768 (V12 snapshot). 6228343 on 11-03. 15030 alone is the low word, not a voltage: 30761, 993, 18367, 2423 | No: same value |
+| 15033–15034 | uint32 pair, Wh | M701 `TotWhAbs` | Inferred. 1918874 = 1918874 (V12 snapshot). 1920716 on 11-03 | No: same value |
+| 15035 | uint16, × 0.1, % | M713 `SoC` | Inferred. 323 vs `SoC` 32.0 % (snapshot); 325 vs 33.0 % (10-20). 62.7 % on 11-03 | Not until confirmed. If it is SoC, it has 0.1 % steps where M713 `SoC` has read whole percents in these captures |
+| 15036 | uint16, × 0.1, % | M713 `SoH` | Inferred. 948 = 948 (V12 snapshot); 956 on V10 (`SoH` 95.6 % on 2026-05-14). 948 on 11-03 | No: same value |
+| 15040 | uint16 | none known | Unknown. V10 65527; V12 826 | — |
+| 15043 | uint16 | none known | Unknown. 1 on every read | — |
+
+### 15500–15513 and 16000–16002
+
+| PDU | Type, scale, units, sign | SunSpec equivalent | Status and evidence | Prefer the extension? |
+|---|---|---|---|---|
+| 15500, 15501 | uint16 flags | none (non-SunSpec) | Confirmed: PV installed (proximal, remote). Listed by FranklinWH; 15500 = 1, 15501 = 0 (V12 10-20) | Yes: no SunSpec equivalent |
+| 15502 | uint16, W | M502 `OutPw` | Confirmed. Listed by FranklinWH as total PV, all sources; 300 = 300 (V12 snapshot) | No on a site with proximal PV only. With remote PV the two may differ: untested |
+| 15503 | uint16, W | none (non-SunSpec) | Confirmed: PV proximal. Listed by FranklinWH; 300 (V12 snapshot) | Yes: SunSpec has no per-source split |
+| 15504, 15505 | uint16, W | none (non-SunSpec) | Listed by FranklinWH as PV remote 1/2. 0 on a site with no remote PV, so the values are untested | Yes: SunSpec has no per-source split |
+| 15506 | uint16, W, ~100 W steps | none (SunSpec has no home load point) | Confirmed: home load. Listed by FranklinWH; 185 = 16000 (V12 snapshot) | Use 16000 |
+| 15507 | uint16 enum | none (non-SunSpec) | Confirmed: 1 Emergency Backup, 2 Self-Consumption, 3 TOU, read with the app in each mode (V12, 2026-10-21/28) | Yes: no SunSpec equivalent |
+| 15508 | uint16, % | none (non-SunSpec) | Confirmed: Self-Consumption reserve (V10 2026-10-18; V12 2026-10-21) | Yes |
+| 15509 | uint16, % | none (non-SunSpec) | Confirmed on V12: TOU reserve (2026-10-21). On V10 it repeated 15508 (#63) | Yes, on V12 |
+| 15510–15511 | uint32 pair, Wh | M502 `OutWh` | Confirmed. Listed by FranklinWH; 15882870 = 15882870 (V12 snapshot); equal on V10 | No: same value |
+| 15512–15513 | uint32 pair, Wh | none (proximal only) | Confirmed: PV energy, proximal. Listed by FranklinWH; equal to M502 `OutWh` on a site with proximal PV only | Yes, for the per-source split |
+| 16000 | uint16, W, ~1 W | none (SunSpec has no home load point) | Confirmed: home load, ~1 W steps (V10 2026-03-15); 185 = 15506 (V12 snapshot) | Yes, over 15506: finer resolution. The library already does this |
+| 16001 | uint16, % | none (non-SunSpec) | Confirmed on V12: reserve of the active mode. 8 in Self-Consumption, 15 in TOU, 100 in Emergency Backup (2026-10-21/28) | Yes: no SunSpec equivalent |
+| 16002 | uint16, % | none (non-SunSpec) | Unknown. 20 in all three modes (V12 2026-10-21). Equal to the local API's `BBBackupSoc` (V10 2026-10-17): a value match, unconfirmed | — |
+
+**Not mapped:** 15044–15099, 15514–15599 and 16003–16099 read without exceptions but nothing is populated (V12 2026-10-20).
+
+**To upgrade inferred rows:** one read-only correlation run. Read all three blocks and the SunSpec chain in one pass, while charging, discharging and idle, 3 runs each (#132). It needs a roll call of the other clients and the owner's go.
 
 ## Reading
 
