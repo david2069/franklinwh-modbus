@@ -86,16 +86,13 @@ class VirtualModeController:
     def _read_agate_reserve_soc(self) -> int:
         """Read aGate reserve SoC from native mode registers."""
         try:
-            native = self.ctrl.read_native_mode()
-            if native:
-                ongrid_mode = native.get('mode_raw', -1)
-                if ongrid_mode in (1, 2):  # Backup or Self-Consumption
-                    return native.get('self_reserve_pct', 20)
-                elif ongrid_mode == 3:  # TOU
-                    return native.get('tou_reserve_pct', 20)
+            reserve, _ = self.ctrl.get_effective_reserve_level()
+            if reserve is not None:
+                return reserve
         except Exception as e:
             logger.debug(f"Could not read aGate reserve: {e}")
-        return 20
+        # Unknown reserve: hold the battery rather than guess low (#90)
+        return 100
     
     def set_mode(self, mode: VirtualMode, dry_run: bool = False, **kwargs):
         """Change operating mode with optional parameters.
