@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-02
+
 ### ⚠️ Breaking changes
 - `read_battery_status()`: `battery_temp_c`, `battery_current_a` and the `power_w`/`voltage_v`/`current_a`/`temp_c` values in `individual_batteries` are now `None` when the aGate doesn't report them, instead of 0. On V12R02B60D00 they are always `None`, because the aGate returns 0 for the whole M714 port block (#129). Code that does arithmetic or formatting on them must handle `None`. `individual_batteries[i].power_w` is now the port's own `DCW`; before, it was the model total. `battery_power_w` and `battery_state` are unchanged (#130).
 
@@ -261,7 +263,8 @@ Behaviour changes that can affect code built on the library:
 - CLI tool with `--status`, `--charge`, `--discharge`, `--stop`
 - Basic alarm monitoring
 
-[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/david2069/franklinwh-modbus/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/david2069/franklinwh-modbus/compare/v0.10.0...v0.10.1
