@@ -70,10 +70,15 @@ def test_extension_registers_each_have_an_entry():
     # #132: every public extension register 15000-15043 is recorded on its own
     b = load_firmware_quirks()['behaviours']
     own = {15013: 'ext_15013_battery_power', 15016: 'ext_15016_status', 15035: 'ext_15035_soc'}
+    # measured by correlation with the SunSpec chain, 2026-11-03 (#132)
+    measured = {15003, 15011, 15013, 15025, 15029, 15030, 15033, 15034, 15035}
     for a in range(15000, 15044):
         bid = own.get(a, f'ext_{a}')
         assert bid in b, a
-        assert b[bid]['mapped'] is False
+        assert b[bid]['mapped'] is (a in measured), a
+        if a in measured:
+            assert any(o.get('date') == '2026-11-03' and o['status'] == 'measured'
+                       for o in b[bid]['observations']), a
         fws = {o['firmware'] for o in b[bid]['observations']}
         assert {'V10R01B04D00', 'V12R02B60D00'} <= fws, a
     for bid, v in b.items():

@@ -640,6 +640,17 @@
           "refs": [
             "docs/SUNSPEC_SNAPSHOT_2026-10-20_V12R02B60D00.md"
           ]
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "about 1 W resolution (e.g. 67, 257, 258, 265 W); within 100 W of 16000 in 54/54 samples",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again. The ~100 W steps were measured on V10R01B04D00 (2026-03-15)."
         }
       ],
       "library_handling": {
@@ -984,15 +995,15 @@
     },
     "ext_15003": {
       "point": "Extension register 15003 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): PV power, equal to 15502 (800 = 800 on 2026-10-20; 200 = 200 on 2026-10-31).",
+      "description": "PV power (W), equal to M502 OutPw.",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -1027,6 +1038,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "equal to M502 OutPw in 54/54 samples (1700-5600 W)",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -1392,15 +1414,15 @@
     },
     "ext_15011": {
       "point": "Extension register 15011 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): home load, equal to 15506 and 16000 on 2026-10-20 (195); 198 vs 189/190 on 2026-10-31 (separate reads).",
+      "description": "Home load (W), equal to extension 16000. SunSpec has no home load point.",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -1435,6 +1457,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "equal to 16000 in 54/54 samples (67-945 W)",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -1996,6 +2029,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "49980-50030; within the bracketing reads of M701 Hz raw in only 3/54 samples, differences up to 20 raw (0.020 Hz). Close but not equal",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2004,15 +2048,15 @@
     },
     "ext_15025": {
       "point": "Extension register 15025 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): grid voltage x 10, near M701 LNV (2422 vs 2423 on 2026-10-20).",
+      "description": "Grid voltage x 10 (V), M701 LNV raw (V_SF -1).",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -2047,6 +2091,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "within the bracketing reads of M701 LNV in 48/54 samples, the rest within 2 raw (0.2 V)",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2208,15 +2263,15 @@
     },
     "ext_15029": {
       "point": "Extension register 15029 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): high word of M701 TotWhInj as uint32 with 15030 (5964768 = 5964768 on 2026-10-20).",
+      "description": "High word of M701 TotWhInj (uint32 with 15030, Wh).",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -2251,6 +2306,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15029-15030 as uint32 equal to M701 TotWhInj in 54/54 samples",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2259,15 +2325,15 @@
     },
     "ext_15030": {
       "point": "Extension register 15030 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): low word of M701 TotWhInj as uint32 with 15029.",
+      "description": "Low word of M701 TotWhInj (uint32 with 15029, Wh).",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -2302,6 +2368,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15029-15030 as uint32 equal to M701 TotWhInj in 54/54 samples",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2412,15 +2489,15 @@
     },
     "ext_15033": {
       "point": "Extension register 15033 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): high word of M701 TotWhAbs as uint32 with 15034 (1918874 = 1918874 on 2026-10-20).",
+      "description": "High word of M701 TotWhAbs (uint32 with 15034, Wh).",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -2455,6 +2532,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15033-15034 as uint32 equal to M701 TotWhAbs in 54/54 samples",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2463,15 +2551,15 @@
     },
     "ext_15034": {
       "point": "Extension register 15034 (uint16 raw)",
-      "description": "Candidate (inferred, not measured): low word of M701 TotWhAbs as uint32 with 15033.",
+      "description": "Low word of M701 TotWhAbs (uint32 with 15033, Wh).",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -2506,6 +2594,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "15033-15034 as uint32 equal to M701 TotWhAbs in 54/54 samples",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
@@ -2718,7 +2817,7 @@
     },
     "ext_15040": {
       "point": "Extension register 15040 (uint16 raw)",
-      "description": "Meaning unknown: 65527 on V10, 826 on V12.",
+      "description": "Lead only: moves with PV power (M502 OutPw) but is not equal to it (2026-11-03).",
       "our_assessment": {
         "value": "undocumented",
         "basis": "Not documented publicly by FranklinWH; one site's readings."
@@ -2750,6 +2849,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "franklinwh-modbus re-scan 20:17:37Z, sole client."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "1704-5594; moves with M502 OutPw (r = 1.00) but not equal (median 36 W, up to 105 W apart). Lead: a second PV power measurement",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again. Correlation only: a lead, not a meaning."
         }
       ],
       "library_handling": {
@@ -2904,10 +3014,10 @@
     },
     "ext_15013_battery_power": {
       "point": "Extension register 15013 (int16, W)",
-      "description": "Battery power at about 1 W resolution; M714 DCW gives 100 W steps.",
+      "description": "Battery power (int16, W), negative = charging. Tracks M714 DCW at about 1 W resolution; DCW moves in 100 W steps. 15012 reads 65535 alongside it.",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
@@ -2957,13 +3067,24 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "tracks M714 DCW: within -154..+46 W, median 10 W, in 54/54 samples, all charging (-1446 to -4740 W). Positive (discharging) values not yet seen in this run",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by this library.",
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
       },
-      "mapped": false
+      "mapped": true
     },
     "ext_15016_status": {
       "point": "Extension register 15016 (uint16)",
@@ -3053,10 +3174,10 @@
     },
     "ext_15035_soc": {
       "point": "Extension register 15035 (uint16)",
-      "description": "State of charge x10.",
+      "description": "State of charge x 10 (%), 0.1 % steps; M713 SoC reads whole percents.",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
       },
       "vendor_position": {
         "value": "unknown"
@@ -3107,13 +3228,24 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "tracks M713 SoC x 10 within +-5 in 54/54 samples (752-775)",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
         }
       ],
       "library_handling": {
         "franklinwh-modbus": "Not read by this library.",
         "franklinwh-modbus-bridge": "Read every poll as a raw, unconfirmed point."
       },
-      "mapped": false
+      "mapped": true
     },
     "m701_mnalrminfo": {
       "point": "M701 MnAlrmInfo (PDU 193, string, 16 registers)",
