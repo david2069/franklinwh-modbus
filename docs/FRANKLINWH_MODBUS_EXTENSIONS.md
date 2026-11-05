@@ -19,7 +19,7 @@ Besides the SunSpec models, the aGate's **Modbus TCP Server (aGate :502)** has *
 | 15503 | — | R | uint16, W | PV proximal | `…['pv_proximal']` | Documented |
 | 15504 | — | R | uint16, W | PV remote 1 | `…['pv_remote1']` | Documented |
 | 15505 | — | R | uint16, W | PV remote 2 | `…['pv_remote2']` | Documented |
-| 15506 | LoadActiveP | R | uint16, W (~100 W steps) | Home load | `…['home_load_ext_quantized']` | Documented; measured 2026-03-15 |
+| 15506 | LoadActiveP | R | uint16, W (~100 W steps on V10R01B04D00; ~1 W on V12R02B60D00) | Home load | `…['home_load_ext_quantized']` | Documented; measured 2026-03-15 (V10), 2026-11-03 (V12) |
 | 15507 | OnGridMode | R (writes undocumented) | uint16 enum | Operating mode | `read_native_mode()['mode_raw']`, `['mode_name']`; written by `set_native_mode()` | Measured 2026-10-21/22, V12R02B60D00 (1, 2, 3); see below |
 | 15508 | SelfReserve | R (writes undocumented) | uint16, % | Self-consumption SoC reserve | `read_native_mode()['self_reserve_pct']`; `set_self_consumption_reserve()` | Measured 2026-10-18, V10R01B04D00 |
 | 15509 | TouReserve | R (writes undocumented) | uint16, % | TOU SoC reserve. **On V12R02B60D00 it holds the TOU reserve** (15 vs SC 8, matching the app). On V10R01B04D00 it repeated 15508 | `read_native_mode()['tou_reserve_pct']`; `set_tou_reserve()` | Measured 2026-10-20/21, V12R02B60D00; the defect measured 2026-10-18, V10R01B04D00 (#63) |
@@ -41,7 +41,7 @@ Raw uint16 values from one site (#132). V10R01B04D00: the undated scan in the [E
 | 15000 | 0 | 1 | 1 | Meaning unknown: 1 on V12, 0 on V10. |
 | 15001 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15002 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
-| 15003 | 0 | 800 | 200 | Candidate: PV power, equal to 15502 (800 = 800 on 2026-10-20; 200 = 200 on 2026-10-31). |
+| 15003 | 0 | 800 | 200 | Confirmed 2026-11-03: PV power, equal to M502 `OutPw`. |
 | 15004 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15005 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15006 | 0 | 65535 | 65535 | Meaning unknown: high word of a signed pair with 15007 (65535 on V12). |
@@ -49,9 +49,9 @@ Raw uint16 values from one site (#132). V10R01B04D00: the undated scan in the [E
 | 15008 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15009 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15010 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
-| 15011 | 583 | 195 | 198 | Candidate: home load, equal to 15506 and 16000 on 2026-10-20 (195); 198 vs 189/190 on 2026-10-31 (separate reads). |
-| 15012 | 65535 | 65535 | 65535 | Candidate: high word of a signed 32-bit battery power with 15013: -629 vs M714 DCW -600 on 2026-10-20. |
-| 15013 | 60538 | 64907 | 65507 | Candidate: low word of a signed 32-bit battery power with 15012 (−629 vs M714 DCW −600, 2026-10-20); bridge #345 saw −4998 at DCW −5000 |
+| 15011 | 583 | 195 | 198 | Confirmed 2026-11-03: home load, equal to 16000. |
+| 15012 | 65535 | 65535 | 65535 | Read 65535 throughout the 2026-11-03 run (charging). Whether it is the high word of a 32-bit value with 15013 is still open. |
+| 15013 | 60538 | 64907 | 65507 | Confirmed 2026-11-03: battery power, int16, negative = charging; tracks M714 `DCW` at ~1 W. |
 | 15014 | 0 | 65535 | 65535 | Meaning unknown: high word of a signed pair with 15015 (65535 on V12). |
 | 15015 | 61 | 65511 | 65512 | Meaning unknown: low word of a signed pair with 15014 (-25 on 2026-10-20, -24 on 2026-10-31). |
 | 15016 | 2 | 2 | 2 | Candidate: status code. 2 on-grid on every read; 6 during a WSet dispatch, 3 off-grid (V10, bridge reports) |
@@ -63,27 +63,27 @@ Raw uint16 values from one site (#132). V10R01B04D00: the undated scan in the [E
 | 15022 | 5581 | 65533 | 65475 | Meaning unknown: varies (5581 on V10; 65533, 65475 on V12). |
 | 15023 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15024 | 49969 | 50010 | 50030 | Candidate: grid frequency x 1000 (49969, 50010, 50030). |
-| 15025 | 2380 | 2422 | 2416 | Candidate: grid voltage x 10, near M701 LNV (2422 vs 2423 on 2026-10-20). |
+| 15025 | 2380 | 2422 | 2416 | Confirmed 2026-11-03: grid voltage × 10, M701 `LNV`. |
 | 15026 | 1 | 1 | 1 | Meaning unknown: 1 on every read. |
 | 15027 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15028 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
-| 15029 | 70 | 91 | 94 | Candidate: high word of M701 TotWhInj as uint32 with 15030 (5964768 = 5964768 on 2026-10-20). |
-| 15030 | 30761 | 993 | 18367 | Candidate: low word of M701 TotWhInj as uint32 with 15029. |
+| 15029 | 70 | 91 | 94 | Confirmed 2026-11-03: high word of M701 `TotWhInj` (uint32 with 15030). |
+| 15030 | 30761 | 993 | 18367 | Confirmed 2026-11-03: low word of M701 `TotWhInj`. |
 | 15031 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15032 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
-| 15033 | 22 | 29 | 29 | Candidate: high word of M701 TotWhAbs as uint32 with 15034 (1918874 = 1918874 on 2026-10-20). |
-| 15034 | 22637 | 18330 | 19910 | Candidate: low word of M701 TotWhAbs as uint32 with 15033. |
-| 15035 | 268 | 325 | 994 | Candidate: SoC × 10 (325 vs M713 SoC 33.0 %, 2026-10-20) |
+| 15033 | 22 | 29 | 29 | Confirmed 2026-11-03: high word of M701 `TotWhAbs` (uint32 with 15034). |
+| 15034 | 22637 | 18330 | 19910 | Confirmed 2026-11-03: low word of M701 `TotWhAbs`. |
+| 15035 | 268 | 325 | 994 | Confirmed 2026-11-03: SoC × 10, 0.1 % steps. |
 | 15036 | 956 | 948 | 948 | Candidate: M713 SoH raw (948 = 948 on 2026-10-20). |
 | 15037 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15038 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
 | 15039 | 0 | 0 | 0 | Meaning unknown; read 0 on every capture. |
-| 15040 | 65527 | 826 | — | Meaning unknown: 65527 on V10, 826 on V12. |
+| 15040 | 65527 | 826 | — | Lead 2026-11-03: moves with PV power but not equal to it; meaning unknown. |
 | 15041 | 0 | 0 | — | Meaning unknown; read 0 on every capture. |
 | 15042 | 0 | 0 | — | Meaning unknown; read 0 on every capture. |
 | 15043 | 1 | 1 | — | Meaning unknown: 1 on every read. |
 
-The 15000–15043 rows become measured only after a read-only correlation run (all three blocks and the SunSpec chain in one pass, charging, discharging and idle, 3 runs each; #132).
+A read-only correlation run on 2026-11-03 (charging, 54 samples) confirmed 15003, 15011, 15013, 15025, 15029–15030, 15033–15034 and 15035; see the [mapping](#extension-sunspec-mapping). The rest stay candidate or unknown (#132).
 
 ### 15507 operating mode values
 
@@ -112,10 +112,10 @@ Captures: V10 = V10R01B04D00, undated scan ([Extensions Manifest](FRANKLINWH_EXT
 |---|---|---|---|---|
 | 15000 | uint16 | none (non-SunSpec) | Unknown. 1 on V12 (10-20, 10-31, 11-03), 0 on V10 | — |
 | 15001, 15002, 15004, 15005, 15008–15010, 15023, 15027, 15028, 15031, 15032, 15037–15039, 15041, 15042 | uint16 | none known | Unknown. 0 on every capture | — |
-| 15003 | uint16, W | M502 `OutPw` | Inferred. Equal to 15502 (PV total) in the same read: 800 = 800 (V12, 10-20), 200 = 200 (10-31). 5300 on 11-03 (no SunSpec read). V10: 0 | No: same value |
+| 15003 | uint16, W | M502 `OutPw` | **Confirmed.** Equal to `OutPw` in 54/54 samples, 1700–5600 W, while charging ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). Earlier: equal to 15502 (10-20, 10-31) | No: same value |
 | 15006–15007 | int32 pair, sign unknown | none known | Unknown. −161 (10-20), −233 (10-31), −594 (11-03); V10 15007 = 257 | — |
-| 15011 | uint16, W | none (SunSpec has no home load point) | Inferred: home load. Equal to 15506 and 16000 (195, V12 10-20); 198 vs 189/190 in separate reads (10-31). 657 on 11-03 | Use 16000 (see below) |
-| 15012–15013 | int16 (15013) or int32 pair, W, negative = charging | M714 `DCW` | Inferred. −629 vs `DCW` −600 (V12 10-20, separate reads); −139 vs `DCW` −100 (snapshot); bridge report −4998 at `DCW` −5000; −4755 on 11-03. 15012 has read 65535 on every capture, so int16 and int32 give the same value so far | No: `DCW` is populated on V10 and V12 |
+| 15011 | uint16, W | none (SunSpec has no home load point) | **Confirmed:** home load. Equal to 16000 in 54/54 samples, 67–945 W ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)) | Use 16000 (same value) |
+| 15012–15013 | int16 (15013), W, negative = charging | M714 `DCW` | **Confirmed while charging:** tracks `DCW` in 54/54 samples, −1446 to −4740 W, within −154..+46 W (median 10 W); `DCW` moves in 100 W steps ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). 15012 read 65535 throughout, so int16 vs int32 is still open. Positive (discharging) values: bridge report +500 at `DCW` +500, not yet in a run of ours | Yes, for resolution: about 1 W vs `DCW`'s 100 W steps |
 | 15014–15015 | int32 pair, sign unknown | none known | Unknown. −25 (10-20), −24 (10-31), −22 (11-03); V10 15015 = 61 | — |
 | 15016 | uint16 enum | none (non-SunSpec) | Inferred: status code. 2 on-grid on every read; 6 during a WSet dispatch and 3 off-grid (V10, bridge reports); 1 for ~2 min after the aGate was unreachable (V12, bridge report). See [Alarms](ALARMS_AND_ERRORS.md) | Yes, as a vendor status. SunSpec has no equivalent |
 | 15017 | uint16 | none known | Unknown. 20 on every read, equal to 16002. An ambient-temperature lead comes from a value match only | — |
@@ -124,14 +124,14 @@ Captures: V10 = V10R01B04D00, undated scan ([Extensions Manifest](FRANKLINWH_EXT
 | 15020 | uint16, Wh | M713 `WHRtg` | Inferred. 13600 = 13600 on every capture (V10 and V12) | No: same value |
 | 15021 | uint16 | none known | Unknown. 1 on every read | — |
 | 15022 | int16 | none known | Unknown. V10 5581; V12 −3, −61, −295 (10-20, 10-31, 11-03). A 705 `NPt` lead comes from a value match only | — |
-| 15024 | uint16, × 0.001, Hz | M701 `Hz` (`Hz_SF` −3, same scale) | Inferred. 49969 (V10), 50010, 50030, 50020 (V12); M701 `Hz` 49980 in the snapshot (separate read) | No: same scale |
-| 15025 | uint16, × 0.1, V | M701 `LNV` (`V_SF` −1) | Inferred. 2422 vs 2423 (V12 10-20); 2425 = 2425 (snapshot). 2424 on 11-03 | No: same scale |
+| 15024 | uint16, × 0.001, Hz | M701 `Hz` (`Hz_SF` −3, same scale) | Inferred. Close to `Hz` but not equal: within the bracketing reads in only 3/54 samples, up to 0.020 Hz apart ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). Possibly a different measurement or averaging | No |
+| 15025 | uint16, × 0.1, V | M701 `LNV` (`V_SF` −1) | **Confirmed.** Equal to `LNV` raw in 48/54 samples, the rest within 0.2 V ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)) | No: same scale |
 | 15026 | uint16 | none known | Unknown. 1 on every read | — |
-| 15029–15030 | uint32 pair, Wh | M701 `TotWhInj` | Inferred. 5964768 = 5964768 (V12 snapshot). 6228343 on 11-03. 15030 alone is the low word, not a voltage: 30761, 993, 18367, 2423 | No: same value |
-| 15033–15034 | uint32 pair, Wh | M701 `TotWhAbs` | Inferred. 1918874 = 1918874 (V12 snapshot). 1920716 on 11-03 | No: same value |
-| 15035 | uint16, × 0.1, % | M713 `SoC` | Inferred. 323 vs `SoC` 32.0 % (snapshot); 325 vs 33.0 % (10-20). 62.7 % on 11-03 | Not until confirmed. If it is SoC, it has 0.1 % steps where M713 `SoC` has read whole percents in these captures |
+| 15029–15030 | uint32 pair, Wh | M701 `TotWhInj` | **Confirmed.** Equal in 54/54 samples ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)); also 5964768 = 5964768 (V12 snapshot). 15030 alone is the low word, not a voltage | No: same value |
+| 15033–15034 | uint32 pair, Wh | M701 `TotWhAbs` | **Confirmed.** Equal in 54/54 samples ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)); also 1918874 = 1918874 (V12 snapshot) | No: same value |
+| 15035 | uint16, × 0.1, % | M713 `SoC` | **Confirmed.** Tracks `SoC` × 10 within ±5 in 54/54 samples, 75.2–77.5 % ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). `SoC` reads whole percents | Yes, for resolution: 0.1 % steps |
 | 15036 | uint16, × 0.1, % | M713 `SoH` | Inferred. 948 = 948 (V12 snapshot); 956 on V10 (`SoH` 95.6 % on 2026-05-14). 948 on 11-03 | No: same value |
-| 15040 | uint16 | none known | Unknown. V10 65527; V12 826 | — |
+| 15040 | uint16, W (lead) | none known | Unknown. Lead: moves with M502 `OutPw` (r = 1.00, 1704–5594 W) but is not equal to it (median 36 W, up to 105 W apart) ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). Possibly a second PV power measurement. V10 65527 | — |
 | 15043 | uint16 | none known | Unknown. 1 on every read | — |
 
 ### 15500–15513 and 16000–16002
@@ -142,7 +142,7 @@ Captures: V10 = V10R01B04D00, undated scan ([Extensions Manifest](FRANKLINWH_EXT
 | 15502 | uint16, W | M502 `OutPw` | Confirmed. Listed by FranklinWH as total PV, all sources; 300 = 300 (V12 snapshot) | No on a site with proximal PV only. With remote PV the two may differ: untested |
 | 15503 | uint16, W | none (non-SunSpec) | Confirmed: PV proximal. Listed by FranklinWH; 300 (V12 snapshot) | Yes: SunSpec has no per-source split |
 | 15504, 15505 | uint16, W | none (non-SunSpec) | Listed by FranklinWH as PV remote 1/2. 0 on a site with no remote PV, so the values are untested | Yes: SunSpec has no per-source split |
-| 15506 | uint16, W, ~100 W steps | none (SunSpec has no home load point) | Confirmed: home load. Listed by FranklinWH; 185 = 16000 (V12 snapshot) | Use 16000 |
+| 15506 | uint16, W | none (SunSpec has no home load point) | Confirmed: home load. Listed by FranklinWH; 185 = 16000 (V12 snapshot); within 100 W of 16000 in 54/54 samples ([run 2026-11-03](https://github.com/david2069/franklinwh-modbus/issues/132)). Resolution: ~100 W steps on V10 (2026-03-15), ~1 W on V12 (2026-11-03) | Use 16000 |
 | 15507 | uint16 enum | none (non-SunSpec) | Confirmed: 1 Emergency Backup, 2 Self-Consumption, 3 TOU, read with the app in each mode (V12, 2026-10-21/28) | Yes: no SunSpec equivalent |
 | 15508 | uint16, % | none (non-SunSpec) | Confirmed: Self-Consumption reserve (V10 2026-10-18; V12 2026-10-21) | Yes |
 | 15509 | uint16, % | none (non-SunSpec) | Confirmed on V12: TOU reserve (2026-10-21). On V10 it repeated 15508 (#63) | Yes, on V12 |
@@ -154,7 +154,7 @@ Captures: V10 = V10R01B04D00, undated scan ([Extensions Manifest](FRANKLINWH_EXT
 
 **Not mapped:** 15044–15099, 15514–15599 and 16003–16099 read without exceptions but nothing is populated (V12 2026-10-20).
 
-**To upgrade inferred rows:** one read-only correlation run. Read all three blocks and the SunSpec chain in one pass, while charging, discharging and idle, 3 runs each (#132). It needs a roll call of the other clients and the owner's go.
+**Correlation run 2026-11-03 (V12R02B60D00, one site):** read-only, sole client, 3 runs × 18 samples while charging. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again. Positive controls 15510–15511 = M502 `OutWh` and 15502 = M502 `OutPw` passed. 16000 ≈ 15506 passed once the check compared both bracketing reads; it was changed after the run because 15506 updated mid-pass in 1 sample. Still open: 15013 while discharging, the unknown signed pairs (15006–15007, 15014–15015, 15022), 15040, and whether 15024 is the same frequency measurement (#132).
 
 ## Reading
 
