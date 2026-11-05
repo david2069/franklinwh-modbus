@@ -1,8 +1,15 @@
 # franklinwh-modbus
 
+[![PyPI](https://img.shields.io/pypi/v/franklinwh-modbus)](https://pypi.org/project/franklinwh-modbus/)
+[![Release](https://img.shields.io/github/v/release/david2069/franklinwh-modbus)](https://github.com/david2069/franklinwh-modbus/releases)
+[![Tests](https://github.com/david2069/franklinwh-modbus/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/david2069/franklinwh-modbus/actions/workflows/test.yml)
+[![Deploy Docs](https://github.com/david2069/franklinwh-modbus/actions/workflows/docs.yml/badge.svg)](https://github.com/david2069/franklinwh-modbus/actions/workflows/docs.yml)
+[![Publish to PyPI](https://github.com/david2069/franklinwh-modbus/actions/workflows/publish.yml/badge.svg)](https://github.com/david2069/franklinwh-modbus/actions/workflows/publish.yml)
+[![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fdavid2069%2Ffranklinwh-modbus%2Fdevelop%2Fpyproject.toml)](https://github.com/david2069/franklinwh-modbus/blob/develop/pyproject.toml)
+[![License](https://img.shields.io/github/license/david2069/franklinwh-modbus)](LICENSE)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/david2069/franklinwh-modbus)](https://github.com/david2069/franklinwh-modbus/commits/develop)
 [![Modbus TCP](https://img.shields.io/badge/modbus-tcp-orange.svg)](https://modbus.org)
 [![SunSpec](https://img.shields.io/badge/sunspec-2.0-yellow.svg)](https://sunspec.org)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://python.org)
 
 A Python library for controlling FranklinWH battery storage systems via Modbus TCP, optimized for the aGate gateway with SunSpec model support and FranklinWH extension registers.
 
