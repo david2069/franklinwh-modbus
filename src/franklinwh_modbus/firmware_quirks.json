@@ -1202,6 +1202,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "high word 65535 by day (pair -268..-7 while charging, 2026-11-03); pair +268..+270 after dark",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -1253,6 +1264,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "pair with 15006: -268..-7 while charging (2026-11-03), +268..+270 after dark; no SunSpec match",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -1570,6 +1592,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "pair with 15015: -529..-420 after dark",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -1621,6 +1654,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "pair with 15014: -135..302 while charging (2026-11-03, no match); -529..-420 after dark, moving with M701 Var (r = -0.98, small range; lead only)",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -1927,6 +1971,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "int16 -342..520 while charging (2026-11-03), -13..11 after dark; no SunSpec match",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -2817,7 +2872,7 @@
     },
     "ext_15040": {
       "point": "Extension register 15040 (uint16 raw)",
-      "description": "Lead only: moves with PV power (M502 OutPw) but is not equal to it (2026-11-03).",
+      "description": "Inferred: PV power (int16, W) as Direct Connect reports it; reads slightly negative after dark.",
       "our_assessment": {
         "value": "undocumented",
         "basis": "Not documented publicly by FranklinWH; one site's readings."
@@ -2860,6 +2915,28 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again. Correlation only: a lead, not a meaning."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "equal to the Direct Connect bridge's solar_w (median 1 W apart, 13/17 within 50 W) while M502 OutPw read ~59 W lower",
+          "status": "measured",
+          "date": "2026-11-03",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Direct Connect bridge metrics (30 s), paired within 5 s with the 2026-11-03 run."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "-9..-8 as int16 after dark while M502 OutPw and 15003 read 0",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -3014,7 +3091,7 @@
     },
     "ext_15013_battery_power": {
       "point": "Extension register 15013 (int16, W)",
-      "description": "Battery power (int16, W), negative = charging. Tracks M714 DCW at about 1 W resolution; DCW moves in 100 W steps. 15012 reads 65535 alongside it.",
+      "description": "Battery power (int16, W): positive = discharging, negative = charging. Tracks M714 DCW at about 1 W resolution; DCW moves in 100 W steps. 15012 reads 65535 alongside it.",
       "our_assessment": {
         "value": "undocumented",
         "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-03)."
@@ -3078,6 +3155,28 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "positive in 28,320/28,320 discharging samples (battery_dc_power_w > +100 W), within 100 W of it in 99.9 %",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Modbus bridge point history (HA Live), 10 s samples, 2026-10-30 09:01 to 2026-11-06 09:01 UTC, exported read-only. Charging samples were missing from the history because of a bridge defect (fixed in david2069/franklinwh-modbus-bridge#457)."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "+240..+256 while M714 DCW read +200..+300 (54/54 same sign)",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
         }
       ],
       "library_handling": {
@@ -3088,7 +3187,7 @@
     },
     "ext_15016_status": {
       "point": "Extension register 15016 (uint16)",
-      "description": "Status code; meaning unmapped.",
+      "description": "Operating status code: 2 normal; 6 during a dispatch (battery discharging to the grid); 3 likely off-grid; 1 likely start-up or unreachable.",
       "our_assessment": {
         "value": "undocumented",
         "basis": "Not documented publicly by FranklinWH; meaning comes from one site's readings."
@@ -3164,6 +3263,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Owner read; 15000-15039 in one request."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "2 in 53,708 samples (normal); 6 in 2,482 (battery ~4.9 kW discharge, grid ~-4.8 kW export: a dispatch); 3 in 631 (grid 0 W, battery supplying the home: likely off-grid); 1 in 12 (all values 0: likely start-up or unreachable)",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Modbus bridge point history (HA Live), 10 s samples, 2026-10-30 09:01 to 2026-11-06 09:01 UTC, exported read-only. Meanings inferred from the other points in the same samples."
         }
       ],
       "library_handling": {
@@ -3239,6 +3349,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Correlation run window 1: read-only, sole client, 3 runs x 18 samples, charging (M714 DCW -1400 to -4700 W), 11:14-11:24 AEDT. Each sample read the extension blocks, the SunSpec chain, then the extension blocks again."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "within 1 % of the bridge's SoC in 56,835/56,835 samples, range 0..1000",
+          "status": "measured",
+          "date": "2026-11-06",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Modbus bridge point history (HA Live), 10 s samples, 2026-10-30 09:01 to 2026-11-06 09:01 UTC, exported read-only."
         }
       ],
       "library_handling": {
