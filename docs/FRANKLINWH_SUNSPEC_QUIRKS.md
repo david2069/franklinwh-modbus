@@ -141,6 +141,30 @@ elif der_mode_raw & (1 << 0):
 
 ---
 
+## Model 705 - Volt-Var
+
+### Curve Point Voltages Are in Volts, Not VNomPct
+**Status:** ✅ **Observed on V10R01B04D00 and V12R02B60D00** ([#146](https://github.com/david2069/franklinwh-modbus/issues/146))
+
+The SunSpec model defines `Crv[n].Pt[n].V` as a percent of nominal voltage (`VNomPct`). The aGate puts volts there instead. A client that follows the model shows "207 %".
+
+| Point (curves 1–3) | Raw | V_SF | Scaled | Meaning |
+|---|---|---|---|---|
+| `Pt[1].V` | 20700 | −2 | 207 | 207 V |
+| `Pt[2].V` | 22000 | −2 | 220 | 220 V |
+| `Pt[3].V` | 24000 | −2 | 240 | 240 V |
+| `Pt[4].V` | 25800 | −2 | 258 | 258 V |
+
+- These are the Australian volt-var points (AS/NZS 4777.2).
+- Only the `V` points are affected. `VRef` and `VRefAuto` read 10000 (100 %), and `Var` reads 44 / 0 / 0 / −60 %, both in percent as the model says.
+- Both firmwares gave the same values: `Ena` 1, `NPt` 4, curves 1–3 identical.
+
+**Evidence:** V10R01B04D00, read-only scan of 2026-10-07 (franklinwh-gateway-emulator `tests/data/reference_scan_static_2026-10-07.json`, commit 32a7af7). V12R02B60D00, read-only capture of 2026-11-17 (`1.Vr` = V12R02B60D00).
+
+**Library:** doesn't read model 705. Clients that decode it should treat these points as volts on both firmwares.
+
+---
+
 ## Extension Registers
 
 The FranklinWH extension registers (15000–15043, 15500–15513, 16000–16002), with access, units, library accessors and evidence, are listed in one place: **[FranklinWH Extension Registers](FRANKLINWH_MODBUS_EXTENSIONS.md)**.
