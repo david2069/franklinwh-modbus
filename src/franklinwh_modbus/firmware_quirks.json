@@ -1928,15 +1928,15 @@
     },
     "ext_15022": {
       "point": "Extension register 15022 (uint16 raw)",
-      "description": "Meaning unknown: varies (5581 on V10; 65533, 65475 on V12).",
+      "description": "Inverter AC power (W, int16), equal to M701 W.",
       "our_assessment": {
         "value": "undocumented",
-        "basis": "Not documented publicly by FranklinWH; one site's readings."
+        "basis": "Not documented publicly by FranklinWH; meaning measured on one site by correlation with the SunSpec chain (2026-11-17)."
       },
       "vendor_position": {
         "value": "unknown"
       },
-      "mapped": false,
+      "mapped": true,
       "observations": [
         {
           "firmware": "V10R01B04D00",
@@ -1982,6 +1982,17 @@
             "david2069/franklinwh-modbus#132"
           ],
           "note": "Evening run 2026-11-06: read-only, 3 runs x 18 samples after dark (M714 DCW +200..+300 W, PV 0); other Modbus clients left running at the owner's call, all reads succeeded, positive controls passed."
+        },
+        {
+          "firmware": "V12R02B60D00",
+          "value": "int16 -4864..-4828, within 15 W of M701 W in 18/18 samples (M714 DCW +4900, discharging)",
+          "status": "measured",
+          "date": "2026-11-17",
+          "site_count": 1,
+          "refs": [
+            "david2069/franklinwh-modbus#132"
+          ],
+          "note": "Correlation run: read-only, 3 runs x 18 samples (discharging, idle, charging from PV); other Modbus clients not paused, all reads succeeded. Near 0 W, within 10 W of M701 W in 67/72 reads."
         }
       ],
       "library_handling": {
