@@ -18,19 +18,25 @@ In the absence of vendor-specific Modbus documentation from FranklinWH, this imp
 
 | Standard | Version | Role in this Project |
 |:---|:---|:---|
-| **SunSpec Information Model** | v1.1 | Defines the "SunS" marker (0x53756E53) at a well-known starting PDU address (0, 40000 or 50000), the model chain, and Scale Factor math. |
-| **SunSpec DER Control (704)** | v1.0 | Defines the M704 register map, `WSetEna` master triggers, and `WSetMod` behaviors. |
-| **SunSpec Device Info (1)** | v1.1 | Defines the Common Model (Manufacturer, Version, Serial Number). |
+| **SunSpec Information Model Specification (#12041)** | v1.9 (its page headers read "Information Model Overview - Version 1.8") | Defines the "SunS" marker (0x53756E53) at a well-known base address, the model chain, scale factors, and error handling (pp. 16–21). |
+| **SunSpec DER Information Model Specification** | v1.2 | Defines enable and reversion behaviour (§3.2–3.3, pp. 12–14) and Models 701–714, including M704 DER AC Controls (§4.4, pp. 40–46). |
+| **SunSpec model definitions** | as bundled with pysunspec2 1.3.6 | Point names, types and descriptions, including the Common Model (1) and M704. |
 | **MODBUS Application Protocol Specification** | V1.1b3 (2012-04-26) | **Source of truth for Modbus addressing and naming:** 0-based PDU addresses, holding registers, FC03 (Read), FC06 (Write Single), FC16 (Write Multiple). Published at modbus.org/specifications. |
 | **MODBUS Messaging on TCP/IP Implementation Guide** | V1.0b (2006-10-24) | Modbus TCP framing (MBAP header, unit identifier). Published at modbus.org/specifications. |
 
 ## 2. The 6-Phase Sequencing Basis (The "Why")
 
-While the SunSpec 704 specification defines register *meaning*, the **SunSpec 2 State Machine** and implementer guides (e.g., *SunSpec Device Integration Guide*) mandate a specific orchestration to ensure safety and atomicity.
+The SunSpec documents define what each register means. The order of writes comes from #12041's multi-write procedure (§5 below).
 
-### Basis: The "Atomic Trigger" Requirement
-**Citation**: *SunSpec 704, Section 3.1.1 (Enable Control)*
-> "The Enable register (`*Ena`) must be used to activate a control group. The DER must not react to changes in setpoint registers until the Enable register is transitioned from 0 to 1."
+### Basis: Write the Settings, Then the Enable
+**Citation**: *#12041 v1.9, Procedures for Multi-Write Operations, p. 21*
+> "Enable Procedure: 1. All settings are written 2. The activation field is enabled"
+
+**Changing a setpoint while enabled.** The two SunSpec documents differ here:
+- #12041 v1.9, p. 21: "Changes do NOT take effect, even if the activation field is already enabled, until the activation field is enabled."
+- DER Information Model v1.2, §3.3 Modbus Enable, p. 14: "If an enable is set to 1, any changes to the corresponding settings will be applied to the DER. Rewriting the enable is not required for the changes to be applied."
+
+For Models 701–714 the library follows the DER Information Model (§3.3), the more specific document. The aGate behaves that way on V12R02B60D00: a setpoint changed while enabled takes effect without rewriting `WSetEna` (`SUNSPEC_M704_V12_CONFORMANCE_RESULTS.md`, c1).
 
 **Implementation in our Sequencer**:
 To prevent "Ghost Ramps" or invalid power spikes, our sequencer follows this mandatory sequence:
@@ -38,24 +44,20 @@ To prevent "Ghost Ramps" or invalid power spikes, our sequencer follows this man
 2.  **Phase 4 (Write Enable)**: We write `WSetEna=1` as a separate, final Modbus transaction.
 *   *Why*: If we wrote `WSetEna=1` first, the hardware might attempt to discharge at the *previous* or *default* value before our new setpoint arrives.
 
-### Basis: PDU Addressing (The Discovery Paradox)
-**Citation**: *SunSpec Information Model, Section 4.2 (Discovery)*
-> "The SunSpec identifier (0x5375, 0x6e53) must be located at the base address + 0. For Modbus TCP, the base address is commonly 40,000."
+### Basis: Discovery at the Base Addresses
+**Citation**: *#12041 v1.9, Modbus Register Mappings, p. 16*
+> "All SunSpec device maps begin at one of the well-known base addresses and start with the well-known 32-bit 'SunS' identifier (0x53756e53). This allows for discovery of SunSpec compatible devices. If the base register does not return this value, the alternate base registers are checked. If this test fails, the device is not SunSpec compatible."
 
-**Implementation**: 
-Our `modbus_sunspec2_reader.py` follows this discovery basis. If the "SunS" marker is not found at 40000, the device is considered non-compliant. The "Addressing Paradox" we documented is the bridge between this official SunSpec 40000 block and FranklinWH's proprietary 15500 block.
+**Implementation**: the library looks for "SunS" at the preferred and alternate base addresses (§6). The aGate's map starts at PDU 0, an alternate base, which is compliant. The extension registers (15000+, 15500+, 16000+) are outside the SunSpec map.
 
 ## 3. Scale Factor Formula Basis
 
-**Citation**: *SunSpec Information Model, Section 3.3.2 (Scaled Integer)*
-> "Scaled integers are represented by a base value and a scale factor (SF). The physical value is calculated as: `Value = Base * 10^SF`."
+**Citation**: *#12041 v1.9, Scale Factors, p. 16*
+> "The scale factor explicitly shifts the decimal point to the left (negative value) or the right (positive value)."
 
-**Validation**:
-If `WMaxRtg` is 10,000 and we want to charge at 500W:
--   `WSetPct` requires a percentage.
--   M704 `WSetPct_SF` is -2.
--   Target % = 5.00%.
--   Raw register write = `500` (since $500 \times 10^{-2} = 5.00$).
+So the physical value is the raw value × 10^SF. The same page gives the `sunssf` range as −10 … 10, and says "If a value is implemented and has an associated scale factor, the scale factor must also be implemented."
+
+**Example on the aGate**: `WMaxRtg` (M702) is 5000 W and M704 `WSetPct_SF` is −1 on both firmwares. A 500 W discharge is 10.0 %, written as raw `100` (100 × 10^−1 = 10.0).
 
 ## 4. Hardware Violation Classification
 
@@ -67,10 +69,10 @@ When our test (following the basis above) returns a failure, we classify it as a
 
 ## 5. Multi-Write Operations (Official Procedures)
 
-**Source**: *SunSpec Alliance Interoperability Specification — Information Model Specification (#12041), v1.9*
+**Source**: *SunSpec Information Model Specification (#12041), v1.9, pp. 19–21*
 
-### Procedures for Multi-Write Operations
-> "For operations that require multiple writes (e.g. set operating parameters and then enable), the following procedure is recommended. It is not recommended to disable the control to update the settings."
+### Procedures for Multi-Write Operations (p. 21)
+> "For operations that require multiple writes (e.g. set operating parameters and then enable), the procedure is recommended. It is not recommended to disable the control to update the settings."
 
 #### Enable Procedure:
 1.  **All settings are written**
@@ -80,17 +82,20 @@ When our test (following the basis above) returns a failure, we classify it as a
 1.  **Changed settings are written.** Changes do NOT take effect, even if the activation field is already enabled, until the activation field is enabled.
 2.  **The activation field is enabled.**
 
+For Models 701–714, the DER Information Model v1.2 §3.3 says the opposite for changes while enabled (see §2).
+
 ### Organization of Control Read/Write Values
-**Citation**: *Section 19*
+**Citation**: *Organization of Control Read/Write Values, pp. 19–20*
 > "Control operations that rely on a group of settings must have a register to control the activation (enabling / disabling) of the control. To facilitate that goal, the following guidelines are recommended:
-> - Related writable settings fields are organized in a contiguous block.
-> - **Activation fields are located at the end of the settings block.**"
+> - Related writable settings field are organized in a contiguous block
+> - **Activation fields are located at the end of the settings block**
+> - Activation fields only operate on the behavior related to that settings block"
 
 ---
 
 ## 6. Logical vs. Wire Addressing (The PDU Basis)
 
-**Source**: *SunSpec Information Model Overview, Section 18*
+**Source**: *#12041 v1.9, Base and Alternate Base Register Addresses, p. 17*: "Preferred Base Register: 40001", "Alternate Base Register: 50001", "Alternate Base Register: 00001", and "To read register 40001, use the hexadecimal offset of 0x9C40 (40000) on the wire." The other two offsets follow the same rule.
 
 | Type | Logical Address | Wire/PDU Offset (Hex) |
 |:---|:---:|:---:|
@@ -104,26 +109,31 @@ When our test (following the basis above) returns a failure, we classify it as a
 
 ## 7. Error Handling & Unimplemented Behavior
 
-**Source**: *SunSpec Information Model Overview, Section 18-19*
+**Source**: *#12041 v1.9, Error Handling, p. 19*
 
 ### Read-Only Registers (The "Silent Discard" Basis)
-> "The following behavior is defined when attempting to write to a read-only register: **WRITE to R: The written value is ignored. No exception is generated.**"
+> "The following behavior is defined when attempting to write to a read-only register or read from a write-only register.
+> - **WRITE to R: The written value is ignored. No exception is generated.**"
 
 **Validation**:
 This confirms that the aGate returning a Modbus ACK (Success) while failing to update a register (like `WMaxLimPctEna`) is **technically compliant** with the SunSpec standard IF that register is internally flagged as Read-Only by the manufacturer.
 
 ### Unimplemented Registers
 > "Unimplemented registers should have the following behavior:
-> - **READ**: The value returned is the SunSpec unimplemented value (typically `0xFFFF`).
+> - **READ**: The value returned is the SunSpec unimplemented value.
 > - **WRITE**: The written value is ignored. No exception is generated."
+
+The unimplemented value depends on the type, for example `0xFFFF` for `uint16` and `0x8000` for `sunssf` (p. 16).
 
 **Validation**:
 This explains why `WChaRteMax` (259) returns `0xFFFF`. It is the official SunSpec way of saying the feature is not supported in this firmware version.
 
 ### Invalid Setting Value (The "Validation Failure" Basis)
 > "When a setting is written with an unsupported value for the implementation, the following must occur:
-> - **An exception '3' Illegal Data Value must be returned** and processing of the write operation must terminate."
+> - **An exception "3" Illegal Data Value must be returned** and processing of the write operation must terminate. Previous registers may have been written but no subsequent registers can be written.
+> - Such limitations must be documented in the PICS"
 
-**Violation**:
-The aGate **violates** this requirement. It accepts `WSetPct=1500` (which is 1500% power) without returning Exception 3. This indicates a lack of mandatory input validation at the Modbus layer.
+**Violation (V10R01B04D00)**: the aGate accepted `WSetPct` = 1500 raw (150 %, scale −1) without exception 3 (2026-03-13).
+
+**On V12R02B60D00**: the aGate returns exception 3 for `WSetPct` above 100 raw (10.0 %) and for every negative `WSetPct` or `WSet` (#104). That is the required response, but the limits are not documented in the PICS, which the same page requires.
 
