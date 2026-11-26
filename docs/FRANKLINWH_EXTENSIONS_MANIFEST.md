@@ -18,7 +18,7 @@ Several proprietary registers map directly to standard SunSpec Info Points. This
 | **15013**        | ModelID (Internal) | **701**    | `ID`   | - | - | Matches Model 701 ID |
 | **15017**        | TmpAmb (Internal) | **701**    | `TmpAmb`| °C | - | Matches 701.TmpAmb (scaled) |
 | **15020**        | WHRtg (Internal) | **713**    | `WHRtg`| Wh | - | Matches 13600 WH |
-| **15022**        | NPt (Internal)   | **705**    | `NPt`  | - | - | Matches 705.NPt |
+| **15022**        | NPt (Internal)   | **705**    | `NPt`  | - | - | Matches 705.NPt. **Overtaken:** 15022 is M701 `W` (2026-11-17, #132) |
 | **15025**        | V_LNV (Internal) | **701**    | `LNV`  | V | -1 | Matches 241.8V (2380-2418) |
 | **15036**        | SoH (Internal)   | **713**    | `SoH`  | % | -1 | Matches 95.6% (956) |
 | **15506**        | LoadActiveP      | **714**    | `DCW`? | W | 0 | **Speculation**: Often matches 714.DCW when IDLE/balanced. |
