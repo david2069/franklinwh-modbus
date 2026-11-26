@@ -935,14 +935,20 @@ class FranklinWHController:
         """Read solar status from Model 502 (AC output), Model 714 (battery DC), and extensions.
 
         A model that fails to read is listed in 'partial' (e.g. ['502']) and its
-        keys are left out, rather than reported as 0.
+        keys are left out, rather than reported as 0. If every model fails and
+        the extension read returns nothing, the read has failed: {} is returned
+        and counted in consecutive_failures, as for the other reads (#150).
         """
         def _do_read():
             partial = []
+            errors = []
+            attempted = 0
+            ext_solar = None
             # Model 502 - Solar AC Output (for AC-coupled systems like aGate X)
             m502 = self.get_model(502)
             solar_ac_power = 0
             if m502:
+                attempted += 1
                 try:
                     m502.read()
                     sf_w = self._get_scale_factor(m502, 'W_SF')
@@ -952,12 +958,13 @@ class FranklinWHController:
                     self._record_partial_success('502')
                 except Exception as e:
                     partial.append('502')
-                    self._record_partial_failure('502', e)
+                    errors.append(e)
             
             # Model 714 - Battery DC Power (not solar!)
             m714 = self.get_model(714)
             battery_dc_power = 0
             if m714:
+                attempted += 1
                 try:
                     m714.read()
                     sf_w = self._get_scale_factor(m714, 'DCW_SF')
@@ -965,7 +972,7 @@ class FranklinWHController:
                     self._record_partial_success('714')
                 except Exception as e:
                     partial.append('714')
-                    self._record_partial_failure('714', e)
+                    errors.append(e)
             
             solar_status = {}
             if '502' not in partial:
@@ -990,6 +997,11 @@ class FranklinWHController:
             except Exception as e:
                 logger.debug(f"Could not read extension solar: {e}")
             
+            if attempted and len(errors) == attempted and not ext_solar:
+                # Nothing answered: a failed read, not a partial one (#150)
+                raise errors[-1]
+            for model, e in zip(partial, errors):
+                self._record_partial_failure(model, e)
             if partial:
                 solar_status['partial'] = partial
             return solar_status

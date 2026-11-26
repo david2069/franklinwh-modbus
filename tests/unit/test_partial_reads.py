@@ -132,3 +132,31 @@ class TestSolarStatus:
         assert 'partial' not in result
         assert result['ac_power_w'] == 3000
         assert result['battery_dc_power_w'] == 0
+
+    # #150: nothing answered is a failed read, not a partial one
+    def test_all_models_failing_is_a_failed_read(self, real_ctrl, caplog):
+        with _use(real_ctrl, {502: _failing(_m502()), 714: _failing(_m714())}), \
+             patch.object(real_ctrl, '_read_extension_solar', return_value=None), \
+             patch.object(real_ctrl, 'reconnect', return_value=False), \
+             caplog.at_level(logging.DEBUG, logger='franklinwh_modbus.controller'):
+            result = real_ctrl.read_solar_status()
+        assert result == {}
+        assert real_ctrl.consecutive_failures == 1
+        assert real_ctrl.last_success_ts is None
+        assert 'solar status' in real_ctrl.last_error
+
+    def test_all_models_failing_with_extension_is_partial(self, real_ctrl):
+        with _use(real_ctrl, {502: _failing(_m502()), 714: _failing(_m714())}), \
+             patch.object(real_ctrl, '_read_extension_solar', return_value={'total_solar': 2500}):
+            result = real_ctrl.read_solar_status()
+        assert result['partial'] == ['502', '714']
+        assert result['ac_power_w'] == 2500
+        assert real_ctrl.consecutive_failures == 0
+
+    def test_only_discovered_model_failing_is_a_failed_read(self, real_ctrl):
+        with _use(real_ctrl, {502: _failing(_m502())}), \
+             patch.object(real_ctrl, '_read_extension_solar', return_value=None), \
+             patch.object(real_ctrl, 'reconnect', return_value=False):
+            result = real_ctrl.read_solar_status()
+        assert result == {}
+        assert real_ctrl.consecutive_failures == 1
