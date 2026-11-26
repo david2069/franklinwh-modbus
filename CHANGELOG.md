@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `read_solar_status()`: a poll where every discovered model fails and the extension read returns nothing is now a failed read. It reconnects and retries, then returns `{}` and counts in `consecutive_failures`, like the other reads. Before, it returned `{'partial': ['502', '714']}` and counted as a successful read, so a dead link looked live. Code that treated `partial` alone as "no reply" should also check for `{}` (#150).
+
 ### Docs
 - Model 705 volt-var: the curve point voltages (`Crv[n].Pt[n].V`) are in volts, not percent of nominal as the SunSpec model says. Seen on V10R01B04D00 and V12R02B60D00 (207 / 220 / 240 / 258 V). `VRef` and `Var` are in percent as specified (#146).
 - Extension registers from an evening read-only run (2026-11-06), a week of the Modbus bridge's point history and the Direct Connect bridge's metrics (#132). 15013 is confirmed as battery power both ways: positive = discharging, negative = charging. 15035 = SoC × 10 is confirmed over 0–100 %. 15016 status values: 2 normal, 6 dispatch, 3 likely off-grid, 1 likely start-up. 15040 is inferred to be PV power (int16) as Direct Connect reports it, reading −9 W after dark. 15006–15007, 15014–15015 and 15022 are still unknown.
